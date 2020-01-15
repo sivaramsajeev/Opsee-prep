@@ -1,4 +1,62 @@
 
+###############################################################################################################
+#below declarative vs scripted
+stage ('Test 3: Master') {
+    when { branch 'master' }
+    steps { 
+        echo 'I only execute on the master branch.' 
+    }
+}
+
+stage ('Test 3: Dev') {
+    when { not { branch 'master' } }
+    steps {
+        echo 'I execute on non-master branches.'
+    }
+}
+
+########################
+
+node {
+    stage('Example') {
+        if (env.BRANCH_NAME == 'master') {
+            echo 'I only execute on the master branch'
+        } else {
+            echo 'I execute elsewhere'
+        }
+    }
+}
+
+
+#############################
+pipeline {
+    agent any
+
+    stages {
+        stage('test') {
+            steps {
+                sh 'echo hello'
+            }
+        }
+        stage('test1') {
+            steps {
+                sh 'echo $TEST'
+            }
+        }
+        stage('test3') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        echo 'I only execute on the master branch'
+                    } else {
+                        echo 'I execute elsewhere'
+                    }
+                }
+            }
+        }
+    }
+}
+###########################################################################################################
 class Example {
    static void main(String[] args) {
       // Using a simple println statement to print output to the console
