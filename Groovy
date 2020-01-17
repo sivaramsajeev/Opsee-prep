@@ -386,5 +386,61 @@ currentBuild.displayName = "hello"  // replaces the job number
 currentBuild.description = "world"  // Writes text under the job number
 
 
+################################################################################################################################
+
+curl -I -u auto:<userpasswd> http://<jenkins_server>/job/test/build?token=wefiytgwiefiweihfqweiodf
+
+curl -I -u auto:<user_api_token> http://<jenkins_Server>/job/test/build?token=wefiytgwiefiweihfqweiodf
+
+## proxy causing Jenkins loading to wait  tcpdump saved 
+/usr/bin/java -Djava.net.preferIPv4Stack=true -Dhttp.proxyHost=10.21.92.40 -Dhttp.proxyPort=3128 -Dhttps.proxyHost=10.21.92.40 -Dhttps.proxyPort=3128 -jar /usr/share/jenkins/jenkins.war --webroot=/var/cache/jenkins/war --httpPort=8080
+
+
+stage('Approval') {
+    when { 
+        branch "qa"
+    }
+    input {
+        message "Approve release?"
+        ok "Yes"
+        parameters {
+            string(name: 'IS_APPROVED', defaultValue: 'Yes', description: 'Approve?')
+        }
+    }
+    steps {
+        echo "Commit to master"
+    }
+}
+
+
+First, I think you need to add an id attribute to your input.
+
+Then, you can send a POST request to one of these:
+
+http://yourjenkins/job/${YOUR_PROJECT}/${BUILD_NUMBER}/input/${INPUT_ID}/abort
+
+This will cancel your job and ignore any parameter.
+
+http://yourjenkins/job/${YOUR_PROJECT}/${BUILD_NUMBER}/input/${INPUT_ID}/proceedEmpty
+
+This will resume your job and ignore any parameter.
+
+http://yourjenkins/job/${YOUR_PROJECT}/${BUILD_NUMBER}/input/${INPUT_ID}/submit
+
+
+You could use the Groovy flow control to break the build - you just need a step to execute the test:
+
+Following the example on the link :
+
+node {
+    stage('CheckLog') {
+      steps {
+        if (manager.logContains('.*myTestString.*')) {
+          error("Build failed because of this and that..")    
+        }
+      }
+    }
+    
+    
 
 
