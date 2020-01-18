@@ -23,6 +23,36 @@ pipeline {
 
 #################################################################################################
 
+#########################double quote making the difference############################ 
+pipeline {
+    agent 'any'
+    
+    environment {
+        docker_file = 'available'
+        }
+     stages {
+        stage ('Addition or subtraction') {
+                steps {
+                    sh 'printenv'
+                    }
+                }
+        
+        stage ('Env printing') {
+            steps{
+                echo "$env.BUILD_ID"
+                echo env.BUILD_ID
+                echo docker_file
+                echo JOB_NAME+':'+BUILD_ID
+                echo "i am naming the container as ${JOB_NAME}:${BUILD_ID}"
+                }
+            }
+        
+        }
+}
+
+
+#########################################################################################
+
 
 pipeline {
     agent 'any'
