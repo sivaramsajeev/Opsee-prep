@@ -381,10 +381,10 @@ triggers {
 }
 
 ####################################################################################################################################################
-
-currentBuild.displayName = "hello"  // replaces the job number
-currentBuild.description = "world"  // Writes text under the job number
-
+script{
+	currentBuild.displayName = "hello"  // replaces the job number
+	currentBuild.description = "world"  // Writes text under the job number
+}
 
 ################################################################################################################################
 
