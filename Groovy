@@ -81,6 +81,38 @@ pipeline {
 
 
 ###############################################################################################################
+
+
+// Define variables (based on parameters set in a Jenkins job)
+// and convert them to lowercase
+def role = params.ROLE.toLowerCase()
+def env = params.ENVIRONMENT.toLowerCase()
+
+// Conditionally define a variable 'impact'
+if (role == 'front' && env == 'prod') {
+  impact = "high"
+} else if (role == 'front' && env == 'dev') {
+  impact = "low"
+} else if (role == 'db' && env == 'stg') {
+  impact = "medium"
+} else {
+  impact = "unknown"
+}
+
+// Print the 'impact' variable in a Jenkins declarative pipeline
+pipeline {
+  agent any
+  stages {
+    stage ("Impact") {
+      steps {
+        echo "The impact is ${impact}"
+      }
+    }
+  }
+}
+
+
+###############################################################################################################
 #below declarative vs scripted
 stage ('Test 3: Master') {
     when { branch 'master' }
