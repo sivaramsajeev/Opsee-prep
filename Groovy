@@ -1,4 +1,24 @@
 
+
+pipeline {
+     agent { label 'master' }
+     stages {
+         stage('deploy') {
+             steps {
+                 retry(3) {
+                    sh 'timeout 5s ssh -q google.com'
+                 }
+                 timeout(time: 3, unit: 'MINUTES') {
+                    sh 'echo checking health...'
+                 }            
+             }
+         }
+     }
+}
+
+
+################################################################################################
+
 pipeline {
   agent { docker 'python:3.5.1' }
   stages {
