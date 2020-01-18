@@ -1,5 +1,191 @@
 
 
+
+
+pipeline {
+	agent any	 
+	
+	stages {
+		stage('Unit test') {
+			steps {				
+ 			    sh 'serverless --help' // to ensure it is installed
+			}
+		}			
+		
+		stage('Integration test') {
+			steps {
+				sh 'serverless deploy --stage dev'
+				sh 'serverless invoke --stage dev --function hello'					
+			}
+		}
+				
+		
+	 	stage('Production') {
+			when {
+			   branch "master"
+			}
+			steps {	
+			    parallel (
+				    'us-east-1' : {
+					  sh 'serverless deploy --stage production --region us-east-1'  
+					  sh 'serverless invoke --stage production --region us-east-1 --function hello'
+				    },
+				    'ap-southeast-2' : {
+					  sh 'serverless deploy --stage production --region ap-southeast-2'  
+					  sh 'serverless invoke --stage production --region ap-southeast-2 --function hello'  
+				    }
+				    
+		            )
+			}	
+		}
+		
+		stage('Teardown') {
+			steps {				
+				echo 'No need for DEV environment now, tear it down'
+				sh 'serverless remove --stage dev'	
+			}
+		}
+	 
+	 }
+	
+	
+	 environment {
+	 		AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+			AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+	 }
+
+
+######################################################################################################
+
+pipeline {
+    agent { label '' }
+    stages {
+        stage("test") {
+            steps {
+                parallel (
+                    "Firefox" : {
+                        sh "echo testing FFX"
+                        sh "echo more steps"
+                    },
+                    "Chrome" : {
+                        sh "echo testing Chrome"
+                        sh "echo more steps"
+                    }
+                }
+            )
+        }
+    }    
+}
+
+
+#########################################################################################################
+
+
+pipeline {
+    agent none
+    stages {
+        stage("distribute") {
+            steps {
+                parallel (
+                    "windows" : {
+                        node('windows') {
+                            bat "print from windows"    
+                        }
+                    },
+                    "mac" : {
+                        node('osx') {
+                            sh "echo from mac"    
+                        }
+                    },
+                    "linux" : {
+                        node('linux') {
+                            sh "echo from linux"    
+                        }
+                    }
+                }                
+            )
+        }
+    }    
+}
+
+
+
+
+##############################################################################################################
+
+You can also access credentials (ie. secrets) and set them to environment variables. For example:
+
+	 environment {
+	 		AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+			AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+                 	 }
+			 
+##################################################################################################################
+
+if you use username and password style of credentials, this is slightly different:
+
+environment {
+   SAUCE_ACCESS = credentials('sauce-lab-dev')
+}
+This will actually set 3 variables:
+
+SAUCE_ACCESS containing <username>:<password>
+SAUCE_ACCESS_USR containing the username
+SAUCE_ACCESS_PSW containing the password
+
+############################################################################################################
+post {
+   success {
+      archive "target/**/*"
+   }
+}
+
+post {
+  always {
+    junit "path/to/xml"
+  }
+}
+
+
+
+
+pipeline {
+    agent { docker "java" }
+    stages {
+        stage("build") {
+            steps {
+                sh 'mvn clean install -Dmaven.test.failure.ignore=true'
+            }
+        }
+    }
+    post {
+        always {
+            archive "target/**/*"
+            junit 'target/surefire-reports/*.xml'
+        }
+    }
+}
+
+#################################################################################################
+
+ post {
+        success {
+            mail to:"me@example.com", subject:"SUCCESS: ${currentBuild.fullDisplayName}", body: "Yay, we passed."
+        }
+        failure {
+            mail to:"me@example.com", subject:"FAILURE: ${currentBuild.fullDisplayName}", body: "Boo, we failed."
+        }
+        unstable {
+            mail to:"me@example.com", subject:"UNSTABLE: ${currentBuild.fullDisplayName}", body: "Huh, we're unstable."
+        }
+        changed {
+            mail to:"me@example.com", subject:"CHANGED: ${currentBuild.fullDisplayName}", body: "Wow, our status changed!"
+        }
+    }
+
+
+#######################################################################################################
+
 pipeline {
      agent { label 'master' }
      stages {
@@ -15,6 +201,97 @@ pipeline {
          }
      }
 }
+
+#########################################################################################
+
+We can compose these steps together. For example, if we wanted to retry our deployment 5 times, but never want to spend more than 3 minutes before failing the pipeline stage:
+
+   timeout(time: 3, unit: 'MINUTES') {
+       retry(5) {    
+           sh 'echo deploying'
+           sh 'echo verifying...'
+       }
+   }
+
+
+##################################################################################################
+
+pipeline {
+    agent { label 'master' }
+    stages {
+       stage('test') {
+          steps {
+             sh 'fail me please'
+          }
+       }
+    }
+
+    post {
+        always {
+          sh 'This will always run'
+        }
+        success {
+          sh 'This will run only if successful'
+        }
+        failure {
+          sh 'This will run only if failed'
+        }
+        unstable {
+          sh 'This will run only if the run was marked as unstable'
+        }
+        changed {
+          sh 'This will run only if the state of the Pipeline has changed')
+          sh 'For example, the Pipeline was previously failing but is now successful'
+        }
+    }
+}
+
+#############################################################################################
+
+pipeline {
+    agent {
+        docker 'node'
+    }
+    stages {
+        stage("testing 123") {
+            steps {
+                sh 'node --version'
+            }
+        }
+    }
+}
+
+## also can use Dockerfile with agent { dockerfile true },
+
+
+
+#######################################################################################
+
+pipeline {
+  agent {
+    label 'whatever'
+  }
+  stages {
+    stage('build') {
+      steps {
+        sh "./build-artifact.sh"
+      }
+    }
+    stage('test in docker') {
+      agent {
+        docker {
+          image 'ubuntu:16.04'
+          reuseNode true
+        }
+      }
+      steps {
+        sh "./run-tests-in-docker.sh"
+      }
+    }
+  }
+}
+
+
 
 
 ################################################################################################
