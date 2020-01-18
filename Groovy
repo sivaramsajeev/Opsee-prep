@@ -629,5 +629,58 @@ script {
 	
 ################################################################################################
 
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam(defaultValue: true, description: '', name: 'userFlag')
+    }
+
+    stages {
+        stage("foo") {
+            steps {
+                echo "flag: ${params.userFlag}"
+            }
+        }
+    }
+}
+
+You can ask for string input:
+
+string(defaultValue: true, description: '', name: 'userFlag')
+You can also ask for multiple choice items, and stack up the input required:
+
+    parameters {
+        string(defaultValue: "TEST", description: 'What environment?', name: 'userFlag')
+        choice(choices: ['US-EAST-1', 'US-WEST-2'], description: 'What AWS region?', name: 'region')
+    }
+    
+    
+
+##############################################################################################
+
+
+pipeline {
+    agent any
+
+    parameters {
+        string(defaultValue: "TEST", description: 'What environment?', name: 'userFlag')
+        choice(choices: ['US-EAST-1', 'US-WEST-2'], description: 'What AWS region?', name: 'region')
+        }
+
+    stages {
+        stage("foo") {
+            steps {
+                echo "Environment value : ${params.userFlag}"
+                echo "AWS region: ${params.region}"
+                
+            }
+        }
+    }
+}
+
+
+
+########################################################################################
 
 
