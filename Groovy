@@ -21,6 +21,35 @@ pipeline {
 }
 
 
+#################################################################################################
+
+
+pipeline {
+    agent 'any'
+    
+    environment {
+        docker_file = 'available'
+    }
+     stages {
+        stage ('Addition or subtraction') {
+            steps {
+                script {
+                    sh 'printenv'
+                   if ( docker_file == 'avaiable') {
+                       echo "Docker file in place "
+                   }
+                   else {
+                       echo "File Not Found"
+                   }
+                }
+            }
+        }
+     }
+}
+
+
+
+
 ###############################################################################################################
 #below declarative vs scripted
 stage ('Test 3: Master') {
