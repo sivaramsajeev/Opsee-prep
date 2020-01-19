@@ -1,0 +1,34 @@
+gcloud command line installation (req python 2) --> download the tarball & follow doc 
+
+APIs -> enable APIs & services for gce & k8s
+
+gcloud components list --> gcloud components install kubectl 
+gcloud config list    , gclud compute regions list , gcloud compute zones list 
+gcloud config set compute/zone europe-west-1c
+
+For GKE demo, from console with micro instance & default K8s version 
+
+gcloud containers clutser create/dalete demo-clutser --zone "" --machine-type ""
+
+-> connect via terminal or cloud shell 
+
+kubectl cluster-info
+
+
+watch kubectl get all -o wide   --> in one terminal 
+
+kubectl run nginx-deploy --image nginx --replicas 2   --> deployment 
+
+then edit possible from console since it shows yaml 
+
+kubectl describe nginx-deploy
+
+kubectl scale deploy nginx-deploy --replicas=4  --> 3 microinstances wont allow 4 pods
+
+shell into container from console by kubectl -> exec == kubectl exec -it <pod> -- /bin/sh
+
+creating service from console itself by using 'expose' 
+
+
+
+
