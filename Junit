@@ -1,7 +1,38 @@
+Test driven methodology ==> test cases are written before the code
+
+static methods dont need class to initialize
+
+In A CICD pipeline U dont have eclipse installed to right click and run as junit test case instead need to integrate with maven
+to take care --> maven surefire plugin 
+
+<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-plugin -->
+<dependency>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>3.0.0-M4</version>
+</dependency>
+
+maven goals : test
+###from https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-surefire-plugin/3.0.0-M4
+
+
+No news is good news --> default is True
+
 Junit5 != junit4 + 1
 
 Jupiter --> Api of Junit (5th Planet) { Interacts with underlying platfrom of junit}
 
+System.out.println is not the way but junit way of assertion to inform results   
+	-->  assertEquals(2, mathUtils.add(1, 1),"Give the description of the test handy for huge code base")
+
+llly assertArrayEquals(arr1,arr2), assertIterableEquals(iter1,iter2),assertThrows(ArithmeticException.class, () -> mathUtils.divide(1, 0), 
+				"Divide should throw ArithmeticException when denominator is zero");{for exceptions}
+
+
+An aniti-pattern is declaring variables and using them inside test cases and modifying them creating a dependency between test cases
+but Junit5 doesnt allow it since it creates a new instance for every test 
+
+#########################################################################
 package io.javabrains.utils;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +46,7 @@ class MathUtilsTest {
 	private MathUtils mathUtils;
 	
 	
-	@BeforeEach
+	@BeforeEach               #################avoids initializing it before each test cases
 	void initEach() {
 		mathUtils = new MathUtils();
 	}
