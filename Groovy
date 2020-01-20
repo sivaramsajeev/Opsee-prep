@@ -1,3 +1,78 @@
+#####################################marking build as failure####################################################
+
+You should use Jenkinsfile to wrap your build script and simply mark the current build as UNSTABLE by using currentBuild.result = "UNSTABLE".
+
+   stage {
+      status = /* your build command goes here */
+      if (status === "MARK-AS-UNSTABLE") {
+        currentBuild.result = "UNSTABLE"
+      }
+   }
+   
+##################################################################OR 
+
+you should also be able to use groovy and do what textfinder did
+
+marking a build as un-stable with groovy post-build plugin
+
+if(manager.logContains("Could not login to FTP server")) {
+    manager.addWarningBadge("FTP Login Failure")
+    manager.createSummary("warning.gif").appendText("<h1>Failed to login to remote FTP Server!</h1>", false, false, false, "red")
+    manager.buildUnstable()
+}
+Also see Groovy Postbuild Plugin
+
+
+####################################################or 
+
+
+
+Use the Text-finder plugin.
+
+Instead of exiting with status 1 (which would fail the build), do:
+
+if ($build_error) print("TESTS FAILED!");
+Than in the post-build actions enable the Text Finder, set the regular expression to match the message you printed (TESTS FAILED!)
+and check the "Unstable if found" checkbox under that entry.
+
+
+
+#######################################or
+
+
+It can be done without printing magic strings and using TextFinder. Here's some info on it.
+
+Basically you need a .jar file from http://yourserver.com/cli available in shell scripts, then you can use the following command to mark a build unstable:
+
+java -jar jenkins-cli.jar set-build-result unstable
+To mark build unstable on error, you can use:
+
+failing_cmd cmd_args || java -jar jenkins-cli.jar set-build-result unstable
+The problem is that jenkins-cli.jar has to be available from shell script. You can either put it in easy-to-access path, or download in via job's shell script:
+
+wget ${JENKINS_URL}jnlpJars/jenkins-cli.jar
+
+######################################################################################################################
+
+To stop further execution when command fails:
+
+command || exit 0
+
+To continue execution when command fails:
+
+command || true
+
+
+74
+
+Jenkins is executing shell build steps using /bin/sh -xe by default. -x means to print every command executed. -e means to exit with failure if any of the commands in the script failed.
+
+So I think what happened in your case is your git command exit with 1, and because of the default -e param, the shell picks up the non-0 exit code, ignores the rest of the script and marks the step as a failure. We can confirm this if you can post your build step script here.
+
+If that's the case, you can try to put #!/bin/sh so that the script will be executed without option; or do a set +e or anything similar on top of the build step to override this behavior.
+
+
+
 gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
 
 #######################################################################################
@@ -995,5 +1070,19 @@ pipeline {
 
 
 ########################################################################################
+
+
+The simplest solution is to completely disable security - change true to false in /var/lib/jenkins/config.xml file.
+
+<useSecurity>true</useSecurity>
+Then just restart Jenkins, by
+
+sudo service jenkins restart
+And then go to admin panel and set everything once again
+
+sed -i 's/<useSecurity>true/<useSecurity>false/' ~/config.xml
+
+##############################################################################################
+
 
 
