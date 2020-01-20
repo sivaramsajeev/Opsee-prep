@@ -1,0 +1,4 @@
+
+
+df -i .   ---> find . -xdev -empty -print |wc -l
+
