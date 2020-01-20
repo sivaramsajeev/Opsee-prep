@@ -1,0 +1,20 @@
+
+Running Docker inside Docker (a.k.a. dind), while possible, should be avoided, if at all possible. (Source provided below.) Instead, you want to set up a way for your main container to produce and communicate with sibling containers.
+
+Jérôme Petazzoni — the author of the feature that made it possible for Docker to run inside a Docker container — actually wrote a blog post saying not to do it. The use case he describes matches the OP's exact use case of a CI Docker container that needs to run jobs inside other Docker containers.
+
+Petazzoni lists two reasons why dind is troublesome:
+
+It does not cooperate well with Linux Security Modules (LSM).
+It creates a mismatch in file systems that creates problems for the containers created inside parent containers.
+From that blog post, he describes the following alternative,
+
+[The] simplest way is to just expose the Docker socket to your CI container, by bind-mounting it with the -v flag.
+
+Simply put, when you start your CI container (Jenkins or other), instead of hacking something together with Docker-in-Docker, start it with:
+
+docker run -v /var/run/docker.sock:/var/run/docker.sock ...
+Now this container will have access to the Docker socket, and will therefore be able to start containers. Except that instead of starting "child" containers, it will start "sibling" containers.
+
+###########################################################################################################################################
+
