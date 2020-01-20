@@ -1142,4 +1142,13 @@ pipeline {
 
 ##########################################################################################################################
 
+Enter the following Groovy script to iterate over the installed plugins and print out the relevant information:
+
+Jenkins.instance.pluginManager.plugins.each{
+  plugin -> 
+    println ("${plugin.getDisplayName()} (${plugin.getShortName()}): ${plugin.getVersion()}")
+}
+
+######################################################################################################################
+
 
