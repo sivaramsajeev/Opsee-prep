@@ -34,3 +34,77 @@
 This is done using the conditional execution using when
 
 ################################################################################################################
+
+Facts
+
+These are variables that contain information pertinent to the current host (inventory_hostname). They are only available if gathered first.
+
+ansible_facts Contains any facts gathered or cached for the inventory_hostname Facts are normally gathered by the setup module automatically in a play, but any module can return facts.
+
+ansible_local Contains any ‘local facts’ gathered or cached for the inventory_hostname. The keys available depend on the custom facts created. See the setup module for more details.
+
+As an example:
+
+ansible -i localhost, all -c local -m setup -a filter=*swap*
+localhost | SUCCESS => {
+    "ansible_facts": {
+        "ansible_swapfree_mb": 437,
+        "ansible_swaptotal_mb": 979
+    },
+    "changed": false
+}
+In your playbook your task to reset swap should then have the conditional like:
+
+when: ansible_swap_free_mb < 500
+
+In your case, however you  want to trigger on swap used, so you would have to compute the difference between total and free.
+
+################################################################################################################
+
+---
+- hosts: hostnametest
+  tasks:
+   - name: we take swap space used (megabytes)
+     shell : free -m | grep Swap | awk '{print $3}'
+     register: swap_used
+
+   - name: Turn off swap
+     shell: "swapoff -a"
+     when: (swap_used.stdout_lines[0] | int) > 100
+
+   - name: Turn on swap
+     shell: "swapon -a"
+     when: (swap_used.stdout_lines[0] | int) > 100
+     
+     
+   ##############################################################################################################
+   
+    - name: run script
+   shell: runuser -l testuser -c "/tmp/test.sh"
+   register: myshell_output
+ - name: copy output to a local file
+   lineinfile:
+     dest: /thesaurus/output
+     line: "{{ item }}"
+     insertafter: EOF
+   with_items:
+    - "#####################Beginning##########################"
+    - "{{ myshell_output.stdout }}"
+    - "########################END#############################"
+   delegate_to: localhost
+   
+   
+    This can be done with either of the
+
+tree or
+log_plays
+modules.
+
+I would probably suggest the log_plays module in your case.
+
+
+#########################################################################################################
+
+
+
+
