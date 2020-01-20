@@ -8,7 +8,7 @@ gcloud config set compute/zone europe-west-1c
 
 For GKE demo, from console with micro instance & default K8s version 
 
-gcloud containers clutser create/dalete demo-clutser --zone "" --machine-type ""
+gcloud container clusters create "demo-clutser" --zone "us-central1-a" --machine-type "f1-micro"
 
 -> connect via terminal or cloud shell 
 
@@ -28,6 +28,8 @@ kubectl scale deploy nginx-deploy --replicas=4  --> 3 microinstances wont allow 
 shell into container from console by kubectl -> exec == kubectl exec -it <pod> -- /bin/sh
 
 creating service from console itself by using 'expose' 
+
+For service , kubectl expose deployment hello-node --type=LoadBalancer --port=8080
 
 
 
