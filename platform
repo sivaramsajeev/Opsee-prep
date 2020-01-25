@@ -2,3 +2,12 @@
 
 df -i .   ---> find . -xdev -empty -print |wc -l
 
+
+By default, you can always list other users processes in Linux.
+
+To change that, you need to mount proc in /etc/fstab with hidepid=2:
+
+proc            /proc           proc    defaults,hidepid=2
+This functionality is supported from the kernel v3.2 onwards. It hides /proc and consequentially ps activity from all users except root.
+
+
