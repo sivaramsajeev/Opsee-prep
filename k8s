@@ -14,6 +14,25 @@ gcloud container clusters create "demo-clutser" --zone "us-central1-a" --machine
 
 kubectl cluster-info
 
+Think of name spaces as partitions in harddisk. So we can partition cluster by name spaces. No 2 resources with same names in same namespace.
+So partition using name space for using same names.
+
+scp master:/etc/kubernetes/admin.conf  ~/.kube/config
+
+kubectl get namespaces   --> by default in default ns
+
+kubectl create namespace demo
+
+kubectl config view --> parsing the .kube/config values 
+
+kubectl config get-contexts
+
+kubectl config set-context kubesys --namespace=kube-system --user=kubernetes-admin --cluster=kubernetes
+
+kubectl config use-context kubesys  --> to switch context & namespace 
+
+Look in the kube system namespace, kubectl -n(for name space) kube-system get pods  --> Gives you the cluster related pods
+kubectl -n kube-system get pod kube-proxy-dfjj -o yaml > /tmp/mypod.yaml
 
 watch kubectl get all -o wide   --> in one terminal 
 
