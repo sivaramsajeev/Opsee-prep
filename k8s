@@ -50,6 +50,32 @@ creating service from console itself by using 'expose'
 
 For service , kubectl expose deployment hello-node --type=LoadBalancer --port=8080
 
+#####################################################################################################################
+
+Kubernetes uses etcd as its database.
+
+The only nuance is that etcd is a distributed database – because Kubernetes is a distributed system.
+
+etcd manages a lot of the tricky problems in running a distributed database – like race conditions and networking – and saves 
+Kubernetes from worrying about it.
+
+How does Kubernetes use etcd?
+Kubernetes uses etcd as a key-value database store. It stores the configuration of the Kubernetes cluster in etcd.
+
+It also stores the actual state of the system and the desired state of the system in etcd.
+
+It then uses etcd’s watch functionality to monitor changes to either of these two things. If they diverge, Kubernetes makes changes to reconcile the actual state and the desired state.
+
+A Kubernetes cluster stores all its data in etcd.
+
+Anything you might read from a kubectl get xyz command is stored in etcd.
+
+Any change you make via kubectl create will cause an entry in etcd to be updated.
+
+Any node crashing or process dying causes values in etcd to be changed.
+
+The set of processes that make up Kubernetes use etcd to store data and notify each other of changes.
+
 
 
 
