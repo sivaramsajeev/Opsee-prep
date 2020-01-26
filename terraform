@@ -1,3 +1,110 @@
+NOTE: just as reference not to be strictly follow since each project has it's own specific characteristics
+
+.
+├── 1_tf-backend #remote AWS S3 + Dynamo Lock tfstate 
+│   ├── main.tf
+│   ├── ...
+├── 2_secrets
+│   ├── main.tf
+│   ├── ...
+├── 3_identities
+│   ├── account.tf
+│   ├── roles.tf
+│   ├── group.tf
+│   ├── users.tf
+│   ├── ...
+├── 4_security
+│   ├── awscloudtrail.tf
+│   ├── awsconfig.tf
+│   ├── awsinspector.tf
+│   ├── awsguarduty.tf
+│   ├── awswaf.tf
+│   └── ...
+├── 5_network
+│   ├── account.tf
+│   ├── dns_remote_zone_auth.tf
+│   ├── dns.tf
+│   ├── network.tf
+│   ├── network_vpc_peering_dev.tf
+│   ├── ...
+├── 6_notifications
+│   ├── ...
+├── 7_containers
+│   ├── account.tf
+│   ├── container_registry.tf
+│   ├── ...
+├── config
+│   ├── backend.config
+│   └── main.config
+└── readme.md
+
+
+#######################################################################################################################
+
+We use Terraform heavily and our recommended setup is as follows:
+
+File layout
+We highly recommend storing the Terraform code for each of your environments (e.g. stage, prod, qa) in separate sets of templates (and therefore, separate .tfstate files). This is important so that your separate environments are actually isolated from each other while making changes. Otherwise, while messing around with some code in staging, it's too easy to blow up something in prod too. See Terraform, VPC, and why you want a tfstate file per env for a colorful discussion of why.
+
+Therefore, our typical file layout looks like this:
+
+stage
+  └ main.tf
+  └ vars.tf
+  └ outputs.tf
+prod
+  └ main.tf
+  └ vars.tf
+  └ outputs.tf
+global
+  └ main.tf
+  └ vars.tf
+  └ outputs.tf
+All the Terraform code for the stage VPC goes into the stage folder, all the code for the prod VPC goes into the prod folder, and all the code that lives outside of a VPC (e.g. IAM users, SNS topics, S3 buckets) goes into the global folder.
+
+Note that, by convention, we typically break our Terraform code down into 3 files:
+
+vars.tf: Input variables.
+outputs.tf: Output variables.
+main.tf: The actual resources.
+Modules
+Typically, we define our infrastructure in two folders:
+
+infrastructure-modules: This folder contains small, reusable, versioned modules. Think of each module as a blueprint for how to create a single piece of infrastructure, such as a VPC or a database.
+infrastructure-live: This folder contains the actual live, running infrastructure, which it creates by combining the modules in infrastructure-modules. Think of the code in this folder as the actual houses you built from your blueprints.
+A Terraform module is just any set of Terraform templates in a folder. For example, we might have a folder called vpc in infrastructure-modules that defines all the route tables, subnets, gateways, ACLs, etc for a single VPC:
+
+infrastructure-modules
+  └ vpc
+    └ main.tf
+    └ vars.tf
+    └ outputs.tf
+We can then use that module in infrastructure-live/stage and infrastructure-live/prod to create the stage and prod VPCs. For example, here is what infrastructure-live/stage/main.tf might look like:
+
+module "stage_vpc" {
+  source = "git::git@github.com:gruntwork-io/module-vpc.git//modules/vpc-app?ref=v0.0.4"
+
+  vpc_name         = "stage"
+  aws_region       = "us-east-1"
+  num_nat_gateways = 3
+  cidr_block       = "10.2.0.0/18"
+}
+To use a module, you use the module resource and point its source field to either a local path on your hard drive (e.g. source = "../infrastructure-modules/vpc") or, as in the example above, a Git URL (see module sources). The advantage of the Git URL is that we can specify a specific git sha1 or tag (ref=v0.0.4). Now, not only do we define our infrastructure as a bunch of small modules, but we can version those modules and carefully update or rollback as needed.
+
+We've created a number of reusable, tested, and documented Infrastructure Packages for creating VPCs, Docker clusters, databases, and so on, and under the hood, most of them are just versioned Terraform modules.
+
+State
+When you use Terraform to create resources (e.g. EC2 instances, databases, VPCs), it records information on what it created in a .tfstate file. To make changes to those resources, everyone on your team needs access to this same .tfstate file, but you should NOT check it into Git (see here for an explanation why).
+
+Instead, we recommend storing .tfstate files in S3 by enabling Terraform Remote State, which will automatically push/pull the latest files every time you run Terraform. Make sure to enable versioning in your S3 bucket so you can roll back to older .tfstate files in case you somehow corrupt the latest version. However, an important note: Terraform doesn't provide locking. So if two team members run terraform apply at the same time on the same .tfstate file, they may end up overwriting each other's changes.
+
+To solve this problem, we created an open source tool called Terragrunt, which is a thin wrapper for Terraform that uses Amazon DynamoDB to provide locking (which should be completely free for most teams). Check out Add Automatic Remote State Locking and Configuration to Terraform with Terragrunt for more info.
+
+
+
+
+
+###############################################################################################################################################################
 
 You can use an aws_cloudwatch_event_target resource to tie the scheduled event source (event rule) to your lambda function. You need to grant it permission to invoke your lambda function; you can use an aws_lambda_permission resource for this.
 
