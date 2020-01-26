@@ -76,6 +76,19 @@ Any node crashing or process dying causes values in etcd to be changed.
 
 The set of processes that make up Kubernetes use etcd to store data and notify each other of changes.
 
+#########################################################################################################################
+you can see token value on master node using command:
+
+cat /etc/kubernetes/pki/tokens.csv
+
+The commands I used are:
+
+kubeadm token generate
+kubeadm token create <generated-token> --print-join-command --ttl=0
+
+kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{print $2}'
+
+
 
 
 
