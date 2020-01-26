@@ -1,0 +1,212 @@
+
+You can use an aws_cloudwatch_event_target resource to tie the scheduled event source (event rule) to your lambda function. You need to grant it permission to invoke your lambda function; you can use an aws_lambda_permission resource for this.
+
+Example:
+
+resource "aws_lambda_function" "check_foo" {
+    filename = "check_foo.zip"
+    function_name = "checkFoo"
+    role = "arn:aws:iam::424242:role/something"
+    handler = "index.handler"
+}
+
+resource "aws_cloudwatch_event_rule" "every_five_minutes" {
+    name = "every-five-minutes"
+    description = "Fires every five minutes"
+    schedule_expression = "rate(5 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "check_foo_every_five_minutes" {
+    rule = "${aws_cloudwatch_event_rule.every_five_minutes.name}"
+    target_id = "check_foo"
+    arn = "${aws_lambda_function.check_foo.arn}"
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_check_foo" {
+    statement_id = "AllowExecutionFromCloudWatch"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.check_foo.function_name}"
+    principal = "events.amazonaws.com"
+    source_arn = "${aws_cloudwatch_event_rule.every_five_minutes.arn}"
+}
+
+#############################################################################################################
+
+only includes permissions for cloudwatch to invoke the lambda. Have you specified the proper policy and iam role that allows the lambda to perform its actions?
+
+resource "aws_iam_role" "check_foo_role" {
+  name="check-foo-assume-role"
+  assume_role_policy="assume_role_policy.json"
+}
+with assume_role_policy.json
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+and a policy referencing the above resource iam role I.e. something like
+
+resource "iam_role_policy" "check-foo-policy" {
+  name="check-foo-lambda-policy"
+  # referencing the iam role above
+  role="${aws_iam_role.check_foo_role.id}"
+  policy="check-foo-policy.json"
+}
+and finally the json specifying the policy, check-foo-policy.json.
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+  "Effect": "Allow",
+  "Action": [
+    "logs:CreateLogGroup",
+    "logs:CreateLogStream",
+    "logs:PutLogEvents"
+  ],
+  "Resource": ["*"]
+},
+{
+  "Effect": "Allow",
+  "Action": [
+    "abc:SomeAction",
+    "abc:AnotherAction",
+  ],
+  "Resource": "some-arn-matching-the-actions"
+}
+
+
+##########################################################################################################
+
+
+I am also in a state of migrating existing AWS infrastructure to Terraform so shall aim to update the answer as I develop.
+
+I have been relying heavily on the official Terraform examples and multiple trial and error to flesh out areas that I have been uncertain in.
+
+.tfstate files
+
+Terraform config can be used to provision many boxes on different infrastructure, each of which could have a different state. As it can also be run by multiple people this state should be in a centralised location (like S3) but not git.
+
+This can be confirmed looking at the Terraform .gitignore.
+
+Developer control
+
+Our aim is to provide more control of the infrastructure to developers whilst maintaining a full audit (git log) and the ability to sanity check changes (pull requests). With that in mind the new infrastructure workflow I am aiming towards is:
+
+Base foundation of common AMI's that include reusable modules e.g. puppet.
+Core infrastructure provisioned by DevOps using Terraform.
+Developers change Terraform configuration in Git as needed (number of instances; new VPC; addition of region/availability zone etc).
+Git configuration pushed and a pull request submitted to be sanity checked by a member of DevOps squad.
+If approved, calls webhook to CI to build and deploy (unsure how to partition multiple environments at this time)
+Edit 1 - Update on current state
+
+Since starting this answer I have written a lot of TF code and feel more comfortable in our state of affairs. We have hit bugs and restrictions along the way but I accept this is a characteristic of using new, rapidly changing software.
+
+Layout
+
+We have a complicated AWS infrastructure with multiple VPC's each with multiple subnets. Key to easily managing this was to define a flexible taxonomy that encompasses region, environment, service and owner which we can use to organise our infrastructure code (both terraform and puppet).
+
+Modules
+
+Next step was to create a single git repository to store our terraform modules. Our top level dir structure for the modules looks like this:
+
+tree -L 1 .
+Result:
+
+├── README.md
+├── aws-asg
+├── aws-ec2
+├── aws-elb
+├── aws-rds
+├── aws-sg
+├── aws-vpc
+└── templates
+Each one sets some sane defaults but exposes them as variables that can be overwritten by our "glue".
+
+Glue
+
+We have a second repository with our glue that makes use of the modules mentioned above. It is laid out in line with our taxonomy document:
+
+.
+├── README.md
+├── clientA
+│   ├── eu-west-1
+│   │   └── dev
+│   └── us-east-1
+│       └── dev
+├── clientB
+│   ├── eu-west-1
+│   │   ├── dev
+│   │   ├── ec2-keys.tf
+│   │   ├── prod
+│   │   └── terraform.tfstate
+│   ├── iam.tf
+│   ├── terraform.tfstate
+│   └── terraform.tfstate.backup
+└── clientC
+    ├── eu-west-1
+    │   ├── aws.tf
+    │   ├── dev
+    │   ├── iam-roles.tf
+    │   ├── ec2-keys.tf
+    │   ├── prod
+    │   ├── stg
+    │   └── terraform.tfstate
+    └── iam.tf
+Inside the client level we have AWS account specific .tf files that provision global resources (like IAM roles); next is region level with EC2 SSH public keys; Finally in our environment (dev, stg, prod etc) are our VPC setups, instance creation and peering connections etc. are stored.
+
+Side Note: As you can see I'm going against my own advice above keeping terraform.tfstate in git. This is a temporary measure until I move to S3 but suits me as I'm currently the only developer.
+
+Next Steps
+
+This is still a manual process and not in Jenkins yet but we're porting a rather large, complicated infrastructure and so far so good. Like I said, few bugs but going well!
+
+Edit 2 - Changes
+
+It's been almost a year since I wrote this initial answer and the state of both Terraform and myself have changed significantly. I am now at a new position using Terraform to manage an Azure cluster and Terraform is now v0.10.7.
+
+State
+
+People have repeatedly told me state should not go in Git - and they are correct. We used this as an interim measure with a two person team that relied on developer communication and discipline. With a larger, distributed team we are now fully leveraging remote state in S3 with locking provided by DynamoDB. Ideally this will be migrated to consul now it is v1.0 to cut cross cloud providers.
+
+Modules
+
+Previously we created and used internal modules. This is still the case but with the advent and growth of the Terraform registry we try to use these as at least a base.
+
+File structure
+
+The new position has a much simpler taxonomy with only two infx environments - dev and prod. Each has their own variables and outputs, reusing our modules created above. The remote_state provider also helps in sharing outputs of created resources between environments. Our scenario is subdomains in different Azure resource groups to a globally managed TLD.
+
+├── main.tf
+├── dev
+│   ├── main.tf
+│   ├── output.tf
+│   └── variables.tf
+└── prod
+    ├── main.tf
+    ├── output.tf
+    └── variables.tf
+Planning
+
+Again with extra challenges of a distributed team, we now always save our output of the terraform plan command. We can inspect and know what will be run without the risk of some changes between the plan and apply stage (although locking helps with this). Remember to delete this plan file as it could potentially contain plain text "secret" variables.
+
+Overall we are very happy with Terraform and continue to learn and improve with the new features added.
+
+
+###############################################################################################################################################
+
+
+
+
+
+
+
