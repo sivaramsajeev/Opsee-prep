@@ -1,3 +1,89 @@
+I believe there are few best practices need to follow while using terraform for orchestrating the infrastructure
+
+Don't write the same code again ( Reusability)
+Keep environment configuration separate to maintain it easily.
+Use remote backend s3(encrypted) and dynamo DB to handle the concurrency locking
+Create a module and use that module in main infrastructure multiple time, its like a reusable function which can be called multiple time by passing different parameter.
+
+terragrunt get
+terragrunt plan
+terragrunt apply
+terragrunt output
+terragrunt destroy
+###############################################################################################################################
+
+
+Handle multiple environments
+
+Most of the time recommended way is to use terraform 'workspace' to handle the multiple environments but I believe the usage of workspace could vary based on way of work in an organization. Other is storing the Terraform code for each of your environments (e.g. stage, prod, QA) to separate the environment states. However, in this case we are just copying the same code at many places.
+
+├── main.tf
+├── dev
+│   ├── main.tf
+│   ├── output.tf
+│   └── variables.tf
+└── prod
+├── main.tf
+├── output.tf
+└── variables.tf
+I followed some different approach to handle and avoid the duplication of the same terraform code by keeping in each environment folder since I believe most of the time all environment would be 90% same.
+
+├── deployment
+│ ├── 01-network.tf
+│ ├── 02-ecs_cluster.tf
+│ ├── 03-ecs_service.tf
+│ ├── 04-eks_infra.tf
+│ ├── 05-db_infra.tf
+│ ├── 06-codebuild-k8s.tf
+│ ├── 07-aws-secret.tf
+│ ├── backend.tf
+│ ├── provider.tf
+│ └── variables.tf
+├── env
+│ ├── dev
+│ │ ├── dev.backend.tfvar
+│ │ └── dev.variables.tfvar
+│ └── prod
+│ ├── prod.backend.tfvar
+│ └── prod.variables.tfvar
+├── modules
+│ └── aws
+│ ├── compute
+│ │ ├── alb_loadbalancer
+│ │ ├── alb_target_grp
+│ │ ├── ecs_cluster
+│ │ ├── ecs_service
+│ │ └── launch_configuration
+│ ├── database
+│ │ ├── db_main
+│ │ ├── db_option_group
+│ │ ├── db_parameter_group
+│ │ └── db_subnet_group
+│ ├── developertools
+│ ├── network
+│ │ ├── internet_gateway
+│ │ ├── nat_gateway
+│ │ ├── route_table
+│ │ ├── security_group
+│ │ ├── subnet
+│ │ ├── vpc
+│ └── security
+│ ├── iam_role
+│ └── secret-manager
+└── temp
+
+
+
+
+##########################################################################################################################
+
+You are likely to forget to commit and push your changes after running terraform apply, so your teammates will have out-of-date
+.tfstate files. Also, without any locking on these state files, if two team members run Terraform at the same time on the same 
+.tfstate files, you may overwrite each other's changes. You can solve both problems by both a) storing .tfstate files in an S3 bucket
+using Terraform remote state, which will push/pull the .tfstate files automatically every time you run terraform apply and b) using
+a tool like terragrunt to provide locking for your .tfstate files.
+
+#########################################################################################################################
 NOTE: just as reference not to be strictly follow since each project has it's own specific characteristics
 
 .
@@ -311,6 +397,184 @@ Overall we are very happy with Terraform and continue to learn and improve with 
 
 ###############################################################################################################################################
 
+
+
+The IAM Policy data source is great for this. A data resource is used to describe data or resources that are not actively managed by Terraform, but are referenced by Terraform.
+
+For your example, you would create a data resource for the managed policy as follows:
+
+data "aws_iam_policy" "ReadOnlyAccess" {
+  arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+}
+The name of the data source, ReadOnlyAccess in this case, is entirely up to you. For managed policies I use the same name as the policy name for the sake of consistency, but you could just as easily name it readonly if that suits you.
+
+You would then attach the IAM policy to your role as follows:
+
+resource "aws_iam_role_policy_attachment" "sto-readonly-role-policy-attach" {
+  role       = "${aws_iam_role.sto-test-role.name}"
+  policy_arn = "${data.aws_iam_policy.ReadOnlyAccess.arn}"
+}
+
+
+#########################################################################################################################
+
+There's an easier way to do that without any scripts. The trick is having a website such as icanhazip.com which retrieve your IP, so set it in your terraform file as data:
+
+data "http" "myip" {
+  url = "http://ipv4.icanhazip.com"
+}
+And whenever you want to place your IP just use data.http.myip.body, example:
+
+ingress {
+  from_port = 5432
+  to_port = 5432
+  protocol = "tcp"
+  cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+}
+Note I used terraform chomp() method to remove any trailing space or new line which comes with body.
+
+###############################################################################################
+
+refresh - Has an up-to-date understanding of your current infrastructure. This is important in case anything was changed manually, outside of your terraform script.
+plan - Prepares a list for you to review of what terraform intends to modify, or delete (or leave alone).
+apply - Performs the changes laid out in the plan.
+
+######################################################################################################
+
+The supported operators are:
+
+Equality: == and !=
+Numerical comparison: >, <, >=, <=
+Boolean logic: &&, ||, unary !
+
+https://www.terraform.io/docs/configuration/interpolation.html#conditionals
+
+condition_one and condition two:
+
+count = var.condition_one && var.condition_two ? 1 : 0
+condition_one and NOT condition_two:
+
+count = var.condition_one && !var.condition_two ? 1 : 0
+condition_one OR condition_two:
+
+count = var.condition_one || var.condition_two ? 1 : 0
+
+
+You can also use it in other places too such as setting a variable/parameter like this:
+
+variable "env" { default = "development" }
+variable "production_variable" { default = "foo" }
+variable "development_variable" { default = "bar" }
+
+output "example" {
+  value = "${var.env == "production" ? var.production_variable : var.development_variable}"
+}
+
+
+Try adding a sleep after your nohup. Worked for me. I suspect backgrounding your last remote-exec lets Terraform get away with shutting down the connection before the child process has a chance to start up, despite the nohup.
+
+provisioner "remote-exec" {
+    inline = [
+        "nohup sudo command &",
+        "sleep 1"
+    ]
+}
+
+#######################################################################################################
+
+If I were using the AWS CLI I would execute a command like this,
+
+aws cloudformation create-stack --stack-name my-new-stack --template-body file://mystack.yml --parameters ParameterKey=AmiId
+
+I'd like to include the equivalent of this command in my terraform configuration.
+
+
+
+
+
+
+The aws_cloudformation_stack resource serves as a bridge from Terraform into CloudFormation, which can be used either as an aid for migration from 
+CloudFormation to Terraform (as you're apparently doing here) or to make use of some of CloudFormation's features that Terraform doesn't currently handle, 
+such as rolling deployments of new instances into an ASG.
+
+resource "aws_cloudformation_stack" "example" {
+  name = "example"
+  parameters = {
+    VpcId = var.vpc_id
+  }
+  template_body = file("${path.module}/example.yml")
+}
+The parameters argument allows passing data from Terraform into the Cloudformation stack. It's also possible to use the outputs attribute to make use of the results 
+of the CloudFormation stack elsewhere in Terraform, for a two-way integration:
+
+resource "aws_route_53_record" "example" {
+  name = "service.example.com"
+  type = "CNAME"
+  ttl  = 300
+
+  records = [
+    aws_cloudformation_stack.example.outputs["ElbHostname"],
+  ]
+}
+If you have a pre-existing CloudFormation stack that isn't managed by Terraform, you can still make use of its outputs using the aws_cloudformation_stack data 
+source:
+
+data "aws_cloudformation_stack" "example" {
+  name = "example"
+}
+
+resource "aws_route_53_record" "example" {
+  name = "service.example.com"
+  type = "CNAME"
+  ttl  = 300
+
+  records = [
+    data.aws_cloudformation_stack.example.outputs["ElbHostname"],
+  ]
+}
+These features together allow you to effectively mix CloudFormation and Terraform in a single system in different combinations, whether it's as a temporary
+ measure while migrating or permanently in situations where a hybrid solution is desired.
+
+#########################################################################################################
+self - (Optional) If true, the security group itself will be added as a source to this ingress rule.
+
+  ingress {
+      from_port = 0
+      to_port = 0
+      protocol = -1
+      self = true
+  }
+
+
+
+
+
+Data sources can be used for a number of reasons; but their goal is to do something and then give you data.
+
+Let's take the example from their documentation:
+
+# Find the latest available AMI that is tagged with Component = web
+data "aws_ami" "web" {
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+
+  filter {
+    name   = "tag:Component"
+    values = ["web"]
+  }
+
+  most_recent = true
+}
+This uses the aws_ami data source - this is different than a resource! It will instead just give you information, and not create anything. This example in particular
+ will call out to the describe-images AWS API call, pass in a few --filter options as specified, and return an object that you can get information from - 
+take a look at these attributes!
+
+
+
+
+###############################################################################################################################################
 
 
 
