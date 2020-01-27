@@ -1,0 +1,10 @@
+identical machine image for different cloud providers
+
+download the zip & and its a single binary  move it to path 
+
+javahometech/packer/template.json
+
+wherver user used along with variable  need to provide values at run time or create another vars.json and fill in those details 
+
+packer build -var-file=vars.json template.json  --> packer launches ec2 instance,executes the script and takes AMI
+
