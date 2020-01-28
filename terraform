@@ -1,9 +1,17 @@
 I believe there are few best practices need to follow while using terraform for orchestrating the infrastructure
+data resource is most important for interconnection unless using atlassian
 
 Don't write the same code again ( Reusability)
 Keep environment configuration separate to maintain it easily.
 Use remote backend s3(encrypted) and dynamo DB to handle the concurrency locking
-Create a module and use that module in main infrastructure multiple time, its like a reusable function which can be called multiple time by passing different parameter.
+Create a module and use that module in main infrastructure multiple time, its like a reusable function which can be called multiple 
+time by passing different parameter.
+
+Security caveats
+I should point out here that passing private keys around is generally a bad idea and you'd be much better having developers
+create their own key pairs and provide you with the public key that you (or them) can use to generate an AWS key pair (potentially 
+using the aws_key_pair resource as used in the above example) that can then be specified when creating instances.
+
 
 terragrunt get
 terragrunt plan
@@ -127,6 +135,85 @@ NOTE: just as reference not to be strictly follow since each project has it's ow
 
 #######################################################################################################################
 
+You can use an aws_cloudwatch_event_target resource to tie the scheduled event source (event rule) to your lambda function. You need to grant it permission to invoke your lambda function; you can use an aws_lambda_permission resource for this.
+
+Example:
+
+resource "aws_lambda_function" "check_foo" {
+    filename = "check_foo.zip"
+    function_name = "checkFoo"
+    role = "arn:aws:iam::424242:role/something"
+    handler = "index.handler"
+}
+
+resource "aws_cloudwatch_event_rule" "every_five_minutes" {
+    name = "every-five-minutes"
+    description = "Fires every five minutes"
+    schedule_expression = "rate(5 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "check_foo_every_five_minutes" {
+    rule = "${aws_cloudwatch_event_rule.every_five_minutes.name}"
+    target_id = "check_foo"
+    arn = "${aws_lambda_function.check_foo.arn}"
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_check_foo" {
+    statement_id = "AllowExecutionFromCloudWatch"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.check_foo.function_name}"
+    principal = "events.amazonaws.com"
+    source_arn = "${aws_cloudwatch_event_rule.every_five_minutes.arn}"
+}
+
+
+#######################################################################################################################
+
+
+Terraform can generate SSL/SSH private keys using the tls_private_key resource.
+
+So if you wanted to generate SSH keys on the fly you could do something like this:
+
+variable "key_name" {}
+
+resource "tls_private_key" "example" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "generated_key" {
+  key_name   = "${var.key_name}"
+  public_key = "${tls_private_key.example.public_key_openssh}"
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
+}
+
+resource "aws_instance" "web" {
+  ami           = "${data.aws_ami.ubuntu.id}"
+  instance_type = "t2.micro"
+  key_name      = "${aws_key_pair.generated_key.key_name}"
+
+  tags {
+    Name = "HelloWorld"
+  }
+}
+
+
+#######################################################################################################################
 We use Terraform heavily and our recommended setup is as follows:
 
 File layout
