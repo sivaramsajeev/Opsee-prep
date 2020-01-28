@@ -1,0 +1,17 @@
+CloudFormation
+
+creating an S3 bucket with versioning , copy html folder from devops essentials to bucket after modifying permissions of bucket.
+
+mark everything as public  then into ->  CodePipeline going by stages{name,source,build,deploy,service role,review}
+
+source = S3,GitHub,CodeCommit
+build = CodeBuild
+Deploy = CloudFormation,CodeDeploy,Elastic Bean Stalk,OpsWorks
+Invokde = Lambda
+
+add approval stage in codepipeline  & try disabling transition to block pipeline   devopsessentialsaws  
+
+json2yaml site 
+
+create codecommit  unique for region   
+
