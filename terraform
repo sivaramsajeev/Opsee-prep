@@ -1,6 +1,20 @@
 I believe there are few best practices need to follow while using terraform for orchestrating the infrastructure
 data resource is most important for interconnection unless using atlassian
 
+data "aws_ami" "image" {
+  most_recent = true
+  owners = ["self"]
+  filter {                       
+    name = "tag:Application"     
+    values = ["my-app-name"]
+  }                              
+}
+
+output "ami_id" {
+  value = "${data.aws_ami.image.id}"
+}
+
+
 Don't write the same code again ( Reusability)
 Keep environment configuration separate to maintain it easily.
 Use remote backend s3(encrypted) and dynamo DB to handle the concurrency locking
@@ -12,6 +26,7 @@ I should point out here that passing private keys around is generally a bad idea
 create their own key pairs and provide you with the public key that you (or them) can use to generate an AWS key pair (potentially 
 using the aws_key_pair resource as used in the above example) that can then be specified when creating instances.
 
+User data scripts run as root so you don't need to specify sudo.
 
 terragrunt get
 terragrunt plan
@@ -90,6 +105,38 @@ You are likely to forget to commit and push your changes after running terraform
 .tfstate files, you may overwrite each other's changes. You can solve both problems by both a) storing .tfstate files in an S3 bucket
 using Terraform remote state, which will push/pull the .tfstate files automatically every time you run terraform apply and b) using
 a tool like terragrunt to provide locking for your .tfstate files.
+
+#########################################################################################################################
+
+variable "environment" {}
+
+...
+
+variable "instance_types_webserver" {
+  type = "map"
+
+  default = {
+    testing    = "t2.small"
+    qa         = "t2.medium"
+    staging    = "t2.xlarge"
+    production = "t2.xlarge"
+  }
+}
+
+...
+
+resource "aws_opsworks_instance" "verification" {
+  stack_id      = "${aws_opsworks_stack.verification.id}"
+  layer_ids     = ["${aws_opsworks_custom_layer.verification.id}"]
+  instance_type = "${var.instance_types_webserver["${var.environment}"]}"
+  state         = "running"
+  count         = 1
+}
+In the .tfvars file:
+
+...
+environment = "testing"
+
 
 #########################################################################################################################
 NOTE: just as reference not to be strictly follow since each project has it's own specific characteristics
@@ -214,6 +261,28 @@ resource "aws_instance" "web" {
 
 
 #######################################################################################################################
+
+resource "aws_db_instance" "mydb" {
+  allocated_storage    = 10
+  engine               = "mysql"
+  engine_version       = "5.6.17"
+  instance_class       = "db.t2.micro"
+  name                 = "mydb"
+  username             = "foo"
+  password             = "bar"
+  db_subnet_group_name = "my_database_subnet_group"
+  parameter_group_name = "default.mysql5.6"
+}
+
+resource "aws_route53_record" "database" {
+  zone_id = "${aws_route53_zone.primary.zone_id}"
+  name = "database.example.com"
+  type = "CNAME"
+  ttl = "300"
+  records = ["${aws_db_instance.mydb.address}"]
+}
+
+######################################################################################################################
 We use Terraform heavily and our recommended setup is as follows:
 
 File layout
