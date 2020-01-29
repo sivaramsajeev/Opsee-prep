@@ -1,0 +1,273 @@
+For those wondering why it works (as I was at first):
+
+You want to go back to C, and move D and E to the new branch. Here's what it looks like at first:
+
+A-B-C-D-E (HEAD)
+        ↑
+      master
+After git branch newBranch:
+
+    newBranch
+        ↓
+A-B-C-D-E (HEAD)
+        ↑
+      master
+After git reset --hard HEAD~2:
+
+    newBranch
+        ↓
+A-B-C-D-E (HEAD)
+    ↑
+  master
+Since a branch is just a pointer, master pointed to the last commit. When you made newBranch, you simply made a new pointer to the 
+last commit. Then using git reset you moved the master pointer back two commits. But since you didn't move newBranch, it still points
+to the commit it originally did.
+
+I also needed to do a git push origin master --force for the change to show up in main repository. 
+###############################################################################################################################################
+Undoing a commit is a little scary if you don't know how it works. But it's actually amazingly easy if you do understand.
+
+Say you have this, where C is your HEAD and (F) is the state of your files.
+
+   (F)
+A-B-C
+    ↑
+  master
+You want to nuke commit C and never see it again. You do this:
+
+git reset --hard HEAD~1
+The result is:
+
+ (F)
+A-B
+  ↑
+master
+Now B is the HEAD. Because you used --hard, your files are reset to their state at commit B.
+
+Ah, but suppose commit C wasn't a disaster, but just a bit off. You want to undo the commit, but keep your changes for a bit of 
+editing before you do a better commit. Starting again from here, with C as your HEAD:
+
+   (F)
+A-B-C
+    ↑
+  master
+You can do this, leaving off the --hard:
+
+git reset HEAD~1
+In this case the result is:
+
+   (F)
+A-B-C
+  ↑
+master
+In both cases, HEAD is just a pointer to the latest commit. When you do a git reset HEAD~1, you tell Git to move the HEAD pointer 
+back one commit. But (unless you use --hard) you leave your files as they were. So now git status shows the changes you had checked 
+into C. You haven't lost a thing!
+
+For the lightest touch, you can even undo your commit, but leave your files and your index:
+
+git reset --soft HEAD~1
+This not only leaves your files alone, it even leaves your index alone. When you do git status, you'll see that the same files are in 
+the index as before. In fact, right after this command, you could do git commit and you'd be redoing the same commit you just had.
+
+One more thing: Suppose you destroy a commit as in the first example, but then discover you needed it after all? Tough luck, right?
+
+Nope, there's still a way to get it back. Type git reflog, and you'll see a list of (partial) commit SHA-1 hashes that you've moved 
+around in. Find the commit you destroyed, and do this:
+
+git checkout -b someNewBranchName shaYouDestroyed
+You've now resurrected that commit. Commits don't actually get destroyed in Git for some 90 days, so you can usually go back and
+rescue one you didn't mean to get rid of.
+
+
+
+
+Undo a commit and redo
+$ git commit -m "Something terribly misguided"             # (1)
+$ git reset HEAD~                                          # (2)
+<< edit files as necessary >>                              # (3)
+$ git add ...                                              # (4)
+$ git commit -c ORIG_HEAD                                  # (5)
+
+#########################################################################################################################
+
+There are two ways to "undo" your last commit, depending on whether or not you have already made your commit public (pushed to your remote repository):
+
+How to undo a local commit
+Let's say I committed locally, but now I want to remove that commit.
+
+git log
+    commit 101: bad commit    # Latest commit. This would be called 'HEAD'.
+    commit 100: good commit   # Second to last commit. This is the one we want.
+To restore everything back to the way it was prior to the last commit, we need to reset to the commit before HEAD:
+
+git reset --soft HEAD^     # Use --soft if you want to keep your changes
+git reset --hard HEAD^     # Use --hard if you don't care about keeping the changes you made
+Now git log will show that our last commit has been removed.
+
+How to undo a public commit
+If you have already made your commits public, you will want to create a new commit which will "revert" the changes you made in your previous commit (current HEAD).
+
+git revert HEAD
+Your changes will now be reverted and ready for you to commit:
+
+git commit -m 'restoring the file I removed by accident'
+git log
+    commit 102: restoring the file I removed by accident
+    commit 101: removing a file we don't need
+    commit 100: adding a file that we need
+    
+  #########################################################################################################################
+  
+  Add/remove files to get things the way you want:
+
+git rm classdir
+git add sourcedir
+Then amend the commit:
+
+git commit --amend
+
+##########################################################################################################################
+
+Use git revert <commit-id>.
+
+To get the commit ID, just use git log.
+
+
+Executive Summary
+$ git push -d <remote_name> <branch_name>
+$ git branch -d <branch_name>
+Note that in most cases the remote name is origin. In such a case you'll have to use the command like so.
+
+$ git push -d origin <branch_name>
+Delete Local Branch
+To delete the local branch use one of the following:
+
+$ git branch -d branch_name
+$ git branch -D branch_name
+Note: The -d option is an alias for --delete, which only deletes the branch if it has already been fully merged in its upstream branch.
+You could also use -D, which is an alias for --delete --force, which deletes the branch "irrespective of its merged status."
+[Source: man git-branch]
+
+
+
+Deleting a remote branch:
+
+git push origin --delete <branch>  # Git version 1.7.0 or newer
+git push origin -d <branch>        # Shorter version (Git 1.7.0 or newer)
+git push origin :<branch>          # Git versions older than 1.7.0
+Deleting a local branch:
+
+git branch --delete <branch>
+git branch -d <branch> # Shorter version
+git branch -D <branch> # Force delete un-merged branches
+
+
+#############################################################################################################################################
+
+You can undo git add before commit with
+
+git reset <file>
+which will remove it from the current index (the "about to be committed" list) without changing anything else.
+
+You can use
+
+git reset
+without any file name to unstage all due changes. This can come in handy when there are too many files to be listed one by one 
+in a reasonable amount of time.
+
+
+If you want to rename a branch while pointed to any branch, do:
+
+git branch -m <oldname> <newname>
+If you want to rename the current branch, you can do:
+
+git branch -m <newname>
+
+#########################################################################################################################################
+
+Amending the most recent commit message
+git commit --amend
+will open your editor, allowing you to change the commit message of the most recent commit. Additionally, you can set the commit message directly in the command line with:
+
+git commit --amend -m "New commit message"
+…however, this can make multi-line commit messages or small corrections more cumbersome to enter.
+
+
+
+Temporarily switch to a different commit
+If you want to temporarily go back to it, fool around, then come back to where you are, all you have to do is check out the desired 
+commit:
+
+# This will detach your HEAD, that is, leave you with no branch checked out:
+git checkout 0d1d7fc32
+Or if you want to make commits while you're there, go ahead and make a new branch while you're at it:
+
+git checkout -b old-state 0d1d7fc32
+To go back to where you were, just check out the branch you were on again. (If you've made changes, as always when switching branches,
+you'll have to deal with them as appropriate. You could reset to throw them away; you could stash, checkout, stash pop to take them 
+with you; you could commit them to a branch there if you want a branch there.)
+
+Hard delete unpublished commits
+If, on the other hand, you want to really get rid of everything you've done since then, there are two possibilities. One, if you haven't published any of these commits, simply reset:
+
+# This will destroy any local modifications.
+# Don't do it if you have uncommitted work you want to keep.
+git reset --hard 0d1d7fc32
+
+# Alternatively, if there's work to keep:
+git stash
+git reset --hard 0d1d7fc32
+git stash pop
+# This saves the modifications, then reapplies that patch after resetting.
+# You could get merge conflicts, if you've modified things which were
+# changed since the commit you reset to.
+If you mess up, you've already thrown away your local changes, but you can at least get back to where you were before by resetting again.
+
+
+The only thing that worked for me was:
+
+git reset --hard HEAD~5
+This will take you back five commits and then with
+
+git pull
+
+########################################################################################################################################
+
+Remove untracked files from the working tree
+
+Step 1 is to show what will be deleted by using the -n option:
+
+# Print out the list of files which will be removed (dry run)
+git clean -n
+Clean Step - beware: this will delete files:
+
+# Delete the files from the repository
+git clean -f
+To remove directories, run git clean -f -d or git clean -fd
+To remove ignored files, run git clean -f -X or git clean -fX
+To remove ignored and non-ignored files, run git clean -f -x or git clean -fx
+Note the case difference on the X for the two latter commands.
+
+If clean.requireForce is set to "true" (the default) in your configuration, one needs to specify -f otherwise nothing will actually happen.
+
+
+#########################################################################################################################################
+
+.gitignore will prevent untracked files from being added (without an add -f) to the set of files tracked by git, however git will continue to track any files that are already being tracked.
+
+To stop tracking a file you need to remove it from the index. This can be achieved with this command.
+
+git rm --cached <file>
+If you want to remove a whole folder, you need to remove all files in it recursively.
+
+git rm -r --cached <folder>
+The removal of the file from the head revision will happen on the next commit.
+
+WARNING: While this will not remove the physical file from your local, it will remove the files from other developers machines on next git pull.
+
+
+
+
+
+  
