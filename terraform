@@ -35,6 +35,49 @@ terragrunt output
 terragrunt destroy
 ###############################################################################################################################
 
+You should use a Terraform Module. Creating a module is nothing special: just put any Terraform templates in a folder. What makes a module special is how you use it.
+
+Let's say you put the Terraform code for your infrastructure in the folder /terraform/modules/common-infra. Then, in the templates that actually define your live infrastructure (e.g. /terraform/live/business-units/main.tf), you could use the module as follows:
+
+module "business-unit-a" {
+  source = "/terraform/modules/common-infra"
+}
+To create the infrastructure for multiple business units, you could use the same module multiple times:
+
+module "business-unit-a" {
+  source = "/terraform/modules/common-infra"
+}
+
+module "business-unit-b" {
+  source = "/terraform/modules/common-infra"
+}
+
+module "business-unit-c" {
+  source = "/terraform/modules/common-infra"
+}
+If each business unit needs to customize some parameters, then all you need to do is define an input variable in the module (e.g. under /terraform/modules/common-infra/vars.tf):
+
+variable "business_unit_name" {
+  description = "The name of the business unit"
+}
+Now you can set this variable to a different value each time you use the module:
+
+module "business-unit-a" {
+  source = "/terraform/modules/common-infra"
+  business_unit_name = "a"
+}
+
+module "business-unit-b" {
+  source = "/terraform/modules/common-infra"
+  business_unit_name = "b"
+}
+
+module "business-unit-c" {
+  source = "/terraform/modules/common-infra"
+  business_unit_name = "c"
+}
+
+##############################################################################################################################
 
 Handle multiple environments
 
