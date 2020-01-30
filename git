@@ -1,3 +1,17 @@
+
+With git reflog check which commit is one prior the merge (git reflog will be a better option than git log). Then you can reset it using:
+
+git reset --hard commit_sha
+There's also another way:
+
+git reset --hard HEAD~1
+It will get you back 1 commit.
+
+Be aware that any modified and uncommitted/unstashed files will be reset to their unmodified state. To keep them either stash changes
+away or see --merge option below.
+
+##########################################################################################################################################
+
 For those wondering why it works (as I was at first):
 
 You want to go back to C, and move D and E to the new branch. Here's what it looks like at first:
@@ -267,7 +281,152 @@ The removal of the file from the head revision will happen on the next commit.
 WARNING: While this will not remove the physical file from your local, it will remove the files from other developers machines on next git pull.
 
 
+##################################################################################################################################################
+
+You can quickly review the changes made to a file using the diff command:
+
+git diff <commit hash> <filename>
+Then to revert a specific file to that commit use the reset command:
+
+git reset <commit hash> <filename>
+You may need to use the --hard option if you have local modifications.
+
+A good workflow for managaging waypoints is to use tags to cleanly mark points in your timeline. I can't quite understand your last sentence but what you may want is diverge a branch from a previous point in time. To do this, use the handy checkout command:
+
+git checkout <commit hash>
+git checkout -b <new branch name>
+You can then rebase that against your mainline when you are ready to merge those changes:
+
+git checkout <my branch>
+git rebase master
+git checkout master
+git merge <my branch>
+
+########################################################################################################################################################
+
+
+In Git 1.7.0 and later, you can checkout a new branch:
+
+git checkout -b <branch>
+Edit files, add and commit. Then push with the -u (short for --set-upstream) option:
+
+git push -u origin <branch>
+Git will set up the tracking information during the push.
+
+###########################################################################################################################################
+
+First, clone a remote Git repository and cd into it:
+
+$ git clone git://example.com/myproject
+$ cd myproject
+Next, look at the local branches in your repository:
+
+$ git branch
+* master
+But there are other branches hiding in your repository! You can see these using the -a flag:
+
+$ git branch -a
+* master
+  remotes/origin/HEAD
+  remotes/origin/master
+  remotes/origin/v1.0-stable
+  remotes/origin/experimental
+If you just want to take a quick peek at an upstream branch, you can check it out directly:
+
+$ git checkout origin/experimental
+But if you want to work on that branch, you'll need to create a local tracking branch which is done automatically by:
+
+$ git checkout experimental
+and you will see
+
+Branch experimental set up to track remote branch experimental from origin.
+Switched to a new branch 'experimental'
+That last line throws some people: "New branch" - huh? What it really means is that the branch is taken from the index and created locally for you. The previous line is actually more informative as it tells you that the branch is being set up to track the remote branch, which usually means the origin/branch_name branch
+
+Now, if you look at your local branches, this is what you'll see:
+
+$ git branch
+* experimental
+  master
+  
+  ##############################################################################################################################################
+  
+  5496
+
+If you want only the remote URL, or if your are not connected to a network that can reach the remote repo:
+
+git config --get remote.origin.url
+If you require full output and you are on a network that can reach the remote repo where the origin resides :
+
+git remote show origin
+
+OR   git ls-remote --get-url [REMOTE]
+
+git remote -v
+# View existing remotes
+# origin  https://github.com/user/repo.git (fetch)
+# origin  https://github.com/user/repo.git (push)
+
+git remote set-url origin https://github.com/user/repo2.git
+# Change the 'origin' remote's URL
+
+git remote -v
+# Verify new remote URL
+# origin  https://github.com/user/repo2.git (fetch)
+# origin  https://github.com/user/repo2.git (push)
+
+
+#################################################################################################################################
+
+
+In your local clone of your forked repository, you can add the original GitHub repository as a "remote". ("Remotes" are like nicknames for the URLs of repositories - origin is one, for example.) Then you can fetch all the branches from that upstream repository, and rebase your work to continue working on the upstream version. In terms of commands that might look like:
+
+# Add the remote, call it "upstream":
+
+git remote add upstream https://github.com/whoever/whatever.git
+
+# Fetch all the branches of that remote into remote-tracking branches,
+# such as upstream/master:
+
+git fetch upstream
+
+# Make sure that you're on your master branch:
+
+git checkout master
+
+# Rewrite your master branch so that any commits of yours that
+# aren't already in upstream/master are replayed on top of that
+# other branch:
+
+git rebase upstream/master
+If you don't want to rewrite the history of your master branch, (for example because other people may have cloned it) then you should replace the last command with git merge upstream/master. However, for making further pull requests that are as clean as possible, it's probably better to rebase.
+
+If you've rebased your branch onto upstream/master you may need to force the push in order to push it to your own forked repository on GitHub. You'd do that with:
+
+git push -f origin master
+You only need to use the -f the first time after you've rebased.
+
+###################################################################################################################################
+
+Summary:
+
+git add -A stages all changes
+
+git add . stages new files and modifications, without deletions
+
+git add -u stages modifications and deletions, without new files
 
 
 
+#####################################################################################################################################
+
+38
+
+Using standard git diff command (also good for scripting):
+
+git diff --name-only <sha>^ <sha>
+If you want also the status of the changed files:
+
+git diff --name-status <sha>^ <sha>
+This works well with merge commits.
   
