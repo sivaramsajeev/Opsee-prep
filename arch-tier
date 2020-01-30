@@ -1,0 +1,97 @@
+Web development usage
+
+In the web development field, three-tier is often used to refer to websites, commonly electronic commerce websites, which are built using three tiers:
+
+•A front end web server serving static content, and potentially some cached dynamic content.
+•A middle dynamic content processing and generation level application server, for example Java EE, ASP.net, PHP platform.
+•A back-end database, comprising both data sets and the database management system or RDBMS software that manages and provides access to the data.
+
+
+By "tier" do you mean a "layer" in your software stack? The word "tier" is better used to describe the physical components of your system. If you are using ASP.NET, you probably already have a "3 tiered" system - 
+1.Browser displaying web pages
+2.IIS Server hosting your app
+3.Database Server with your database
+
+But you are possibly putting all of your code into a single software "layer" - specifically, the code behind file of your aspx pages. You want to move from a single layer to a 3 layer approach. The classic "3 layer" software architecture consists of the following - 
+
+1.Presentation Layer
+
+
+2.Business Logic Layer (BLL)
+
+
+3.Data Access Layer (DAL)
+
+
+alt text
+
+
+
+
+Presentation layer: put everything that is related to user interface. (What the user sees)
+
+Business layer: everything that is related to the logic of the application (How is the information coming from presentation layer treated)
+
+Data layer: provide an abstraction of the underlying data source(s) (Where and how the information coming from/going to business layer is stored)
+
+Each layer should know as less as possible about the other and it should be a top down approach: 
+•the data layer should know nothing about business and presentation
+•business layer should know about data but not about presentation
+•presentation should know about business but not about data
+
+Simple example:
+
+Website:
+•Presentation: all the graphical things, fields where user inserts data, menus, pictures, etc.
+•Business: all constraints about the data (unique name, name without symbols, valid date, etc), methods for manipulating business objects (create new user, add new order, etc)
+•Data: Methods that access the underlying database.
+
+###########################################################################################################################
+
+3-tier architecture can have different meanings depending on context. Generally it means that responsibilities in the application are divided between different tiers. Typically, 3-tier refers to :
+•presentation tier" (actual user interface)
+•logic tier (application/business logic)
+•data tier (database, data storage)
+
+The details vary by application.
+
+Wikipedia, as usual, has a nice overview: http://en.wikipedia.org/wiki/Multitier_architecture
+
+A simple example would be a typical business app:
+•presentation: browser, or fat client
+•logic tier: business logic, typically in an application server (based on J2EE, ASP.NET or whatever)
+•data tier: a database, typically a RDBMS such as MySQL or Oracle
+
+
+#############################################################################################################################
+
+
+W
+eb Layer: When we think from a user’s perspective, first thing we see is web layer, this layer presents data to the user and optionally
+permits data manipulation and data entry. This layer interacts with the application layer, to fetch any of the requests user makes on 
+web layer. Common e.g. of web servers: Apache Tomcat, Nginx, Jetty
+
+
+A
+pplication Layer: Next layer and the layer where all your business logic resides is the application layer. Supposedly you have created
+a jar/war or any of the bundled file out of your code, it runs on this layer. Many of the common application server 
+like Jboss/Tomcat/Oracle WebLogic/IBM WebSphere, they act as a container for your bundled file and executes them at this app layer.
+
+Application layer is also like middleman holding two hands, one is of web layer (where user tells your webapp what it wants) and
+the other one is db layer.
+
+
+D
+B Layer: Last and the most crucial layer is the DB layer. Crucial because you can’t mess with the DB data, you can even risk the
+availability of your application layer, but if your application is up and it is giving the wrong data, this is the last thing application owner wants. As evident from its name this is the place where all your application related data resides.
+
+
+################################################################################################################################
+
+1. Loadbalancing & static web content tier (F5, Apache,Nginx,IIS)
+2. Application server tier(weblogic,websphere,JBoss,Glassfish etc)
+3.DB tier
+
+########################################################################################################################################
+
+
