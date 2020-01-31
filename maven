@@ -1,0 +1,407 @@
+In general software terms, an "artifact" is something produced by the software development process, whether it be software related
+documentation or an executable file.
+
+In Maven terminology, the artifact is the resulting output of the maven build, generally a jar or war or other executable file.
+Artifacts in maven are identified by a coordinate system of groupId, artifactId, and version. Maven uses the groupId, artifactId, 
+and version to identify dependencies (usually other jar files) needed to build and run your code.
+
+#############################################################################################################################
+
+These are the default life cycle phases in maven
+
+validate - validate the project is correct and all necessary information is available
+compile - compile the source code of the project
+test - test the compiled source code using a suitable unit testing framework. These tests should not require the code be packaged or 
+deployed
+package - take the compiled code and package it in its distributable format, such as a JAR.
+verify - run any checks on results of integration tests to ensure quality criteria are met
+install - install the package into the local repository, for use as a dependency in other projects locally
+deploy - done in the build environment, copies the final package to the remote repository for sharing with other developers and projects.
+
+
+How Maven works is, if you run a command for any of the lifecycle phases, it executes each default life cycle phase in order, 
+before executing the command itself.
+
+order of execution
+
+validate >> compile >> test (optional) >> package >> verify >> install >> deploy
+
+So when you run the command mvn package, it runs the commands for all lifecycle phases till package
+
+validate >> compile >> test (optional) >> package
+
+And as for mvn install, it runs the commands for all lifecycle phases till install, which includes package as well
+
+validate >> compile >> test (optional) >> package >> verify >> install
+
+So, effectively what it means is, install commands does everything that package command does and some more (install the package into
+the local repository, for use as a dependency in other projects locally)
+
+
+##################################################################################################################################
+
+The real question is what's the difference between package and install?
+
+package will compile your code and also package it. For example, if your pom says the project is a jar, it will create a jar for you when you package it and put it somewhere in the target directory (by default).
+
+install will compile and package, but it will also put the package in your local repository. This will make it so other projects can refer to it and grab it from your local repository.
+
+
+package will add packaged jar or war to your target folder, We can check it when, we empty the target folder (using mvn clean) and then run mvn package.
+install will do all the things that package does, additionally it will add packaged jar or war in local repository as well. We can confirm it by checking in your .m2 folder.
+
+
+
+clean is its own build lifecycle phase (which can be thought of as an action or task) in Maven. mvn clean install tells Maven to do
+the clean phase in each module before running the install phase for each module.
+
+What this does is clear any compiled files you have, making sure that you're really compiling each module from scratch.
+#######################################################################################################################################
+
+No compiler is provided in this environment. Perhaps you are running on a JRE rather than a JDK?
+
+
+Install the JAR into your local Maven repository as follows:
+
+mvn install:install-file \
+   -Dfile=<path-to-file> \
+   -DgroupId=<group-id> \
+   -DartifactId=<artifact-id> \
+   -Dversion=<version> \
+   -Dpackaging=<packaging> \
+   -DgeneratePom=true
+Where each refers to:
+
+<path-to-file>: the path to the file to load e.g → c:\kaptcha-2.3.jar
+
+<group-id>: the group that the file should be registered under e.g → com.google.code
+
+<artifact-id>: the artifact name for the file e.g → kaptcha
+
+<version>: the version of the file e.g → 2.3
+
+<packaging>: the packaging of the file e.g. → jar
+
+###############################################################################################################################
+
+409
+
+How do I find a repository (if any) that contains this artifact?
+
+Unfortunately due the binary license there is no public repository with the Oracle Driver JAR. This happens with many dependencies but is not Maven's fault. If you happen to find a public repository containing the JAR you can be sure that is illegal.
+
+How do I add it so that Maven will use it?
+
+Some JARs that can't be added due to license reasons have a pom entry in the Maven Central repo. Just check it out, it contains the vendor's preferred Maven info:
+
+<groupId>com.oracle</groupId>
+<artifactId>ojdbc14</artifactId>
+<version>10.2.0.3.0</version>
+...and the URL to download the file which in this case is http://www.oracle.com/technology/software/tech/java/sqlj_jdbc/index.html.
+
+Once you've downloaded the JAR just add it to your computer repository with (note I pulled the groupId, artifactId and version from the POM):
+
+mvn install:install-file -DgroupId=com.oracle -DartifactId=ojdbc14 \
+     -Dversion=10.2.0.3.0 -Dpackaging=jar -Dfile=ojdbc.jar -DgeneratePom=true
+The last parameter for generating a POM will save you from pom.xml warnings
+
+If your team has a local Maven repository this guide might be helpful to upload the JAR there
+
+################################################################################################################################
+This solution works for me when I run Hibernate Tools. It does NOT appear to work for building the WAR file, however. It doesn't include the ojdbc6.jar file in the target WAR file.
+
+1) Create a directory called "lib" in the root of your project.
+
+2) Copy the ojdbc6.jar file there (whatever the jar is called.)
+
+3) Create a dependency that looks something like this:
+
+<dependency>
+    <groupId>com.oracle</groupId>
+    <artifactId>ojdbc</artifactId>
+    <version>14</version>
+    <scope>system</scope>
+    <systemPath>${basedir}/lib/ojdbc6.jar</systemPath> <!-- must match file name -->
+</dependency>
+
+####################################################################################################################################
+You can add local dependencies directly (as mentioned in build maven project with propriatery libraries included) like this:
+
+<dependency>
+    <groupId>com.sample</groupId>
+    <artifactId>sample</artifactId>
+    <version>1.0</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/src/main/resources/Name_Your_JAR.jar</systemPath>
+</dependency>
+
+###################################################################################################################################
+
+Dependency Management allows to consolidate and centralize the management of dependency versions without adding dependencies which are 
+inherited by all children. This is especially useful when you have a set of projects (i.e. more than one) that inherits a common parent.
+
+Another extremely important use case of dependencyManagement is the control of versions of artifacts used in transitive dependencies. 
+This is hard to explain without an example. Luckily, this is illustrated in the documentation.
+
+
+I imported my working project on other computer so it started to download dependencies. Apparently in the meantime my internet connection crashed. Now I get:
+
+mvn clean install -U
+-U means force update of snapshot dependencies. Release dependencies can't be updated this way.
+
+-U seems to force update of all dependencies.
+
+If you want to update a single dependency without clean or -U you could just remove it from your local repo and then build.
+
+The example below if for updating slf4j-api 1.7.1-SNAPSHOT:
+
+rm -rf ~/.m2/repository/org/slf4j/slf4j-api/1.7.1-SNAPSHOT
+mvn compile
+
+
+If your local repository is somehow mucked up for release jars as opposed to snapshots (-U and --update-snapshots only update snapshots), you can purge the local repo using the following:
+
+ mvn dependency:purge-local-repository
+You probably then want to clean and install again:
+
+ mvn dependency:purge-local-repository clean install
+ 
+ 
+ 
+ 
+If you are using eclipse IDE then :
+
+Select Project.
+Press alt+F5, window for Update Maven Project will pop up.
+
+Check - Force Update of Snapshots/releases and click OK.
+
+If Using Intellij IDE
+
+go to settings/Maven
+check Always update snapshots
+
+
+This is one of the most annoying things about Maven. For me the following happens: If I add a dependency requesting more dependencies 
+and more and more but have a slow connection, it seams to stop while downloading and timing out. While timing out all dependencies 
+not yet fetched are marked with place holders in the .m2 cache and Maven will not (never) pick it up unless I remove the place holder
+entry from the cache (as other stated) by removing it.
+
+########################################################################################################################################
+
+Failure to find org.jfrog.maven.annomojo:maven-plugin-anno:jar:1.4.0 in http://myrepo:80/artifactory/repo was cached in the local
+repository, resolution will not be reattempted until the update interval of MyRepo has elapsed or updates are forced -> [Help 1]
+
+Now, I understand what this means, and can simply re-run my command with -U, and things usually work fine from there on out.
+
+
+
+50
+
+What basically happens is,According to default updatePolicy of maven.Maven will fetch the jars from repo on daily basis.So 
+if during 1st attempt your internet was not working then it would not try to fetch this jar again untill 24hours spent.
+
+Resolution :
+
+Either use
+
+mvn -U clean install
+where -U will force update the repo
+
+or use
+
+<profiles>
+    <profile>
+      ...
+      <repositories>
+        <repository>
+          <id>myRepo</id>
+          <name>My Repository</name>
+          <releases>
+            <enabled>false</enabled>
+            <updatePolicy>always</updatePolicy>
+            <checksumPolicy>warn</checksumPolicy>
+          </releases>
+         </repository>
+      </repositories>
+      ...
+    </profile>
+  </profiles>
+in your settings.xml
+
+
+###########################################################################################################################################
+
+export M2_HOME=/user/apple/apache-maven-3.0.3
+export M2=$M2_HOME/bin
+export PATH=$M2:$PATH
+export JAVA_HOME=/usr/java/jdk1.6.0_22
+
+
+############################################################################################################################################
+
+
+I have a maven program, it compiles fine. When I run mvn test it does not run any tests (under TESTs header says There are no tests to run.).
+
+I've recreated this problem with a super simple setup which I will include below as well as the output when run with -X.
+
+The unit tests run fine from eclipse (both with its default junit package and when I instead include the junit.jar downloaded by maven). Also mvn test-compile correctly creates the class under test-classes. I am running this on OSX 10.6.7 with Maven 3.0.2 and java 1.6.0_24.
+
+Here is the directory structure:
+
+/my_program/pom.xml
+/my_program/src/main/java/ClassUnderTest.java
+/my_program/src/test/java/ClassUnderTestTests.java
+pom.xml:
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>my_group</groupId>
+    <artifactId>my_program</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>My Program</name>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+ClassUnderTest.java:
+
+public class ClassUnderTest {
+
+    public int functionUnderTest(int n) {
+        return n;
+    }
+
+}
+ClassUnderTestTests.java:
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+public class ClassUnderTestTests {
+
+    private ClassUnderTest o;
+
+    @Before
+    public void setUp() {
+        o = new ClassUnderTest();
+    }
+
+    @Test
+    public void testFunctionUnderTest_testCase1() {
+        Assert.assertEquals(1, o.functionUnderTest(1));
+    }
+
+    @Test
+    public void testFunctionUnderTest_testCase2() {
+        Assert.assertEquals(2, o.functionUnderTest(2));
+    }
+}
+
+
+By default Maven uses the following naming conventions when looking for tests to run:
+
+Test*
+*Test
+*TestCase
+Your test class doesn't follow these conventions. You should rename it or configure Maven Surefire Plugin to use another pattern 
+for test classes.
+
+
+
+I also found that the unit test code should put under the test folder, it can not be recognized as test class if you put it under the main folder. eg.
+
+Wrong
+
+/my_program/src/main/java/NotTest.java
+Right
+
+/my_program/src/test/java/MyTest.java
+
+
+#########################################################################################################################
+
+
+Right-click on the module, select "Add framework support...", and check the "Maven" technology.
+
+(This also creates a pom.xml for you to modify.)
+
+
+An artifact is a file, usually a JAR, that gets deployed to a Maven repository.
+A Maven build produces one or more artifacts, such as a compiled JAR and a "sources" JAR.
+Each artifact has a group ID (usually a reversed domain name, like com.example.foo), an artifact ID (just a name), and a version string. The three together uniquely identify the artifact.
+A project's dependencies are specified as artifacts.
+
+################################################################################################################################
+
+Uber JAR, in short, is a JAR containing everything.
+
+Normally in Maven, we rely on dependency management. An artifact contains only the classes/resources of itself. Maven will be 
+responsible to find out all artifacts (JARs etc) that the project depending on when the project is built.
+
+An uber-jar is something that take all dependencies, and extract the content of the dependencies and put them with the classes/resources
+of the project itself, in one big JAR. By having such uber-jar, it is easy for execution, because you will need only one big JAR instead
+of tons of small JARs to run your app. It also ease distribution in some case.
+
+Just a side-note. Avoid using uber-jar as Maven dependency, as it is ruining the dependency resolution feature of Maven. Normally 
+we create uber-jar only for the final artifact for actual deployment or for manual distribution, but not for putting to Maven repository.
+
+
+That won't remove stuff for you but has tools to allow you to do the analysis yourself. I'm thinking particularly of
+
+mvn dependency:tree
+
+
+Start maven with -X option (debug) and examine the beginning of the output. There should be something like this:
+
+...
+[INFO] Error stacktraces are turned on.
+[DEBUG] Reading global settings from c:\....\apache-maven-3.0.3\conf\settings.xml
+[DEBUG] Reading user settings from c:\....\.m2\settings.xml
+[DEBUG] Using local repository at C:\....\repository
+...
+(Original directory names are removed by me)
+
+
+mvn help:effective-settings
+will ask maven to spit out the combined global and user settings.
+
+
+#######################################################################################################################################
+This is the configuration file for Maven. It can be specified at two levels:
+
+User Level. This settings.xml file provides configuration for a single user, and is normally provided in ${user.home}/.m2/settings.xml.
+
+          NOTE: This location can be overridden with the CLI option:
+
+          -s /path/to/user/settings.xml
+Global Level. This settings.xml file provides configuration for all Maven users on a machine (assuming they're all using the same Maven installation). It's normally provided in ${maven.home}/conf/settings.xml.
+
+          NOTE: This location can be overridden with the CLI option:
+
+          -gs /path/to/global/settings.xml
+the property is M2_HOME, not maven.home
+
+#################################################################################################################################################
+
+
