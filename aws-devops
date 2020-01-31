@@ -15,3 +15,53 @@ json2yaml site
 
 create codecommit  unique for region   
 
+######################################################################################################################
+
+CloudFormation   
+--------------------------------
+this is executed from console   programming the GUI console 
+
+use update stack options after editting
+
+
+{} encloses object   
+{
+	"name" : "siva",
+	"salary" : "200000",
+	"isManager" : true,
+	"skills" : ["AWS","Python","GCP"],
+	"address" : {"country" : "india" ,"state" : "karnataka"}  # object in object	
+}
+
+
+extension can be .json/.yaml
+
+start in atom gives template  - basic skelton remains same
+
+"Type" : "AWS::EC2::VPC"
+
+Resources  logical-name cidr
+
+==> console - CF - crete a new stack - choose file - give name to your stack - go with remaining defaults
+
+Parameters : logical name descriptin type ( string) default value   allowed-values(t2-micro,m1.large)  NoEcho : true means passwords not shown   MinLength and MaxLength & add a resource as well ( like a VPC for parameters)   like-wise we can get AZs as parameters or anything else like volumes 
+
+parameterizing CF : Cidr block is hard coded hence will parameterise it.Type: String Default: "10.23.0.0/16"===> then call it(~interpolation) using "Ref" : logical name
+
+CF intrinsic functions (like Fn::split): adding 1 subnet using ref for VPC    
+
+adding IGw & attaching to VPC again use ref & logical name of VPC to attach   then creating RT & attaching to this IGw (RT is a component of VPC) requires Gw id  then
+associate subnets to newly created RT 
+
+adding userdata : Fn::Base64 for encoding )  & Fn::Join    {scripts under user data are run as root}
+
+metadata { cloudformation::init   -> gives better template structure for user addition,config files or commannds or services management 
+findinmap  to define a map of AMIs as per regions   ELBs are PaaS therefore just http, no ssh 
+in route53 ending dot is required   CFoutputs   outputs can be seen in tab of CF window
+
+Cross stack access  as network  db  vpc subnets  & connect them using export and output  importvalue   Fn::Sub  
+
+CF conditions    deploy zipped lambda fn from S3 bucket 
+
+#######################################################################################################################
+
