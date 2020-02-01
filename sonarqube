@@ -33,4 +33,10 @@ Also, Sonar generates visual reports, "Dashboard" style. Which makes it very eas
 show developers and your management the effects of the work that was performed on the quality of the code base over the last few weeks 
 and months.
 
-
+<repositories>
+    <repository>
+        <id>myco-sonatype-nexus-snapshots</id>
+        <name>MyCo Sonatype-Nexus Snapshots</name>
+        <url>http://sonatype.myco.com/nexus/content/repositories/snapshots/</url>
+    </repository>
+</repositories>
