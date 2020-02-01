@@ -1,0 +1,81 @@
+You're creating a custom software artifact repository. There are three open-source projects which already do this:
+
+Artifactory
+Nexus
+Archiva
+Artifactory and Nexus also have paid versions.
+
+You can store any kind of file in these repositories, and you don't need to use Maven. You can manually deploy artifacts to them. You can set up fine-grained access control. They integrate well with automated build tools.
+########################################################################################################################################
+No direct downloads from external repositories should be allowed in your release builds.
+
+Disable Maven central repository-->   In maven's home, in the conf directory is a global settings.xml. You can either set a mirror to central that points to some internal 
+server or just override it's definition.
+
+Local Maven settings
+Update the settings file located in the following directory:
+
+$HOME/.m2/settings.xml
+
+Specify that all central requests should be redirected to the local Maven repository:
+
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  ...
+  <mirrors>
+    <mirror>
+      <id>central-proxy</id>
+      <name>Local proxy of central repo</name>
+      <url>http://<hostname>/central</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
+  ...
+</settings>
+
+
+##############################################################################################################################################
+The Super POM of Maven defines the central respository. Here is how you can override the central repository and the plugin-repository for releases and snapshots:
+
+<repositories>
+    <repository>
+        <id>central</id>
+        <url>http://repo1.maven.org/maven2</url>
+        <releases>
+                <enabled>false</enabled>
+        </releases>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>    
+</repositories>
+<pluginRepositories>
+    <pluginRepository>
+        <id>central</id>
+        <url>http://repo1.maven.org/maven2</url>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </pluginRepository>
+</pluginRepositories>
+
+###########################################################################################################################################
+
+In case of a company-wide repository which should handle all and every artifact request you can configure a single repository to mirror everything in your $MAVEN_HOME/conf/settings.xml:
+
+<mirror>
+  <id>internal-repository</id>
+  <name>Maven Repository Manager running on repo.mycompany.com</name>
+  <url>http://repo.mycompany.com/proxy</url>
+  <mirrorOf>*</mirrorOf>
+</mirror>
+
+
+############################################################################################################################################
+
+
