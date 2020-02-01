@@ -1,0 +1,36 @@
+recommend you try to suppress specific warnings by using @SuppressWarnings("squid:S2078").
+
+For suppressing multiple warnings you can do it like this @SuppressWarnings({"squid:S2078", "squid:S2076"})
+
+There is also the //NOSONAR comment that tells SonarQube to ignore all errors for a specific line.
+
+Finally if you have the proper rights for the user interface you can issue a flag as a false positive directly from the interface.
+
+The reason why I recommend suppression of specific warnings is that it's a better practice to block a specific issue instead of using 
+//NOSONAR and risk a Sonar issue creeping in your code by accident.
+
+#############################################################################################################################################################
+
+sonar.exclusions=src/java/test/**
+
+SonarLint lives only in the IDE (IntelliJ, Eclipse and Visual Studio). Its purpose is to give instantaneous feedback as you type your code. For this, it concentrates on what code you are adding or updating.
+
+SonarQube is a central server that processes full analyses (triggered by the various SonarQube Scanners). Its purpose is to give a 360° 
+vision of the quality of your code base. For this, it analyzes all the source lines of your project on a regular basis.
+
+Both SonarLint and SonarQube rely on the same static source code analyzers - most of them being written using SonarSource technology.
+
+Sonar will run CheckStyle, FindBugs and PMD, as well as a few other "plugins" such as Cobertura (code coverage) by default for Java 
+projects. The main added value, however, is that it stores the history in a database. You can then see the trend. Are you improving 
+the code base or are you doing the opposite? Only a tool with memory can tell you that.
+
+You should run Sonar in your CI system so that even things that take some time to execute (such as CPD – copy paste detector) can run. 
+And you'll have your history. Whereas with an Eclipse plugin, for example, you'll detect violations sooner – which is great – but you 
+will be tempted to run it less often if it starts taking too long, or run less "quality plugins" (such as skipping CPD or skipping 
+code coverage analysis). And you won't have history.
+
+Also, Sonar generates visual reports, "Dashboard" style. Which makes it very easy to grasp. With Sonar in Jenkins, you'll be able to 
+show developers and your management the effects of the work that was performed on the quality of the code base over the last few weeks 
+and months.
+
+
