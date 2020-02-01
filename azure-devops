@@ -1,0 +1,13 @@
+AzureAD provides federated services to all the cloud services.  For TF first app registration needs to be done in AzAD - It's called
+AzSPN.  then map Client ID(tf) = Application Id(AZ)   client_secret(tf) = create new client secret under certificate section    
+tenant_id(tf) = directory_id(az)    subscription_id(tf) = same in az    then again go to IAM ,choose role as contributor and choose 
+TF from AD apps    -> all these need to be under provider
+
+
+In TF variable precedence is command line > env > defaults 
+
+booleans are not native types,TF will convert them ie true to 1 
+
+system environment variables need to be prefixed with TF_VAR_ for TF to pick up   . vaeriable "sub_id" {}  scans environment vars 
+
+TF tries to understand dependencies  90% times it works!!   but in remaining cases mention depends_on 
