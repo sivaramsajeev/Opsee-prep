@@ -1,3 +1,12 @@
+Static IP address is required in cases where Firewall rules are in place & then do DNS mapping 
+
+Georeplication of DB (basically a new server but only readable unless failed over to) -> create a failover group with 
+primary and secondary . Then failover group DNS name should be used to connect to DB (logical LB for DBs). -> check readwrite grace period
+of 24 hours for 100% consistency between DBs
+
+D series is suitable for PRODUCTION. B for practice
+
+
 AzureAD provides federated services to all the cloud services.  For TF first app registration needs to be done in AzAD - It's called
 AzSPN.  then map Client ID(tf) = Application Id(AZ)   client_secret(tf) = create new client secret under certificate section    
 tenant_id(tf) = directory_id(az)    subscription_id(tf) = same in az    then again go to IAM ,choose role as contributor and choose 
