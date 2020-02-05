@@ -1,0 +1,54 @@
+2 spaces instead of tabs    
+
+scripts sections of two different jobs are independent by default since different runners will be used. Hence make use of artifacts as below
+#############################################################################################
+stages:
+    - build
+    - test
+
+build:
+    stage: build
+    script:
+        - echo "Building"
+        - mkdir build
+        - touch build/info.txt
+    artifacts:
+        paths:
+            - build/
+
+test:
+    stage: test
+    script:
+        - echo "Testing"
+        - test -f "build/info.txt"
+############################################################################################
++ Job artifact download option is available in the corresponding build 
+
+Jenkins looses market share  thanks to containers built in gitlab 
+
+npm install -g gatsby-cli 
+
+###############################################################################################
+
+stages:
+  - build
+  - test
+
+build website:
+  stage: build
+  image: node
+  script:
+    - npm install
+    - npm install -g gatsby-cli
+    - gatsby build
+  artifacts:
+    paths:
+      - ./public
+
+test artifact:
+  stage: test
+  script:
+    - grep "Gatsby" ./public/index.html
+    - grep "XXXXXXXX" ./public/index.html
+      
+  
