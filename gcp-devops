@@ -1,0 +1,14 @@
+GCBucket with unique names into folders then files 
+
+GCFilestore ~ EFS     while PD~EBS
+
+Storage types are  Standard,Nearline,Coldline as per access rate and cost
+
+LBs are most used by DevOps    GCLB allows loadbalance across the globe(https) whi;e network LB is regional 
+
+use instance templates(like blue print ~launch config) before configuring LB (f1.micro free tier) leverage start up in 
+automation sector then launch instance-group with it then launch LB from NW and attach instance-groups to it 
+
+http LB for CMS while TCP LB for straming gaming app making use of UDP sockets
+
+
