@@ -65,3 +65,164 @@ CF conditions    deploy zipped lambda fn from S3 bucket
 
 #######################################################################################################################
 
+Invoke another lambda from lambda 
+
+from boto3 import client as boto3_client
+from datetime import datetime
+import json
+
+lambda_client = boto3_client('lambda')
+
+def lambda_handler(event, context):
+    msg = {"key":"new_invocation", "at": datetime.now()}
+    invoke_response = lambda_client.invoke(FunctionName="another_lambda_",
+                                           InvocationType='Event',
+                                           Payload=json.dumps(msg))
+    print(invoke_response)
+Btw, you would need to add a policy like this to your lambda role as well
+
+   {
+        "Sid": "Stmt1234567890",
+        "Effect": "Allow",
+        "Action": [
+            "lambda:InvokeFunction"
+        ],
+        "Resource": "*"
+    }
+    
+    
+    #########################################################################################
+    
+    To use requests module, you can simply import requests from botocore.vendored. For example:
+
+from botocore.vendored import requests
+
+def lambda_handler(event, context):
+   response = requests.get("https://example.com/")
+   print response.json()
+   
+   ########################################################################################################################
+   For lambda zip
+    The structure in my zip file was broken. It is important that the python script and the packed dependencies (as folders) are 
+    in the root of the zip file. This solved my problem.
+    
+    
+97
+
+For the lambda function to create log stream and publish logs to cloudwatch, the lambda execution role needs to have the following permissions.
+
+{
+    "Statement": [
+        {
+            "Action": [
+                "logs:CreateLogGroup",
+                 "logs:CreateLogStream",
+                 "logs:PutLogEvents"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:logs:*:*:*"
+        }
+    ]
+} 
+
+After you update your policy, it seems that you have to update your function's settings to refresh all job instances to read new policies.
+
+So if you just click 'test' button from Lambda console after you update your role policy in IAM, the cached Lambda instances will still have old role permissions, so you will still see no logs being written to Cloudwatch logs.
+
+Just change your timeout by a second and click on 'save and test' button, and you will start to see logs in Cloudwatch.
+#############################################################################################################################
+
+read will return bytes. At least for Python 3, if you want to return a string, you have to decode using the right encoding:
+
+import boto3
+
+s3 = boto3.resource('s3')
+
+obj = s3.Object(bucket, key)
+obj.get()['Body'].read().decode('utf-8') 
+
+###########################################################################################################################
+
+import boto3
+import json
+
+s3 = boto3.client('s3')
+
+obj = s3.get_object(Bucket=bucket, Key=key)
+j = json.loads(obj['Body'].read())
+NOTE (for python 2.7): My object is all ascii, so I don't need .decode('utf-8')
+
+NOTE (for python 3.6+): We moved to python 3.6 and discovered that read() now returns bytes so if you want to get a string out of it, you must use:
+
+j = json.loads(obj['Body'].read().decode('utf-8'))
+
+#################################################################################################################################
+
+I just wanted to update the database from my lambda function. Is it possible to access RDS by specifiying IAM Role and access Policy?.
+
+No you cannot. You need to provide DB url/username/password to connect. You may need to run Lambda in same VPC if it is in private subnet. See my pointers below.
+
+I can connect to mysql databse using mysql client.but when i try on lambda i can't do that.
+
+This is strict No , No! Your RDS should not be accessible from Internet unless you really need it. Try to run it in private subnet and configure other AWS services accordingly.
+
+Two cents from my end if you are getting timeouts accessing resourced from Lambda-
+
+By default Lambda has internet access and can access online resources.
+Lambda cannot access services rurnning in private subnet of your VPC.
+To connect to services in private subnet you need to run the lambda is private subnet. For this you need to go to Network section and configure your VPC, subnets and security group.
+However note that when you do this you will loose Internet access. If you still need Internet access you will have to spin up a NAT gateway or NAT instance in public subnet and configure route from private subnet to this NAT.
+I faced this when I was trying to connect to RDS in private subnet from my lambda. Since I used KMS to encrypt some environment variables and decryption part requires Internet access I had to use a NAT gateway.
+More details - http://docs.aws.amazon.com/lambda/latest/dg/vpc.html#vpc-internet
+
+How to connect to postgres RDS from AWS Lambda
+
+#####################################################################################################################################
+
+import requests
+
+print('Loading function')
+
+s3 = boto3.client('s3')
+
+
+def lambda_handler(event, context):
+    #print("Received event: " + json.dumps(event, indent=2))
+
+    # Get the object from the event and show its content type
+    bucket = event['Records'][0]['s3']['bucket']['name']
+    key = urllib.unquote_plus(event['Records'][0]['s3']['object']['key']).decode('utf8')
+    try:
+        response = s3.get_object(Bucket=bucket, Key=key)
+        s3.download_file(bucket,key, '/tmp/data.txt')
+        lines = [line.rstrip('\n') for line in open('/tmp/data.txt')]
+        for line in lines:
+            col=line.split(',')
+            print(col[5],col[6])
+        print("CONTENT TYPE: " + response['ContentType'])
+        return response['ContentType']
+    except Exception as e:
+        print(e)
+        print('Error getting object {} from bucket {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+        raise e
+#############################################################################################################################
+
+Amazon Lambda is designed to be used as an event-driven system that responds to events. The flow is:
+
+Something happens somewhere that triggers Lambda (eg an upload to Amazon S3, data coming into an Amazon Kinesis stream, an application invoking the Lambda function directly)
+The Lambda function is created, data from the trigger event is passed
+The Lambda function runs
+Lambda functions are limited to a maximum execution time of 15 minutes (this was recently increased from the original 5 minutes timeout). The actual limit is configured when the Lambda function is created. The limit is in place because Lambda functions are meant to be small and quick rather than being large applications.
+
+Your error message says Task timed out after 15.00 seconds. This means that AWS intentionally stopped the task once it hit a run-time of 15 seconds. It has nothing to do with what the function was doing at the time, nor the file that was being processed.
+
+To fix: Increase the timeout setting on the configuration page of your Lambda function.
+
+###########################################################################################################################
+
+My Lambda function runs every 15 minutes, it is triggered by Jenkins.My program gets the source code of the URL into the string,
+then compares it with already existing file in /tmp directory (the source code from previous run), and if something has changed, 
+uploads it to S3 bucket. So /tmp stores the latest source code file for comparison.
+
+
+
