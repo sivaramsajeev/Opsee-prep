@@ -51,4 +51,40 @@ test artifact:
     - grep "Gatsby" ./public/index.html
     - grep "XXXXXXXX" ./public/index.html
       
+      
+ Give same name for two different stages and they run in parallel 
+ 
+ stages:
+  - build
+  - test
+
+build website:
+  stage: build
+  image: node
+  script:
+    - npm install
+    - npm install -g gatsby-cli
+    - gatsby build
+  artifacts:
+    paths:
+      - ./public
+
+test artifact:
+  image: alpine
+  stage: test
+  script:
+    - grep -q "Gatsby" ./public/index.html
+
+test website:
+  image: node
+  stage: test
+  script:
+    - npm install
+    - npm install -g gatsby-cli
+    - gatsby serve
+    - curl "http://localhost:9000" | grep -q "Gatsby"
+    
+    ####################################################################################################
+    
+    
   
