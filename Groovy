@@ -1,3 +1,6 @@
+install AD & role based authentication plugin for integration of IAM   then choose AD frm global security and provide domain 
+DC(server)  bind Dn (ie list of CNs upto root com ) & AD password
+
 #####################################marking build as failure####################################################
 
 You should use Jenkinsfile to wrap your build script and simply mark the current build as UNSTABLE by using currentBuild.result = "UNSTABLE".
