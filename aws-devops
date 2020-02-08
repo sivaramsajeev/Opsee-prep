@@ -225,4 +225,44 @@ then compares it with already existing file in /tmp directory (the source code f
 uploads it to S3 bucket. So /tmp stores the latest source code file for comparison.
 
 
+with NACL you may DENY specific IP which cant be done at SG level.
+
+Reverse charging for EIPs    
+
+You can use managed NAT GW from AWS or turn your EC2 into a NAT
+
+NAT must be in public subnet while private subnet must have internet route via NAT   NAT must have EIP ( not under free tier)
+
+by default EC2 will accept traffic only if destination is itself  but for NAT it has to accept everything hence disable src/dest check
+
+choose a custom NAT ami from market place   in actions networking disable src/dest check
+
+VPC peering through private IPs   no pulblic address involved    not transitive   a-b & b-c != a-c
+private ec2s in Mumbai & NVirginia to communicate through private addresses
+
+for on prem    VPGw - VPN tunnel - CustomerGW. One VPG can connect to multiple CGW  --> This is S2S over internet 
+
+but you dont want tunnel over internet then direct-connect - dedicated nw   you might also go for brokers(middle amn) who already have 
+lines and ready to lease
+
+EC2 needs to connect to S3  you go for public internet & get charged but if you have both of them in same region  you can use 
+VPC endpoint ie private connection.  ec2 - vpc endpoint - S3    OR ec2 - vpcept - dynamoDB
+
+VPC flow log ~ wireshark  
+
+1 central management VPC that'd connect to all the other VPCs   Chef,puppet masters be in central VPC
+
+VPC endpoint for private subnet ec2 to connect to public bucket
+
+
+
+
+
+
+
+
+
+
+
+
 
