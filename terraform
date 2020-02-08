@@ -1,3 +1,8 @@
+use template with arn interpolation to form plocies and attach it to resources. Use data soureces as well.
+
+Template is a good candidate for anything that needs to be run at run time.
+
+
 I believe there are few best practices need to follow while using terraform for orchestrating the infrastructure
 data resource is most important for interconnection unless using atlassian
 
