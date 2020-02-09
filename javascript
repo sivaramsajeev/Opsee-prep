@@ -406,6 +406,171 @@ Name=Value − Cookies are set and retrieved in the form of key-value pairs
 
 ##########################################################################################################
 
+There could be various reasons why you would like to redirect a user from the original page. We are listing down a few of 
+the reasons −
+
+You did not like the name of your domain and you are moving to a new one. In such a scenario, you may want to direct all 
+
+your visitors to the new site. Here you can maintain your old domain but put a single page with a page redirection such 
+that all your old domain visitors can come to your new domain.
+
+You have built-up various pages based on browser versions or their names or may be based on different countries, then
+instead of using your server-side page redirection, you can use client-side page redirection to land your users on the
+appropriate page.
+
+The Search Engines may have already indexed your pages. But while moving to another domain, you would not like to lose 
+your visitors coming through search engines. So you can use client-side page redirection. But keep in mind this should 
+not be done to fool the search engine, it could lead your site to get banned.
+
+<html>
+   <head>
+      <script type = "text/javascript">
+         <!--
+            function Redirect() {
+               window.location = "https://www.tutorialspoint.com";
+            }
+         //-->
+      </script>
+   </head>
+   
+   <body>
+      <p>Click the following button, you will be redirected to home page.</p>
+      
+      <form>
+         <input type = "button" value = "Redirect Me" onclick = "Redirect();" />
+      </form>
+      
+   </body>
+</html>
+
+
+#########################################################################################################
+
+<html>
+   <head>
+      <script type = "text/javascript">
+         <!--
+            function Redirect() {
+               window.location = "https://www.tutorialspoint.com";
+            }            
+            document.write("You will be redirected to main page in 10 sec.");
+            setTimeout('Redirect()', 10000);
+         //-->
+      </script>
+   </head>
+   
+   <body>
+   </body>
+</html>
+
+
+###############################################################################################
+
+<html>
+   <head>     
+      <script type = "text/javascript">
+         <!--
+            var browsername = navigator.appName;
+            if( browsername == "Netscape" ) {
+               window.location = "http://www.location.com/ns.htm";
+            } else if ( browsername =="Microsoft Internet Explorer") {
+               window.location = "http://www.location.com/ie.htm";
+            } else {
+               window.location = "http://www.location.com/other.htm";
+            }
+         //-->
+      </script>      
+   </head>
+   
+   <body>
+   </body>
+</html>
+
+##############################################################################################
+
+<html>
+   <head>   
+      <script type = "text/javascript">
+         <!--
+            function getConfirmation() {
+               var retVal = confirm("Do you want to continue ?");
+               if( retVal == true ) {
+                  document.write ("User wants to continue!");
+                  return true;
+               } else {
+                  document.write ("User does not want to continue!");
+                  return false;
+               }
+            }
+         //-->
+      </script>     
+   </head>
+   
+   <body>
+      <p>Click the following button to see the result: </p>      
+      <form>
+         <input type = "button" value = "Click Me" onclick = "getConfirmation();" />
+      </form>      
+   </body>
+</html>
+
+#####################################################################################################
+
+Live Demo
+<html>
+   <head>     
+      <script type = "text/javascript">
+         <!--
+            function getValue() {
+               var retVal = prompt("Enter your name : ", "your name here");
+               document.write("You have entered : " + retVal);
+            }
+         //-->
+      </script>      
+   </head>
+   
+   <body>
+      <p>Click the following button to see the result: </p>      
+      <form>
+         <input type = "button" value = "Click Me" onclick = "getValue();" />
+      </form>      
+   </body>
+</html>
+
+###########################################################################################
+
+<html>
+   <head>      
+      <script type = "text/javascript">
+         <!--
+         //-->
+      </script>   
+   </head>
+   
+   <body>   
+      <p>Click the following, This won't react at all...</p>
+      <a href = "javascript:void(alert('Warning!!!'))">Click me!</a>     
+   </body>
+</html>
+
+##########################################################################################
+
+<html>
+   <head>      
+      <script type = "text/javascript">
+         <!--
+         //-->
+      </script>
+   </head>
+   
+   <body>      
+      <form>
+         <input type = "button" value = "Print" onclick = "window.print()" />
+      </form>   
+   </body>
+<html>
+
+#############################################################################################
 
 
 
