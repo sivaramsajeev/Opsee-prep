@@ -1,0 +1,42 @@
+syntax checkers are puppet-lint & puppet parser validate
+
+access facts using facter command 
+facter interfaces 2>/dev/null
+lo0_2,vnet1_2
+
+facter os
+{
+  architecture => "x86_64",
+  distro => {
+    codename => "Tikanga",
+    description => "Red Hat Enterprise Linux Server release 5.11 (Tikanga)",
+    id => "RedHatEnterpriseServer",
+    release => {
+      full => "5.11",
+      major => "5",
+      minor => "11"
+    },
+    specification => ":core-4.0-amd64:core-4.0-ia32:core-4.0-noarch:graphics-4.0-amd64:graphics-4.0-ia32:graphics-4.0-noarch:printing-4.0-amd64:printing-4.0-ia32:printing-4.0-noarch"
+  },
+  family => "RedHat",
+  hardware => "x86_64",
+  name => "RedHat",
+  release => {
+    full => "5.11",
+    major => "5",
+    minor => "11"
+  },
+  selinux => {
+    enabled => false
+  }
+}
+
+facter os.family
+facter release.full
+############################################################################################################################
+
+vi hello.pp  - puppet apply hello.pp - to compile it into a catalog
+
+metaparameters are before/require/notify/subscribe
+
+
