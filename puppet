@@ -84,6 +84,8 @@ default port : 8140
 
 for environments , /etc/puppetlabs/code/environments/  default production 
 
+r10k automates the git part   use gem install 
+
 
 
 
