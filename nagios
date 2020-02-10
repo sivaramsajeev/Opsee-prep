@@ -1,0 +1,449 @@
+There are several benefits of using Continuous monitoring −
+
+It detects all the server and network problems.
+It finds the root cause of the failure.
+It helps in reducing the maintenance cost.
+It helps in troubleshooting the performance issues.
+It helps in updating infrastructure before it gets outdated.
+It can fix problems automatically when detected.
+It makes sure the servers, services, applications, network is always up and running.
+It monitors complete infrastructure every second
+
+#############################################################################################################################
+
+Nagios Architecture
+The following points are worth notable about Nagios architecture −
+
+Nagios has server-agent architecture.
+
+Nagios server is installed on the host and plugins are installed on the remote hosts/servers which are to be monitored.
+
+Nagios sends a signal through a process scheduler to run the plugins on the local/remote hosts/servers.
+
+Plugins collect the data (CPU usage, memory usage etc.) and sends it back to the scheduler.
+
+Then the process schedules send the notifications to the admin/s and updates Nagios GUI.
+
+#################################################################################################################################
+
+Nagios Core
+It is the core on monitoring IT infrastructure. Nagios XI product is also fundamentally based on Nagios core. Whenever there is 
+any issue of failure in the infrastructure, it sends an alert/notification to the admin who can take the action quickly to resolve 
+the issue. This tool is absolutely free.
+###################################################################################################################################
+
+Before you install Nagios, some packages such as Apache, PHP, building packages etc., are required to be present on your Ubuntu system. Hence, let us install them first.
+
+Step 1 − Run the following command to install pre-required packages −
+
+sudo apt-get install wget build-essential apache2 php apache2-mod-php7.0 php-gd
+libgd-dev sendmail unzip
+Step 2 − Next, create user and group for Nagios and add them to Apache www-data user.
+
+sudo useradd nagios
+sudo groupadd nagcmd
+sudo usermod -a -G nagcmd nagios
+sudo usermod -a -G nagios,nagcmd www-data
+Step 3 − Download the latest Nagios package.
+
+wget https://assets.nagios.com/downloads/nagioscore/releases/nagios-
+4.4.3.tar.gz
+Step 4 − Extract the tarball file.
+
+tar -xzf nagios-4.4.3.tar.gz
+cd nagios-4.4.3/
+Step 5 − Run the following command to compile Nagios from source.
+
+./configure --with-nagios-group=nagios --with-command-group=nagcmd
+Step 6 − Run the following command to build Nagios files.
+
+make all
+Step 7 − Run the command shown below to install all the Nagios files.
+
+sudo make install
+Step 8 − Run the following commands to install init and external command configuration files.
+
+sudo make install-commandmode
+sudo make install-init
+sudo make install-config
+sudo /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sitesavailable/
+nagios.conf
+Step 9 − Now copy the event handler directory to Nagios directory.
+
+sudo cp -R contrib/eventhandlers/ /usr/local/nagios/libexec/
+sudo chown -R nagios:nagios /usr/local/nagios/libexec/eventhandlers
+Step 10 − Download and extract Nagios plugins.
+
+cd
+wget https://nagios-plugins.org/download/nagiosplugins-
+2.2.1.tar.gz
+tar -xzf nagios-plugins*.tar.gz
+cd nagios-plugins-2.2.1/
+Step 11 − Install Nagios plugins using the below command.
+
+./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+make
+sudo make install
+Step 12 − Now edit the Nagios configuration file and uncomment line number 51 → cfg_dir=/usr/local/nagios/etc/servers
+
+sudo gedit /usr/local/nagios/etc/nagios.cfg
+Step 13 − Now, create a server directory.
+
+sudo mkdir -p /usr/local/nagios/etc/servers
+Step 14 − Edit contacts configuration file.
+
+sudo gedit /usr/local/nagios/etc/objects/contacts.cfg
+contacts configuration
+Step 15 − Now enable the Apache modules and configure a user nagiosadmin.
+
+sudo a2enmod rewrite
+sudo a2enmod cgi
+sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+sudo ln -s /etc/apache2/sites-available/nagios.conf /etc/apache2/sites-enabled/
+Step 16 − Now, restart Apache and Nagios.
+
+service apache2 restart
+service nagios start
+cd /etc/init.d/
+sudo cp /etc/init.d/skeleton /etc/init.d/Nagios
+Step 17 − Edit the Nagios file.
+
+sudo gedit /etc/init.d/Nagios
+DESC = "Nagios"
+NAME = nagios
+DAEMON = /usr/local/nagios/bin/$NAME
+DAEMON_ARGS = "-d /usr/local/nagios/etc/nagios.cfg"
+PIDFILE = /usr/local/nagios/var/$NAME.lock
+Step 18 − Make the Nagios file executable and start Nagios.
+
+sudo chmod +x /etc/init.d/nagios
+service apache2 restart
+service nagios start
+Step 19 − Now go to your browser and open url → http://localhost/nagios. Now login to Nagios with username nagiosadmin and use the password which you had set earlier. The login screen of Nagios is as shown in the screenshot given below −
+
+contacts screenshot
+If you have followed all the steps correctly, you Nagios web interface will show up. You can find the Nagios dashboard as shown below −
+
+Nagios dashboard
+
+
+########################################################################################################################################
+
+In the previous chapter, we have seen the installation of Nagios. In this chapter, let us understand its configuration in detail.
+
+The configuration files of Nagios are located in /usr/local/nagios/etc. These files are shown in the screenshot given below −
+
+Nagios configuration
+Let us understand the importance of each file now −
+
+nagios.cfg
+This is the main configuration file of Nagios core. This file contains the location of log file of Nagios, hosts and services state update interval, lock file and status.dat file. Nagios users and groups on which the instances are running are defined in this file. It has path of all the individual object config files like commands, contacts, templates etc.
+
+cgi.cfg
+By default, the CGI configuration file of Nagios is named cgi.cfg. It tells the CGIs where to find the main configuration file. The CGIs will read the main and host config files for any other data they might need. It contains all the user and group information and their rights and permissions. It also has the path for all frontend files of Nagios.
+
+resource.cfg
+You can define $USERx$ macros in this file, which can in turn be used in command definitions in your host config file(s). $USERx$ macros are useful for storing sensitive information such as usernames, passwords, etc.
+
+They are also handy for specifying the path to plugins and event handlers - if you decide to move the plugins or event handlers to a different directory in the future, you can just update one or two $USERx$ macros, instead of modifying a lot of command definitions. Resource files may also be used to store configuration directives for external data sources like MySQL.
+
+Resource
+external data sources
+The configuration files inside objects directory have are used to define commands, contacts, hosts, services etc.
+
+commands.cfg
+This config file provides you with some example command definitions that you can refer in host, service, and contact definitions. These commands are used to check and monitor hosts and services. You can run these commands locally on a Linux console where you will also get the output of the command you run.
+
+Example
+define command {
+   command_name check_local_disk
+   command_line $USER1$/check_disk -w $ARG1$ -c $ARG2$ -p $ARG3$
+}
+
+define command {
+   command_name check_local_load
+   command_line $USER1$/check_load -w $ARG1$ -c $ARG2$
+}
+
+define command {
+   command_name check_local_procs
+   command_line $USER1$/check_procs -w $ARG1$ -c $ARG2$ -s $ARG3$
+}
+contacts.cfg
+This file contains contacts and groups information of Nagios. By default, one contact is already present Nagios admin.
+
+Example
+define contact {
+   contact_name nagiosadmin
+   use generic-contact
+   alias Nagios Admin
+   email avi.dunken1991@gmail.com
+}
+
+define contactgroup {
+   contactgroup_name admins
+   alias Nagios Administrators
+   members nagiosadmin
+}
+templates.cfg
+This config file provides you with some example object definition templates that are referred by other host, service, contact, etc. definitions in other config files.
+
+timeperiods.cfg
+This config file provides you with some example timeperiod definitions that you can refer in host, service, contact, and dependency definitions.
+
+
+
+########################################################################################################################################
+
+Nagios can be applicable to a wide range of applications. They are given here −
+
+Monitor host resources such as disk space, system logs etc.
+
+Monitor network resources – http, ftp, smtp, ssh etc.
+
+Monitor log files continuously to identify infra-issue.
+
+Monitor windows/linux/unix/web applications and its state.
+
+Nagios Remote Plugin Executer (NRPE) can monitor services remotely.
+
+Run service checks in parallel.
+
+SSH or SSL tunnels can also be used for remote monitoring.
+
+Send alerts/notifications
+
+via email, sms, pager of any issue on infrastructure
+
+Recommending when to upgrade the IT infrastructure.
+
+######################################################################################################################
+
+Nagios is the most popular tool which is used to monitor hosts and services running in your IT infrastructure. Hosts and service configurations are the building blocks of Nagios Core.
+
+Host is just like a computer; it can be a physical device or virtual.
+
+Services are those which are used by Nagios to check something about a host.
+
+You can create a host file inside the server directory of Nagios and mention the host and service definitions. For example −
+
+sudo gedit /usr/local/nagios/etc/servers/ubuntu_host.cfg
+# Ubuntu Host configuration file
+define host {
+   use linux-server
+   host_name ubuntu_host
+   alias Ubuntu Host
+   address 192.168.1.10
+   register 1
+}
+define service {
+   host_name ubuntu_host
+   service_description PING
+   check_command check_ping!100.0,20%!500.0,60%
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   contact_groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+The above definitions add a host called ubuntu_host and defines the services which will run on this host. When you restart the Nagios, this host will start getting monitored by Nagios and the specified services will run.
+
+There are many more services in Nagios which can be used to monitor pretty much anything on the running host.
+
+#################################################################################################################################
+
+Example
+define command{
+   command_name check_ssh
+   command_line /usr/lib/nagios/plugins/check_ssh ‘$HOSTADDRESS$’
+}
+This command will execute the plugin − /usr/libl/nagios/plugins/check_ssh with 1 parameter : '$HOSTADDRESS$'
+
+A very short host definition that would use this check command could be similar to the one shown here −
+
+define host{
+   host_name host_tutorial
+   address 10.0.0.1
+   check_command check_ssh
+}
+The command definitions tell how to perform host/service checks. The also define how to generate notifications if any issue is identified and to handle any event. There are several commands to perform the checks, such as commands to check if SSH is working properly or not, command to check that database is up and running, command to check if a host is alive or not and many more.
+
+There are commands which tell users what issues are present in the infrastructure. You can create your own custom commands or use any third-party command in Nagios, and they are treated similar to Nagios plugins project, there is no distinction between them.
+
+You can also pass arguments in the command, this give more flexibility in performing the checks. This is how you need to define a command with parameter −
+
+define command {
+   command_name check-host-alive-limits
+   command_line $USER5$/check_ping -H $HOSTADDRESS$ -w $ARG1$ -c $ARG2$ -p 5
+}
+The host definition for the above command −
+
+define host {
+   host_name system2
+   address 10.0.15.1
+   check_command check-host-alive-limits!1000.0,70%!5000.0,100%
+}
+You can run external commands in Nagios by adding them to commands file which is processed by Nagios daemon periodically.
+
+With External commands you can achieve lot many checks while Nagios is running. You can temporarily disable few checks, or force some checks to run immediately, disable notifications temporarily etc. The following is the syntax of external commands in Nagios that must be written in command file −
+
+[time] command_id;command_arguments
+
+##########################################################################################################################################
+
+Protocols
+The default protocols used by Nagios are as given under −
+
+http(s), ports 80 and 443 − The product interfaces are web-based in Nagios. Nagios agents can use http to move data.
+
+snmp, ports 161 and 162 − snmp is an important part of network monitoring. Port 161 is used to send requests to nodes and post 162 is used to receive results.
+
+ssh, port 22 − Nagios is built to run natively on CentOS or RHEL Linux. Administrator can login into Nagios through SSH whenever they feel to do so and perform checks.
+
+Ports
+The Default ports used by common Nagios Plugins are as given under −
+
+Butcheck_nt (nsclient++) 12489
+NRPE 5666
+NSCA 5667
+NCPA 5693
+MSSQL 1433
+MySQL 3306
+PostgreSQL 5432
+MongoDB 27017, 27018
+OracleDB 1521
+Email (SMTP) 25, 465, 587
+WMI 135, 445 / additionaldynamically-assigned ports in 1024-1034 range
+
+########################################################################################################################################
+
+Plugins helps to monitor databases, operating systems, applications, network equipment, protocols with Nagios. Plugins are compiled executables or script (Perl or non-Perl) that extends Nagios functionality to monitor servers and hosts. Nagios will execute a Plugin to check the status of a service or host. Nagios can be compiled with support for an embedded Perl interpreter to execute Perl plugins. Without it, Nagios executes Perl and non-Perl plugins by forking and executing the plugins as an external command.
+
+Types of Nagios Plugins
+Nagios has the following plugins available in it −
+
+Official Nagios Plugins − There are 50 official Nagios Plugins. Official Nagios plugins are developed and maintained by the official Nagios Plugins Team.
+
+Community Plugins − There are over 3,000 third party Nagios plugins that have been developed by hundreds of Nagios community members.
+
+Custom Plugins − You can also write your own Custom Plugins. There are certain guidelines that must be followed to write Custom Plugins.
+
+#########################################################################################################################################
+The Nagios daemon which run checks on remote machines in NRPE (Nagios Remote Plugin Executor). It allows you to run Nagios plugins on other machines remotely. You can monitor remote machine metrics such as disk usage, CPU load etc. It can also check metrics of remote windows machines through some windows agent addons.
+
+Plugin Executor
+Let us see how to install and configure NRPE step by step on client machine which needs to be monitored.
+
+Step 1 − Run below command to install NRPE on the remote linux machine to be monitored.
+
+sudo apt-get install nagios-nrpe-server nagios-plugins
+Step 2 − Now, create a host file inside the server directory, and put all the necessary definitions for the host.
+
+sudo gedit /usr/local/nagios/etc/servers/ubuntu_host.cfg
+# Ubuntu Host configuration file
+
+define host {
+   use linux-server
+   host_name ubuntu_host
+   alias Ubuntu Host
+   address 192.168.1.10
+   register 1
+}
+
+define service {
+   host_name ubuntu_host
+   service_description PING
+   check_command check_ping!100.0,20%!500.0,60%
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   contact_groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+
+define service {
+   host_name ubuntu_host
+   service_description Check Users
+   check_command check_local_users!20!50
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   contact_groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+
+define service {
+   host_name ubuntu_host
+   service_description Local Disk
+   check_command check_local_disk!20%!10%!/
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+
+define service {
+   host_name ubuntu_host
+   service_description Check SSH
+   check_command check_ssh
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   contact_groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+
+define service {
+   host_name ubuntu_host
+   service_description Total Process
+   check_command check_local_procs!250!400!RSZDT
+   max_check_attempts 2
+   check_interval 2
+   retry_interval 2
+   check_period 24x7
+   check_freshness 1
+   contact_groups admins
+   notification_interval 2
+   notification_period 24x7
+   notifications_enabled 1
+   register 1
+}
+Step 3 − Run the command shown below for the verification of configuration file.
+
+sudo /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+verification of configuration
+Step 4 − Restart NRPE, Apache and Nagios if there are no errors.
+
+service nagios-nrpe-server restart
+service apache2 restart
+service nagios restart
+Step 5 − Open your browser and go to Nagios web interface. You can see the host which needs to be monitored has been added to Nagios core service. Similarly, you can add more hosts to be monitored by Nagios.
+
+####################################################################################################################################
+
