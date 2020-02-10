@@ -4,10 +4,19 @@ Unit tests. Sonar integrates with the most popular open source code coverage too
 commercial Clover by Attlassian. By default it uses the JaCoCo (Java Code Coverage) engine
 
 
+Difference between dynamic code analysis and static code analysis
 
+Static analysis is the testing and evaluation of an application by examining the code without executing the application whereas Dynamic analysis is the testing and evaluation of an application during runtime.
+
+Many software defects that cause memory and threading errors can be detected both dynamically and statically. The two approaches are complementary because no single approach can find every error.
+
+The primary advantage of dynamic analysis: It reveals subtle defects or vulnerabilities whose cause is too complex to be discovered by static analysis. Dynamic analysis can play a role in security assurance, but its primary goal is finding and debugging errors.
 
 
 #############################################################################################################################################################################
+Code coverage is a measure of how much code is executed during testing &
+Test coverage is a measure of how many test cases have been executed during testing.
+
 
 recommend you try to suppress specific warnings by using @SuppressWarnings("squid:S2078").
 
