@@ -1,3 +1,40 @@
+To make sure you are actually using dependencies downloaded through nexus, delete all dependencies maven has already cached on your 
+system:
+
+rm -rf ~/.m2/repository
+To test this Nexus setup, we can create a little java application using maven. The following create a java web application:
+
+mvn archetype:create -DarchetypeGroupId=org.apache.maven.archetypes -DarchetypeArtifactId=maven-archetype-webapp -DgroupId=nl.iteye 
+-DartifactId=App1
+
+cd App1
+You should now be able to compile and package your application:
+
+mvn clean install
+
+
+Next we’ll add the embedded glassfish maven plugin to our pom so we can test the web application. Add the plugin in the build section of your pom:
+
+    <plugins>
+         <plugin>
+            <groupId>org.glassfish</groupId>
+            <artifactId>maven-embedded-glassfish-plugin</artifactId>
+            <version>3.0</version>
+            <configuration>
+               <app>${project.build.directory}/${build.finalName}.war</app>
+               <port>7070</port>
+               <containerType>web</containerType>
+            </configuration>
+         </plugin>
+    </plugins>
+    
+  When you try to run your application using the embedded glassfish plugin you’ll run into an error as maven will not be able to download all the required dependencies:
+
+$:~/projects/jee/App1$ mvn embedded-glassfish:run
+[INFO] Scanning for projects...
+
+#######################################################################################################################################
+
 You're creating a custom software artifact repository. There are three open-source projects which already do this:
 
 Artifactory
@@ -147,4 +184,15 @@ Misc
 
 ##########################################################################################################################################################################################################################################################
 scheduled tasks to rebuild the metadata and reindex the repository.
+
+Why Nexus?
+A repository manager stores and organizes binary software components for use in development, deployment, and provisioning. Repository managers serve four primary purposess:
+
+Provides a central point for management of binary software components and their dependencies
+Provides a solid component repository for a complete Component Lifecycle Management approach
+Acts as highly configurable proxy between your organization and public repositories
+Provides a deployment destination for internally developed binary components
+
+
+#######################################################################################################################################
 
