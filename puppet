@@ -37,6 +37,54 @@ facter release.full
 
 vi hello.pp  - puppet apply hello.pp - to compile it into a catalog
 
-metaparameters are before/require/notify/subscribe
+metaparameters are before/require/notify/subscribe  -> capitalize the resource ie require => File['/tmp/file']
+
+modules = {manifests}
+
+including custom modules for puppet -> puppet apply --modulepath /root/mpli/modules -e 'include examples'  ( he starts right here with OOPs)
+
+class can have a init.pp file which runs everytime above apply command is executed like a constructor.
+include package::manifest   
+
+Using .erb extension for templatng <%  ruby-code-in-here   %>
+
+###################################################################################################################################
+
+Create another subclass that creates a file and another that uses a template.
+example::file
+# example::file
+class example::file {
+  file { 'source-file':
+    path => '/tmp/example-file',
+    source => 'puppet:///modules/example/example-file',
+  }
+}
+
+example::template
+This is an example template
+Facts are available using @
+This nodes hostname is <%= @hostname %>
+This node has the following interfaces:
+<% @interfaces.split(',').each do |interface| -%>   ## - for not adding a newline 
+  <%= interface %>
+<% end -%>
+Done.
+
+class example::template {
+ file {'example-template':
+   path    => '/tmp/example-template',
+   content => template('example/example-template.erb')
+ }
+}
+
+
+####################################################################################################################################
+
+default port : 8140
+
+for environments , /etc/puppetlabs/code/environments/  default production 
+
+
+
 
 
