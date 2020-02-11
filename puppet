@@ -34,6 +34,15 @@ facter os
 facter os.family
 facter release.full
 ############################################################################################################################
+had to give full DNS name of master in slave config for -tv to pull down catalogs 
+[main]
+ certname = puppet-slave
+ server = puppet-master.us-central1-a.c.linen-sun-264712.internal
+ environment = production
+ runinterval = 1h
+
+
+########################################################################################################################
 
 vi hello.pp  - puppet apply hello.pp - to compile it into a catalog
 
