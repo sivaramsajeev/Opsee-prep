@@ -23,5 +23,410 @@ if __name__ == "main":
 
 ######################################################################################################
 
+import time
+import requests
+
+def downspeed():
+    url = "http://speedtest.ftp.otenet.gr/files/test100k.db"
+
+    start = time.time()
+    file = requests.get(url)
+    end = time.time()
+
+    time_difference = end - start
+    file_size = int(file.headers['Content-Length'])/1000    
+    return round(file_size / time_difference)
+
+
+####################################################################################################
+
+
+from PIL import Image
+
+img = Image.open('/var/www/html/images/woman-wearing-red-bikini-1978611.jpg') 
+new_width  = 1200
+new_height = 2400
+img = img.resize((new_width, new_height), Image.ANTIALIAS)
+img.save('/var/www/html/images/woman_red_bikini.jpg') # format may what u want ,*.png,*jpg,*.gif
+
+
+##################################################################################################
+
+import socket
+
+
+def client_program():
+    host = socket.gethostname()  # as both code is running on same pc
+    port = int(input('Enter the port'))  # socket server port number
+
+    client_socket = socket.socket()  # instantiate
+    client_socket.connect((host, port))  # connect to the server
+
+    message = input(" -> ")  # take input
+
+    while message.lower().strip() != 'bye':
+        client_socket.send(message.encode())  # send message
+        data = client_socket.recv(1024).decode()  # receive response
+
+        print('Received from server: ' + data)  # show in terminal
+
+        message = input(" -> ")  # again take input
+
+    client_socket.close()  # close the connection
+
+
+if __name__ == '__main__':
+    client_program()
+
+
+
+
+cat socket_server.py
+
+import socket
+
+
+def server_program():
+    # get the hostname
+    host = socket.gethostname()
+    port = 5000  # initiate port no above 1024
+
+    server_socket = socket.socket()  # get instance
+    # look closely. The bind() function takes tuple as argument
+    server_socket.bind((host, port))  # bind host address and port together
+
+    # configure how many client the server can listen simultaneously
+    server_socket.listen(2)
+    conn, address = server_socket.accept()  # accept new connection
+    print("Connection from: " + str(address))
+    while True:
+        # receive data stream. it won't accept data packet greater than 1024 bytes
+        data = conn.recv(1024).decode()
+        if not data:
+            # if data is not received break
+            break
+        print("from connected user: " + str(data))
+        data = input(' -> ')
+        conn.send(data.encode())  # send data to the client
+
+    conn.close()  # close the connection
+
+
+if __name__ == '__main__':
+    server_program()
+
+##################################################################################################################
+
+
+#!/usr/bin/env python
+ 
+import sys
+import os
+import time
+from datetime import datetime
+ 
+now = time.time()
+if len(sys.argv) < 2:
+   print('Usage: {} FILENAME'.format(sys.argv[0]))
+ 
+filename = sys.argv[1]
+ 
+mtime = os.path.getmtime( filename)
+print(mtime)
+print(now - mtime)
+ 
+ 
+stat = os.stat( filename)
+print(stat.st_mtime)
+date = datetime.fromtimestamp(stat.st_mtime)
+print(date)
+
+
+#############################################################################################################
+
+import configparser
+import requests
+import sys
+ 
+def get_api_key():
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+    return config['openweathermap']['api']
+ 
+def get_weather(api_key, location):
+    url = "https://api.openweathermap.org/data/2.5/weather?q={}&units=metric&appid={}".format(location, api_key)
+    r = requests.get(url)
+    return r.json()
+ 
+def main():
+    if len(sys.argv) != 2:
+        exit("Usage: {} LOCATION".format(sys.argv[0]))
+    location = sys.argv[1]
+ 
+    api_key = get_api_key()
+    weather = get_weather(api_key, location)
+ 
+    print(weather['main']['temp'])
+    print(weather)
+ 
+ 
+if __name__ == '__main__':
+    main()
+
+############################################################################################################
+
+import requests
+ 
+r = requests.get('http://httpbin.org/headers',
+        headers = {
+            'User-agent'  : 'Internet Explorer/2.0',
+            'SOAPAction'  : 'http://www.corp.net/some/path/CustMsagDown.Check',
+            'Content-type': 'text/xml'
+        }
+    )
+print(r.text)
+
+
+###########################################################################################################
+
+cat get_useragent.py
+
+import requests
+ 
+r = requests.get('http://httpbin.org/user-agent')
+print(r.headers['content-type'])
+print(r.text)
+data = r.json()
+print(data)
+print(data['user-agent'])
+
+
+######################################################################################################
+
+
+import requests
+req = requests.post('https://en.wikipedia.org/w/index.php', data = {'search':'Nanotechnology'})
+req.raise_for_status()
+with open('Nanotechnology.html', 'wb') as fd:
+	for chunk in req.iter_content(chunk_size=50000):
+		fd.write(chunk)
+
+######################################################################################################
+
+
+import time
+while True:
+  localtime = time.localtime()
+  result = time.strftime("%I:%M:%S %p", localtime)
+  print(result)
+  time.sleep(1)
+
+#####################################################################################################
+
+cat elapsed_time.py
+import time
+import datetime
+t1 = datetime.datetime.now()
+time.sleep(120)
+t2 = datetime.datetime.now()
+elapsedTime = t2 - t1
+
+print('time elapsed is {}'.format(divmod(elapsedTime.total_seconds(), 60)))
+
+###################################################################################################
+
+from datetime import date
+from datetime import time
+from datetime import datetime
+def main():
+    ##DATETIME OBJECTS
+    #Get today's date from datetime class
+    today=datetime.now()
+    #print (today)
+    # Get the current time
+    #t = datetime.time(datetime.now())
+    #print "The current time is", t
+    #weekday returns 0 (monday) through 6 (sunday)
+    wd=date.weekday(today)
+    #Days start at 0 for monday
+    days= ["monday","tuesday","wednesday","thursday","friday","saturday","sunday"]
+    print("Today is day number %d" % wd)
+    print("which is a " + days[wd])
+
+if __name__== "__main__":
+    main()
+
+########################################################################################################
+
+import time
+import boto3
+import paramiko
+
+
+def lambda_handler(event, context):
+
+    ec2 = boto3.resource('ec2', region_name='your-ec2-region-name')
+
+    instance_id = 'your-ec2-instance-id'
+
+    instance = ec2.Instance(instance_id)
+
+    # Start the instance
+    instance.start()
+
+    # Giving some time to start the instance completely
+    time.sleep(60)
+
+    # Print few details of the instance
+    print("Instance id - ", instance.id)
+    print("Instance public IP - ", instance.public_ip_address)
+    print("Instance private IP - ", instance.private_ip_address)
+    print("Public dns name - ", instance.public_dns_name)
+    print("----------------------------------------------------")
+
+    # Connect to S3, we will use it get the pem key file of your ec2 instance
+    s3_client = boto3.client('s3')
+
+    # Download private key file from secure S3 bucket
+    # and save it inside /tmp/ folder of lambda event
+    s3_client.download_file('YourBucketName', 'YourPEMFileObject.pem',
+                            '/tmp/keyname.pem')
+
+    # Allowing few seconds for the download to complete
+    time.sleep(20)
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    privkey = paramiko.RSAKey.from_private_key_file('/tmp/keyname.pem')
+    # username is most likely 'ec2-user' or 'root' or 'ubuntu'
+    # depending upon yor ec2 AMI
+    ssh.connect(
+        instance.public_dns_name, username='Your-ec2-UserName', pkey=privkey
+    )
+    stdin, stdout, stderr = ssh.exec_command(
+        'echo "ssh to ec2 instance successful"')
+    stdin.flush()
+    data = stdout.read().splitlines()
+    for line in data:
+        print(line)
+
+    ssh.close()
+
+    # Stop the instance
+    instance.stop()
+
+################################################################################################################################
+
+import time
+import boto3
+import paramiko
+
+
+def lambda_handler(event, context):
+
+    ec2 = boto3.resource('ec2', region_name='your-ec2-region-name')
+
+    instance_id = 'your-ec2-instance-id'
+
+    instance = ec2.Instance(instance_id)
+
+    # Start the instance
+    instance.start()
+
+    # Giving some time to start the instance completely
+    time.sleep(60)
+
+    # Print few details of the instance
+    print("Instance id - ", instance.id)
+    print("Instance public IP - ", instance.public_ip_address)
+    print("Instance private IP - ", instance.private_ip_address)
+    print("Public dns name - ", instance.public_dns_name)
+    print("----------------------------------------------------")
+
+    # Connect to S3, we will use it get the pem key file of your ec2 instance
+    s3_client = boto3.client('s3')
+
+    # Download private key file from secure S3 bucket
+    # and save it inside /tmp/ folder of lambda event
+    s3_client.download_file('YourBucketName', 'YourPEMFileObject.pem',
+                            '/tmp/keyname.pem')
+
+    # Allowing few seconds for the download to complete
+    time.sleep(20)
+
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    privkey = paramiko.RSAKey.from_private_key_file('/tmp/keyname.pem')
+    # username is most likely 'ec2-user' or 'root' or 'ubuntu'
+    # depending upon yor ec2 AMI
+    ssh.connect(
+        instance.public_dns_name, username='Your-ec2-UserName', pkey=privkey
+    )
+    stdin, stdout, stderr = ssh.exec_command(
+        'echo "ssh to ec2 instance successful"')
+    stdin.flush()
+    data = stdout.read().splitlines()
+    for line in data:
+        print(line)
+
+    ssh.close()
+
+    # Stop the instance
+    instance.stop()
+
+###################################################################################################################
+
+def mail_sender(recipient_address,message):
+	s = smtplib.SMTP('smtp.gmail.com', 587) 
+	s.starttls() 
+	s.login(os.getenv('sender_email_id'), os.getenv('sender_email_id_password')) 
+	s.sendmail(os.getenv('sender_email_id'), recipient_address, message) 
+	s.quit() 
+
+
+if __name__ == '__main__':
+	recipient_address = sys.argv[1]
+	message = sys.argv[2]
+	print("Usage: python3 script <recipient-address> <message>")
+	mail_sender(recipient_address, message)
+
+
+###################################################################################################################
+
+def main():
+	print("Memory information: ")
+
+	with open('/proc/meminfo') as f:
+		info = f.readlines()
+
+	#print([x for x in info if 'memtotal' in x.lower() ])
+	array_to_search = ['memtotal','memfree','memavailable']
+	meminfo = [x.upper() for x in info for arg in array_to_search if arg in x.lower() ]
+	for i in meminfo:
+		print('{}    {} kb'.format(*i.split()),end='\n')
+
+
+################################################################################################################
+
+with open('/proc/self/mounts') as f:
+	info=f.readlines()
+
+for i in info:
+	if 'ext' in i:
+		print('{0}      {1}     {2}\n'.format(*i.split()),end='')
+
+################################################################################################################
+
+with open("/proc/cpuinfo", "r")  as f:
+    info = f.readlines()
+
+cpuinfo = [x.strip().split(":")[1] for x in info if "model name"  in x]
+for index, item in enumerate(cpuinfo):
+    print("    " + str(index) + ": " + item)
+##############################################################################################################
+
+
+
+
 
 
