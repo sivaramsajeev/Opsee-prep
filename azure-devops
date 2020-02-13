@@ -22,6 +22,9 @@ system environment variables need to be prefixed with TF_VAR_ for TF to pick up 
 TF tries to understand dependencies  90% times it works!!   but in remaining cases mention depends_on 
 
 ################################################################################################################
+NIC & Public IP are separate - NIC in VM  but  IP to NIC
+Depndency issue with subnet & vnet when run together 
+##################################################################################################################
 
 "web_server_location"       = "westus2"
 "web_server_rg"             = "web-rg"
