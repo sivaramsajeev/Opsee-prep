@@ -24,6 +24,7 @@ TF tries to understand dependencies  90% times it works!!   but in remaining cas
 ################################################################################################################
 NIC & Public IP are separate - NIC in VM  but  IP to NIC
 Depndency issue with subnet & vnet when run together . Multiple Vms but single NIC  then plan didnt point it out.
+NIC goes busy forcing destroy everytime. RG needs dependency since vnet creation seems to preceed it.
 ##################################################################################################################
 
 "web_server_location"       = "westus2"
