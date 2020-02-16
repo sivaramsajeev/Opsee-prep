@@ -273,6 +273,110 @@ if __name__ == '__main__':
   
   ################################################################################################################
   
-  
+  subprocess.run was added in Python 3.5 as a simplification over subprocess.Popen when you just want to execute a command and wait until it finishes, but you don't want to do anything else meanwhile. For other cases, you still need to use subprocess.Popen.
+
+The main difference is that subprocess.run executes a command and waits for it to finish, while with subprocess.Popen you can continue doing your stuff while the process finishes and then just repeatedly call subprocess.communicate yourself to pass and receive data to your process.
+
+Note that, what subprocess.run is actually doing is invoking for you the Popen and communicate, so you don't need to make a loop to pass/receive data nor wait for the process to finish.
+
+Check this site for the information of which parameters of subprocess.run are passed to Popen and which to communicate.
+
+
+
+call is blocking:
+
+call('notepad.exe')
+print('hello')  # only executed when notepad is closed
+Popen is non-blocking:
+
+Popen('notepad.exe')
+print('hello')  # immediately executed
+
+
+The subprocess module was created with the intention of replacing several methods available in the os module, which were not considered to be very efficient. Within this module, we find the new Popen class.
+
+The Python documentation recommends the use of Popen in advanced cases, when other methods such like subprocess.call cannot fulfill our needs. This method allows for the execution of a program as a child process. Because this is executed by the operating system as a separate process, the results are platform dependent.
+
+The available parameters are as follows:
+
+subprocess.Popen(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0)
+
+One main difference of Popen is that it is a class and not just a method. Thus, when we call subprocess.Popen, we're actually calling the constructor of the class Popen.
+
+There are quite a few arguments in the constructor. The most important to understand is args, which contains the command for the process we want to run. It can be specified as a sequence of parameters (via an array) or as a single command string.
+
+The second argument that is important to understand is shell, which is defaults to False. On Unix, when we need to run a command that belongs to the shell, like ls -la, we need to set shell=True.
+
+For example, the following code will call the Unix command ls -la via a shell.
+
+import subprocess
+subprocess.Popen('ls -la', shell=True)
+
+
+###########################################################################################################################################
+
+
+One main difference of Popen is that it is a class and not just a method. Thus, when we call subprocess.Popen, we're actually calling the constructor of the class Popen.
+
+There are quite a few arguments in the constructor. The most important to understand is args, which contains the command for the process we want to run. It can be specified as a sequence of parameters (via an array) or as a single command string.
+
+The second argument that is important to understand is shell, which is defaults to False. On Unix, when we need to run a command that belongs to the shell, like ls -la, we need to set shell=True.
+
+For example, the following code will call the Unix command ls -la via a shell.
+
+import subprocess
+subprocess.Popen('ls -la', shell=True)
+The results can be seen in the output below:
+
+$ python subprocess_popen_test.py 
+total 40
+drwxr-xr-x   7 scott  staff  238 Nov  9 09:13 .
+drwxr-xr-x  29 scott  staff  986 Nov  9 09:08 ..
+-rw-r--r--   1 scott  staff   52 Nov  9 09:13 popen2_test.py
+-rw-r--r--   1 scott  staff   55 Nov  9 09:14 popen3_test.py
+-rw-r--r--   1 scott  staff   53 Nov  9 09:14 popen4_test.py
+-rw-r--r--   1 scott  staff   49 Nov  9 09:13 popen_test.py
+-rw-r--r--   1 scott  staff   56 Nov  9 09:16 subprocess_popen_test.py
+Using the following example from a Windows machine, we can see the differences of using the shell parameter more easily. Here we're opening Microsoft Excel from the shell, or as an executable program. From the shell, it is just like if we were opening Excel from a command window.
+
+The following code will open Excel from the shell (note that we have to specify shell=True):
+
+import subprocess
+subprocess.Popen("start excel", shell=True)
+However, we can get the same results by calling the Excel executable. In this case we are not using the shell, so we leave it with its default value (False); but we have to specify the full path to the executable.
+
+import subprocess
+subprocess.Popen("C:\Program Files (x86)\Microsoft Office\Office15\excel.exe")
+In addition, when we instantiate the Popen class, we have access to several useful methods:
+
+Method	Description
+Popen.poll()	Checks if the child process has terminated.
+Popen.wait()	Wait for the child process to terminate.
+Popen.communicate()	Allows to interact with the process.
+Popen.send_signal()	Sends a signal to the child process.
+Popen.terminate()	Stops the child process.
+Popen.kill()	Kills a child process.
+The full list can be found at the subprocess documentation. The most commonly used method here is communicate.
+
+The communicate method allows us to read data from the standard input, and it also allows us to send data to the standard output. It returns a tuple defined as (stdoutdata, stderrdata).
+
+For example, the following code will combine the Windows dir and sort commands.
+
+import subprocess
+
+p1 = subprocess.Popen('dir', shell=True, stdin=None, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+p2 = subprocess.Popen('sort /R', shell=True, stdin=p1.stdout)
+
+p1.stdout.close()
+out, err = p2.communicate() 
+In order to combine both commands, we create two subprocesses, one for the dir command and another for the sort command. Since we want to sort in reverse order, we add /R option to the sort call.
+
+We define the stdout of process 1 as PIPE, which allows us to use the output of process 1 as the input for process 2. Then we need to close the stdout of process 1, so it can be used as input by process 2. The communication between process is achieved via the communicate method.
+
+Running this from a Windows command shell produces the following:
+
+####################################################################################################################################
+
+
 
 
