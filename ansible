@@ -183,6 +183,16 @@ if __name__ == '__main__':
     
     #######################################################################################################################
     
-    
+    The Basics of Creating an Ansible Module
+Here we will show you some of the must-follow basics steps to make a custom Ansible module.
+
+Use common aliases across modules – name, src, dest, state
+Modules should only be one file. If you need multiple files, you’re looking to make an action plugin not a module.
+Modules should only return JSON; it shouldn’t be giving any errors or tracebacks.
+All modules need to start with a shebang!
+
+########################################################################################################################
+
+
 
 
