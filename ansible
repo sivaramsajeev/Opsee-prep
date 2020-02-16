@@ -193,6 +193,17 @@ All modules need to start with a shebang!
 
 ########################################################################################################################
 
+Here are some basic considerations of writing Ansible modules:
+
+Ansible will look in the library directory relative to the playbook, for example: playbooks/library/your-module
+You can also specify the path to your custom modules in ansible.cfg, for example: library = /usr/share/ansible
+Ansible expects modules to return JSON, for example: {'changed': false, 'failed': true, 'msg': 'could not reach the host'}
+If you write your module in Python (it can be written in any language as long as it returns json) you can import Ansible helper libraries
+If are using Python try to limit the libraries you are using to the standard library. If that’s not possible you need a strategy to install those libraries everywhere you will run the playbooks (preferably with your Linux distributions package manager and not pip ;) )
+Good practice is to write a multi-line at the start of your module describing parameters and how to run it. This is especially important if you want to open source it.
+
+################################################################################################################################
+
 
 
 
