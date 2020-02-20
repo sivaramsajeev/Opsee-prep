@@ -481,6 +481,27 @@ def lambda_handler(event, context):
 
 #############################################################################################################################
 
+Recently switched from GoDaddy (was a client for almost 5 years of their DNS and domain registration services) to Route 53.
+
+Why GoDaddy was better for me than Route53:
+
+they do not charge you for DNS queries;
+they provide a free mail forwarding service.
+That's it.
+
+Now why Route53 is better than GoDaddy:
+
+a better UI (GoDaddy's UI is really confusing);
+API;
+some domain zones are cheaper (e.g. "io" domain will cost you twice less per year);
+provides a whois domain privacy for free (GoDaddy charges for that additionally).
+
+
+Besides what's already been said about the quality of Amazon's infrastructure, the API is the killer feature of Route 53 
+or competitors like Dynect. If your site does get large enough that you have a number of servers, you'll want to get into 
+systems automation, and being able to automate your DNS changes can be quite nice.
+################################################################################################################################
+
 
 
 
