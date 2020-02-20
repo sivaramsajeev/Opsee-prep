@@ -186,6 +186,25 @@ More details - http://docs.aws.amazon.com/lambda/latest/dg/vpc.html#vpc-internet
 How to connect to postgres RDS from AWS Lambda
 
 #####################################################################################################################################
+Basically, domain queries are automatically routed to the nearest DNS server to provide the quickest response possible. If you use a web hosting company like GoDaddy, it takes 30 minutes to 24 hours to remap a domain to a different IP, but by using Route 53 in AWS it takes only a few minutes.
+
+Now, take a look at the benefits provided by Route 53.
+
+Amazon Route 53 Benefits
+Route 53 provides the user with several benefits.
+
+They are:
+
+Highly Available and Reliable
+Flexible
+Simple
+Fast
+Cost-effective
+Designed to Integrate with Other AWS Services
+Secure
+Scalable
+
+##########################################################################################################################################
 
 import requests
 
