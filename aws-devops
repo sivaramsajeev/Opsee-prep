@@ -19,6 +19,9 @@ create codecommit  unique for region
 
 For serverless sundog uploaded to S3
 
+ I was able to solve a concurrency problem when updating a file on S3. I am using lambda function to update a file on S3 using
+ concurrency count as 1. This ensures that at a time only one ec2 instance has write access to the file.This is much cheaper 
+ then using any managed DB on AWS for trivial usage
 
 ######################################################################################################################
 
