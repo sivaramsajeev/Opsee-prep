@@ -132,6 +132,42 @@ so that it can be used with 2.6.x
   
   ###############################################################################################################################
   
-  
+  create_resources will just map
+
+# A hash of user resources:
+$myusers = {
+  'nick' => { uid    => '1330',
+              gid    => allstaff,
+              groups => ['developers', 'operations', 'release'], },
+  'dan'  => { uid    => '1308',
+              gid    => allstaff,
+              groups => ['developers', 'prosvc', 'release'], },
+}
+
+create_resources(user, $myusers)
+into
+
+  user{'nick':
+    uid    => '1330',
+    gid    => allstaff,
+    groups => ['developers', 'operations', 'release'], },
+  }
+  user{'dan':
+    uid    => '1308',
+    gid    => allstaff,
+    groups => ['developers', 'prosvc', 'release'], },
+  }
+So those users will be passed to user provider. You can test it easily creating a users.pp file with your recipes, and testing it with puppet apply --noop :
+
+# puppet apply --noop users.pp 
+Notice: Compiled catalog for yourfqdn in environment production in 0.15 seconds
+Notice: /Stage[main]/Main/User[nick]/ensure: current_value absent, should be present (noop)
+Notice: /Stage[main]/Main/User[dan]/ensure: current_value absent, should be present (noop)
+Notice that if users already exist, puppet apply wont do anything
+
+shareimprove this answer
+edited Dec 9 '14 at 8:08
+
+########################################################################################################################################
 
 
