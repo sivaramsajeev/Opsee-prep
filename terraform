@@ -154,6 +154,11 @@ You are likely to forget to commit and push your changes after running terraform
 using Terraform remote state, which will push/pull the .tfstate files automatically every time you run terraform apply and b) using
 a tool like terragrunt to provide locking for your .tfstate files.
 
+
+This was at a time when I was thinking of running Terraform changes in Lambdas, and I didn’t know how to do remote state locking in
+Terraform itself. I dropped this idea – in part because you can’t limit concurrent Lambdas, and in part because I was worried about
+the five-minute timeouts
+
 #########################################################################################################################
 
 variable "environment" {}
