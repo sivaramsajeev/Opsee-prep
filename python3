@@ -425,8 +425,91 @@ for index, item in enumerate(cpuinfo):
     print("    " + str(index) + ": " + item)
 ##############################################################################################################
 
+with Popen(["ifconfig"], stdout=PIPE) as proc:
+    log.write(proc.stdout.read())
+    
 
+Replacing shell pipeline
+output=$(dmesg | grep hda)
+becomes:
 
+p1 = Popen(["dmesg"], stdout=PIPE)
+p2 = Popen(["grep", "hda"], stdin=p1.stdout, stdout=PIPE)
+p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+output = p2.communicate()[0]
+The p1.stdout.close() call after starting the p2 is important in order for p1 to receive a SIGPIPE if p2 exits before p1.
 
+Alternatively, for trusted input, the shell’s own pipeline support may still be used directly:
+
+output=$(dmesg | grep hda)
+becomes:
+
+output=check_output("dmesg | grep hda", shell=True)
+
+#######################################################################################################################
+
+In the official python documentation we can read that subprocess should be used
+for accessing system commands.
+
+The subprocess module allows us to spawn processes, connect to their
+input/output/error pipes, and obtain their return codes. 
+
+Subprocess intends to replace several other, older modules and functions,
+like: os.system, os.spawn*, os.popen*, popen2.* commands.
+
+########################################################################################################################################
+
+>>> p = subprocess.Popen(["echo", "hello world"], stdout=subprocess.PIPE)
+>>> print p.communicate()[0]
+hello world
+>>>
+>>> p = subprocess.Popen(["echo", "hello world"], stdout=subprocess.PIPE)
+>>> print p.communicate()
+('hello world\n', None)
+>>>
+
+################################################################################################################
+
+Note, even though you could have used "shell=True", it is not the recommended
+way of doing it. 
+If you know that you will only work with specific subprocess functions,
+such as Popen and PIPE, then it is enough to only import those.
+from subprocess import Popen, PIPE
+
+p1 = Popen(["dmesg"], stdout=PIPE)
+
+print p1.communicate()
+
+############################################################################################################################
+
+The communicate() method returns a tuple (stdoutdata, stderrdata). 
+
+Popen.communicate() interacts with process: Send data to stdin.
+
+Read data from stdout and stderr, until end-of-file is reached.
+
+Wait for process to terminate.
+
+The optional input argument should be a string to be sent to the
+child process, or None, if no data should be sent to the child.
+
+Basically, when you use communicate() it means that you want to
+execute the command
+
+#################################################################################################################
+
+# Import the module
+import subprocess
+
+# Ask the user for input
+host = raw_input("Enter a host to ping: ")	
+
+# Set up the echo command and direct the output to a pipe
+p1 = subprocess.Popen(['ping', '-c 2', host], stdout=subprocess.PIPE)
+
+# Run the command
+output = p1.communicate()[0]
+
+print output
 
 
