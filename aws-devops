@@ -366,10 +366,120 @@ def upload_to_s3(bucket, key, image):
 
 ##########################################################################################################
 
+this is one of the things I'd really like to see Lambda support, but currently it does not. One of the problems is that if there
+were a lot of S3 PUT operations happening AWS would have to queue up all the Lambda invocations somehow, and there is currently 
+no support for that.
+
+If you built a locking mechanism into your Lambda function, what would you do with the requests you don't process due to a lock? 
+Would you just throw those S3 notifications away?
+
+The solution most people recommend is to have S3 send the notifications to an SQS queue, and then have your Lambda function scheduled 
+to run periodically, like once a minute, and check if there is an item in the queue that needs to be processed.
+
+Alternatively, have S3 send the notifications to SQS and just have a t2.nano EC2 instance with a single-threaded service polling
+the queue.
+
+Using messaging to serialize lambda executionie ie stop parallel executions
+Have the S3 "Put events" cause a message to be placed on the queue (instead of involving a lambda function). The message should
+contain a reference to the S3 object. Then SCHEDULE a lambda to "SHORT POLL the entire queue".
 
 
 
 
+You can use an aws_cloudwatch_event_target resource to tie the scheduled event source (event rule) to your lambda function. You need to grant it permission to invoke your lambda function; you can use an aws_lambda_permission resource for this.
+
+Example:
+
+resource "aws_lambda_function" "check_foo" {
+    filename = "check_foo.zip"
+    function_name = "checkFoo"
+    role = "arn:aws:iam::424242:role/something"
+    handler = "index.handler"
+}
+
+resource "aws_cloudwatch_event_rule" "every_five_minutes" {
+    name = "every-five-minutes"
+    description = "Fires every five minutes"
+    schedule_expression = "rate(5 minutes)"
+}
+
+resource "aws_cloudwatch_event_target" "check_foo_every_five_minutes" {
+    rule = "${aws_cloudwatch_event_rule.every_five_minutes.name}"
+    target_id = "check_foo"
+    arn = "${aws_lambda_function.check_foo.arn}"
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_to_call_check_foo" {
+    statement_id = "AllowExecutionFromCloudWatch"
+    action = "lambda:InvokeFunction"
+    function_name = "${aws_lambda_function.check_foo.function_name}"
+    principal = "events.amazonaws.com"
+    source_arn = "${aws_cloudwatch_event_rule.every_five_minutes.arn}"
+}
+
+
+##########################################################################################################################
+
+AWS Lambda environment variables can be defined using the AWS Console, CLI, or SDKs. This is how you would define an AWS Lambda that uses an LD_LIBRARY_PATH environment variable using AWS CLI:
+
+aws lambda create-function \
+  --region us-east-1
+  --function-name myTestFunction
+  --zip-file fileb://path/package.zip
+  --role role-arn
+  --environment Variables={LD_LIBRARY_PATH=/usr/bin/test/lib64}
+  --handler index.handler
+  --runtime nodejs4.3
+  --profile default
+Once created, environment variables can be read using the support your language provides for accessing the environment, e.g. using process.env for Node.js. When using Python, you would need to import the os library, like in the following example:
+
+...
+import os
+...
+print("environment variable: " + os.environ['variable'])
+
+#########################################################################################################################
+
+def lambda_handler(event, context):
+    # TODO implement
+    import boto3
+
+    s3 = boto3.client('s3')
+    data = s3.get_object(Bucket='my_s3_bucket', Key='main.txt')
+    contents = data['Body'].read()
+    print(contents)
+    
+ ###################################################################################################################
+ 
+ Amazon SNS is designed to distribute notifications. These can be received in a variety of formats, such as email, SMS, messages pushed
+ to HTTP endpoints, mobile phone notifications and even triggering of AWS Lambda functions.
+
+It is not designed as a fully-featured email system. It will only send text messages and appends an 'unsubscribe' footer at the 
+bottom of the messages.
+
+If you wish to send formatted emails, consider using Amazon Simple Email Service (SES), which improves email deliverability. 
+Any content passed into Amazon SES is sent out to recipients, including HTML.
+
+Amazon SNS is primarily about notification, rather than pretty content.
+
+###############################################################################################################################
+The AWS API Gateway is the only way to expose your lambda function over HTTP. The AWS lambda web console should create one
+automatically for you if you use the microservice-http-endpoint blueprint when creating a new lambda function.
+
+import boto3
+
+def lambda_handler(event, context):
+
+    client = boto3.client('dynamodb')
+
+    for record in event['Records']:
+        # your logic here...
+        try:
+            client.update_item(TableName='dynamo_table_name', Key={'hash_key':{'N':'value'}}, AttributeUpdates={"some_key":{"Action":"PUT","Value":{"N":'value'}}}) 
+        except Exception, e:
+            print (e)
+
+#############################################################################################################################
 
 
 
