@@ -188,6 +188,102 @@ print(r.text)
 
 
 ###########################################################################################################
+# Python program to illustrate  
+# *args with first extra argument 
+def myFun(arg1, *argv): 
+    print ("First argument :", arg1) 
+    for arg in argv: 
+        print("Next argument through *argv :", arg) 
+  
+myFun('Hello', 'Welcome', 'to', 'GeeksforGeeks')
+
+
+**kwargs
+
+The special syntax **kwargs in function definitions in python is used to pass a keyworded, variable-length argument list.
+We use the name kwargs with the double star. The reason is because the double star allows us to pass through keyword arguments 
+(and any number of them).
+
+A keyword argument is where you provide a name to the variable as you pass it into the function.
+One can think of the kwargs as being a dictionary that maps each keyword to the value that we pass alongside it. 
+That is why when we iterate over the kwargs there doesn’t seem to be any order in which they were printed out.
+
+def myFun(**kwargs):  
+    for key, value in kwargs.items(): 
+        print ("%s == %s" %(key, value)) 
+  
+# Driver code 
+myFun(first ='Geeks', mid ='for', last='Geeks')
+
+
+
+def myFun(arg1, arg2, arg3): 
+    print("arg1:", arg1) 
+    print("arg2:", arg2) 
+    print("arg3:", arg3) 
+      
+# Now we can use *args or **kwargs to 
+# pass arguments to this function :  
+args = ("Geeks", "for", "Geeks") 
+myFun(*args) 
+  
+kwargs = {"arg1" : "Geeks", "arg2" : "for", "arg3" : "Geeks"} 
+myFun(**kwargs)
+
+
+
+When programming, you may not be aware of all the possible use cases of your code, and may want to offer more options for 
+future programmers working with the module, or for users interacting with the code. We can pass a variable number of 
+arguments to a function by using *args and **kwargs in our code
+
+
+In Python, the single-asterisk form of *args can be used as a parameter to send a non-keyworded variable-length argument
+list to functions. It is worth noting that the asterisk (*) is the important element here, as the word args is the established 
+conventional idiom, though it is not enforced by the language.
+
+def multiply(*args):
+    z = 1
+    for num in args:
+        z *= num
+    print(z)
+
+multiply(4, 5)
+multiply(10, 9)
+multiply(2, 3, 4)
+multiply(3, 5, 10, 6)
+
+
+What is important to note is that a dictionary called kwargs is created and we can work with it just like we can work with other 
+dictionaries.
+
+def print_values(**kwargs):
+    for key, value in kwargs.items():
+        print("The value of {} is {}".format(key, value))
+
+print_values(my_name="Sammy", your_name="Casey")
+
+def concatenate(**kwargs):
+    result = ""
+    # Iterating over the Python kwargs dictionary
+    for arg in kwargs.values():
+        result += arg
+    return result
+
+print(concatenate(a="Real", b="Python", c="Is", d="Great", e="!"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+##############################################################################################################################################################################################################################
 
 cat get_useragent.py
 
