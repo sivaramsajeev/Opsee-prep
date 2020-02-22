@@ -20,6 +20,35 @@ def do_it():
 if __name__ == "main":
     do_it()
 
+##############################################################################################################
+
+import requests
+
+url = 'https://www.python.org/static/img/python-logo.png'
+fileName = 'D:\Python\dwnldPythonLogo.png'
+req = requests.get(url)
+file = open(fileName, 'wb')
+for chunk in req.iter_content(100000):
+    file.write(chunk)
+file.close()
+
+OR
+
+import urllib.request
+...
+url = 'http://example.com/'
+response = urllib.request.urlopen(url)
+data = response.read()      # a `bytes` object
+text = data.decode('utf-8') # a `str`; this step can't be used if data is binary
+The easiest way to download and save a file is to use the urllib.request.urlretrieve function:
+
+import urllib.request
+...
+# Download the file from `url` and save it locally under `file_name`:
+urllib.request.urlretrieve(url, file_name)
+
+
+
 
 ######################################################################################################
 
