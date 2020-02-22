@@ -11,3 +11,10 @@ proc            /proc           proc    defaults,hidepid=2
 This functionality is supported from the kernel v3.2 onwards. It hides /proc and consequentially ps activity from all users except root.
 
 
+To check if Pdftk is already installed
+
+sudo apt list | grep pdftk 
+
+If output contains '[installed]' tag with pdftk then you can skip step1 i.e if the output is like this
+
+qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
