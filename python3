@@ -1,3 +1,18 @@
+A future statement is a directive to the compiler that a particular module should be compiled using syntax or semantics that will be available in a specified future release of Python. The future statement is intended to ease migration to future versions of Python that introduce incompatible changes to the language. It allows use of the new features on a per-module basis before the release in which the feature becomes standard.
+
+If you actually want to import the __future__ module, just do
+
+import __future__
+
+
+__future__ is a pseudo-module which programmers can use to enable new language features which are not compatible with the current interpreter. For example, the expression 11/4 currently evaluates to 2. If the module in which it is executed had enabled true division by executing:
+
+from __future__ import division
+
+the expression 11/4 would evaluate to 2.75. 
+
+
+
 
 hostname = '192.168.3.4'    
 port = 22
