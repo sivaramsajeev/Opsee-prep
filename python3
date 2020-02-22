@@ -175,6 +175,103 @@ if __name__ == '__main__':
 
 ############################################################################################################
 
+>>> word = " hello "
+>>> word.lstrip()
+'hello '
+>>> word.rstrip()
+' hello'
+>>> word.strip()
+'hello'
+ 
+# actual string is still unchanged
+>>> word
+' hello '
+ 
+# to make these changes permanent
+>>> newword = word.strip()
+>>> newword
+'hello'
+You can remove other characters like
+
+>>> newword.rstrip('o')
+'hell'
+
+
+These two are equivalent :
+
+my_string.strip()
+ 
+# is equivalent to this : although strip is likely to be faster
+my_string.lstrip().rstrip()
+
+########################################################################################################################################################################
+
+A Python package is simply an organized collection of python modules. A python module is simply a single python file.
+
+Creating a package with __init__.py is all about making it easier to develop larger Python projects.
+
+It provides a mechanism for you to group separate python scripts into a single importable module.
+
+So, without creating a package and using __init__.py, how do we use the functions in these files?
+
+Well, we can only import these files if they are in the current directory that whatever script we are running is running from.
+
+Well, we can use these files in a new Python script but with one key caveat:
+
+The files must be in the same directory as the script we are trying to use them in.
+
+# example3.py
+
+import string_func
+
+some_string = "Hello, Universe!"
+
+print(string_func.stringLength(some_string))
+print(string_func.stringToLower(some_string))
+print(string_func.stringToUpper(some_string))
+Now the syntax is a lot shorter and you can see that string_func is behaving like its own module.
+
+So, that is basically what __init__.py does! It allows you to treat a directory as if it was a python module. Then you can further 
+define imports inside your __init__.py file to make imports more succinct, or you can just leave the file blank
+
+
+Files name __init__.py are used to mark directories on disk as Python package directories. If you have the files
+
+mydir/spam/__init__.py
+midir/spam/module.py
+and mydir is on your path, you can import the code in module.py as
+
+import spam.module
+or
+
+from spam import module
+If you remove the __init__.py file, Python will no longer look for submodules inside that directory, so attempts to import the module 
+will fail.
+
+The __init__.py file is usually empty, but can be used to export selected portions of the package under more convenient name, hold 
+convenience functions, etc. Given the example above, the contents of the init module can be accessed as
+
+import spam
+
+
+# __init__.py
+from .foo import *
+from .bar import *
+
+
+# __init__.py
+from .foo import foo_func
+from .bar import bar_func
+
+# __init__.py
+import example_pkg.foo
+
+
+
+##################################3333333333333333333333333333333333333333333333333#############################################################################################################################
+
+Python within bash - sleep $(python -c "import random;print random.uniform(.01, .8)")
+
 import requests
  
 r = requests.get('http://httpbin.org/headers',
