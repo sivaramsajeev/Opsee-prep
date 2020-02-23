@@ -6,6 +6,7 @@ Difference between images and container lies in the top writable layer
 RUN during build time while CMD on the running container on the image + RUN creates an additional layer while CMD 
 writes on existing layer
 
+Leverage NFS to mount same volume over multiple containers
 
 ################################################################################################################
 gcloud command line installation (req python 2) --> download the tarball & follow doc 
