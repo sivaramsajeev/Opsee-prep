@@ -16,6 +16,64 @@ json2yaml site
 create codecommit  unique for region   
 
 ######################################################################################################################
+53 is the TCP/UDP port where DNS services are running
+
+buy your domain after checking the availabilty - partnered with Gandy - need to map the public ip of EC2 running web browser to domain -
+choose hosted zones from dashboard - create a record set - type A (ipaddress of EC2 as value and TTL 300s) - click create 
+
+But additionally it provides LB kind of features in the name of health checks
+
+Amazon Route 53 allows DNS failover with active-active, active-passive, and mixed configurations to implement high availability of 
+the applications. For instance, if there are many resources that perform the same function, then Route 53 can check the state (health)
+of those resources and respond to DNS queries only the resources that are healthy.
+
+Each EC2 instance has an elastic IP so that, after a stop/start of the instance, we will receive the same public IP address.
+
+choose health checks - 
+In the next window, you will need to fill in some details:
+
+– Name—This is something that should be descriptive to you. You will reference this later.
+
+– Protocol—This will be the protocol used for testing. Because we need to test if the HTTP server is up, we will use HTTP.
+
+– IP Address—The IP address of the HTTP server.
+
+– Port—The port used for availability checking.
+
+– Request Interval—How often the health will be checked.
+
+– Failure Threshold—After how many failures the health check will be considered as failure.
+
+As you can see, we used pretty aggressive intervals/thresholds because we need to detect a possible failure as soon as possible.
+
+Click on “Create” to create the health check.
+
+Select “Hosted Zones” and then “Go to Record Sets”: Click on “Create Record Set” to create the first record set. The record set will be for www.vtep.net:
+
+
+Everything is the same as explained in Part I of the series. In the value field, you will need to put the IP address of EC2 instance 
+from US EAST region. The interesting stuff starts after this.
+
+In the “Routing Policy” choose “Failover” and in the “Failure Record Type” choose “Primary” because this will be the primary server. 
+On “Set ID,” fill in something that is meaningful for you. Further we need to Route 53 how to track the availability of this server.
+Choose “Yes” from “Associate with Health Check” and then, from the drop down menu, we will choose the health check that we configured 
+earlier. Then click on “Create” to create the record set.
+
+Then we need to create another record set with the same name, www.vtep.net. Fill in the IP address of the EC2 instance from 
+US EAST instance. In the “Routing Policy” choose “Failover” and in the “Failure Record Type” choose “Secondary” because this 
+will be the secondary server. We don’t need to specify any health check because we don’t have a server that will be backup 
+to this one. In case we would have, we need to configure the health check and then reference it. Click on “Create” to continue.
+
+
+
+The health checks done by Route 53 are:
+
+HTTP and HTTPS health checks—Route 53 must establish a TCP connection in less than four seconds. The endpoint should respond with a status code higher than 200 (including), but lower than 400 within 2 seconds.
+TCP health checks—Route 53 must establish a TCP connection in less than 4 seconds
+
+
+
+###############################################################################################################
 
 AWS CloudWatch and CloudTrail: How do they work together?
 AWS CloudWatch is integrated with a whole host of AWS services, including CloudTrail. Using CloudTrail’s ability to log a change to 
