@@ -20,3 +20,8 @@ Now this container will have access to the Docker socket, and will therefore be 
 
 docker run -it busybox /bin/sh - swissarmy knife  with networking
 
+For jenkins image  docker exec -u 0 -it <cid> /bin/bash   - u 0 for root else it will start bash as jenkins user 
+
+ngrok to create an http tunnel and access over the internet 
+
+
