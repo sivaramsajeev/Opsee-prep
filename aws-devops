@@ -17,6 +17,21 @@ create codecommit  unique for region
 
 ######################################################################################################################
 
+AWS CloudWatch and CloudTrail: How do they work together?
+AWS CloudWatch is integrated with a whole host of AWS services, including CloudTrail. Using CloudTrail’s ability to log a change to 
+a resource, a CloudWatch Event rule can be created to recognize this and then trigger a Lambda function to open a ticket for 
+investigation.
+
+
+Classic Load balancer are used in times when there is simple traffic distribution between EC2 Instances
+
+Application Load Balancer is used when there are container based or microservices based architecture which need to route the traffic
+to different services or balance the traffic across different port on same EC2 Instance.
+
+
+
+
+
 For serverless sundog uploaded to S3
 
  I was able to solve a concurrency problem when updating a file on S3. I am using lambda function to update a file on S3 using
@@ -520,6 +535,173 @@ Besides what's already been said about the quality of Amazon's infrastructure, t
 or competitors like Dynect. If your site does get large enough that you have a number of servers, you'll want to get into 
 systems automation, and being able to automate your DNS changes can be quite nice.
 ################################################################################################################################
+
+client = boto3.client('ec2')
+
+resp = client.run_instances(ImageId='ami-467ca739',
+                     InstanceType='t2.micro',
+                     MinCount=1,
+                     MaxCount=1)
+for instance in resp['Instances']:
+    print(instance['InstanceId'])
+    
+    
+    
+client = boto3.client('s3')
+response = client.list_buckets()
+for bucket in response['Buckets']:
+    print(bucket['Name'])
+    
+    
+client = boto3.client('s3')
+response = client.delete_object(
+    Bucket='123',
+    Key='create_bucket.py'
+)
+
+
+
+file_reader = open('create_bucket.py').read()
+response = client.put_object(
+    ACL='private',
+    Body=file_reader,
+    Bucket='123',
+    Key='create_bucket.py'
+)
+
+
+response = client.create_bucket(
+    ACL='private',
+    Bucket='javahomecloud123',
+    CreateBucketConfiguration={
+        'LocationConstraint': 'ap-south-1'
+    }
+)
+
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('employees')
+
+with table.batch_writer() as batch:
+    for x in range(100):
+        batch.put_item(
+            Item={
+                'emp_id': str(x),
+                'name': 'Name-{}'.format(x)
+            }
+        )
+
+
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table('employees')
+resp = table.get_item(
+    Key={
+        'emp_id': '2'
+    }
+)
+
+print(resp['Item'])
+
+table.delete_item(
+    Key={
+        'emp_id': '2'
+    }
+)
+
+
+
+table.put_item(
+    Item={
+        'emp_id': '2',
+        'name': 'kammana',
+        'salary': 20000
+    }
+)
+
+
+
+##########################
+## Part-1 Create Images ##
+##########################
+
+source_region = 'ap-south-1'
+ec2 = boto3.resource('ec2', region_name=source_region)
+
+
+instances = ec2.instances.filter(InstanceIds=['i-0067eeaab6c8188fd'])
+
+image_ids = []
+
+for instance in instances:
+    image = instance.create_image(Name='Demo Boto - '+instance.id, Description='Demo Boto'+instance.id)
+    image_ids.append(image.id)
+
+print("Images to be copied {} ".format(image_ids))
+
+
+#############################################
+## Part-2 Wait For Images to be available  ##
+#############################################
+# Get waiter for image_available
+
+client = boto3.client('ec2', region_name=source_region)
+waiter = client.get_waiter('image_available')
+
+# Wait for Images to be ready
+waiter.wait(Filters=[{
+    'Name': 'image-id',
+    'Values': image_ids
+}])
+
+##########################################
+## Part-3 Copy Images to other regions  ##
+##########################################
+
+# Copy Images to the region, us-east-1
+
+destination_region = 'us-east-1'
+client = boto3.client('ec2', region_name=destination_region)
+for image_id in image_ids:
+    client.copy_image(Name='Boto3 Copy'+image_id, SourceImageId=image_id, SourceRegion='ap-south-1')
+
+
+
+
+from datetime import datetime, timedelta, timezone
+
+import boto3
+ec2 = boto3.resource('ec2')
+
+# List(ec2.Snapshot)
+snapshots = ec2.snapshots.filter(OwnerIds=['self'])
+
+for snapshot in snapshots:
+    start_time = snapshot.start_time
+    delete_time = datetime.now(tz=timezone.utc) - timedelta(days=15)
+    if delete_time > start_time:
+        snapshot.delete()
+        print('Snapshot with Id = {} is deleted '.format(snapshot.snapshot_id))
+
+
+
+
+
+client = boto3.client('ec2')
+
+resp = client.describe_instances(Filters=[{
+    'Name': 'tag:Env',
+    'Values': ['Prod']
+}])
+
+for reservation in resp['Reservations']:
+    for instance in reservation['Instances']:
+        print("InstanceId is {} ".format(instance['InstanceId']))
+	
+	
+
+
+
 
 
 
