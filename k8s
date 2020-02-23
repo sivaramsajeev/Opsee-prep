@@ -1,3 +1,13 @@
+
+docker commit <cid> <new-image>   then find the difference with the base image using docker history/log
+
+Difference between images and container lies in the top writable layer
+
+RUN during build time while CMD on the running container on the image + RUN creates an additional layer while CMD 
+writes on existing layer
+
+
+################################################################################################################
 gcloud command line installation (req python 2) --> download the tarball & follow doc 
 
 APIs -> enable APIs & services for gce & k8s
