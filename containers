@@ -18,3 +18,5 @@ Now this container will have access to the Docker socket, and will therefore be 
 
 ###########################################################################################################################################
 
+docker run -it busybox /bin/sh - swissarmy knife  with networking
+
