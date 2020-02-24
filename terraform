@@ -159,6 +159,18 @@ This was at a time when I was thinking of running Terraform changes in Lambdas, 
 Terraform itself. I dropped this idea – in part because you can’t limit concurrent Lambdas, and in part because I was worried about
 the five-minute timeouts
 
+
+look for attributes exported by each resource to reference it in other resources eg id,name 
+
+use terraform graph to see the dependency tree resolved by tf 
+
+use data source to get details on resources created outside of tf    each provider exposes a variety of sources like vpc,subnet,ami,
+ip address ,user id etc   for eg use source vpc then source subnets with that vpc to get a list of all subnets in a VPC and add them to ASG
+
+
+ALB(l7) vs NLB(L4) vs CLB(both L4 & 7 but lesser features)
+
+
 #########################################################################################################################
 
 variable "environment" {}
