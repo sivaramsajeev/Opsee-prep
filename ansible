@@ -33,6 +33,33 @@
 
 This is done using the conditional execution using when
 
+--limit /path/to/tasks.retry is for running tasks only in failed hosts 
+
+variables may be passed via the command line -e myName=bourne  or can be added in the inventory file along with the target 
+hosts or using vars in playbook itself or place it in a separate file vars.yml and execute it using -e @vars.yml or add it as 
+a task  include_vars: and give the file: vars.yml or use vars_files: - vars.yml OR using set_fact:   this one is powerful 
+since it can be used for generating vars dynamically  check eg below
+
+tasks:
+  - name: list contents
+    command: ls /path/to/dir
+    register: contents
+    
+  - set_fact:
+    is_dir_empty: contents.stdout == ""
+    
+  - name: check if folder is empty
+    debug: msg="folder is empty"
+    when: is_dir_empty
+    
+  - name: installing sw in dir
+    command: <install cmd>
+    when: is_dir_empty
+    
+    
+
+
+
 ################################################################################################################
 
 Facts
