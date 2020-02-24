@@ -71,8 +71,23 @@ The health checks done by Route 53 are:
 HTTP and HTTPS health checks—Route 53 must establish a TCP connection in less than four seconds. The endpoint should respond with a status code higher than 200 (including), but lower than 400 within 2 seconds.
 TCP health checks—Route 53 must establish a TCP connection in less than 4 seconds
 
+So we will start by looking at the latency routing. I have one EC2 instance running in EU CENTRAL (Frankfurt) region and one EC2 
+instance in US EAST (N. Virginia). Each EC2 instance is running a web server and each one of them is returning a customized output 
+to identify in which region is the EC2 instance running.
 
+What we will demonstrate first is that we can route the user based on latency. For instance, we will see that users from Europe will
+be served the webpage from the EC2 instance running in the EU CENTRAL region and the users from US will be served the webpage from 
+the EC2 instance running in the US EAST region.
 
+Let’s test it. I configured a proxy on my browser with an IP address from Switzerland. Obviously, Switzerland is closer to 
+Frankfurt than to North Virginia:
+
+It is important to understand that once you create the public hosted zone, a name server (NS) record and a start of authority (SOA) 
+record are automatically created. The NS record is important here. It provides you with four name servers that you need to configure
+with your registrar or DNS services, so all the queries related to your domain are routed to Amazon Route 53 name servers for 
+resolution.
+
+If we purchase a domain from Route 53, then the hosted zone is created automatically and we don't need to create one.
 ###############################################################################################################
 
 AWS CloudWatch and CloudTrail: How do they work together?
