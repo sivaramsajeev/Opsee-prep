@@ -57,7 +57,22 @@ tasks:
     when: is_dir_empty
     
     
+template for nginx in /etc/nginx/sites-enabled/default
+ignore_errors: True       result|failed   here | is a jinja2 filter to check outcome 
 
+vars:
+    names:
+     - siva
+     - saj
+     - san
+     
+tasks:
+  - name: Greeting
+    debug: msg= "Hi {{item}} welcome"
+    with_items: "{{ names }}"
+    
+  
+  role - common reusable set of playbooks (isolation & reusability) but not to forget tasks:   - include: otherplaybook.yml
 
 
 ################################################################################################################
