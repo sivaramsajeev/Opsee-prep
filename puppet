@@ -444,3 +444,208 @@ file { '/etc/issue':
 
 ###########################################################################################################
 
+s uniquely identified by its type and its name.
+We can't have 2 resources of the same type with the same name in a catalog.
+
+We have seen that we declare resources with a syntax like:
+
+type { 'name':
+  arguments => values,
+}
+When we need to reference to them in our code the syntax is like:
+
+Type['name']
+Some examples:
+
+file { 'motd': ... }
+apache::virtualhost { 'example42.com': .... }
+exec { 'download_myapp': .... }
+are referenced, respectively, with
+
+File['motd']
+Apache::Virtualhost['example42.com']
+Exec['download_myapp']
+
+
+
+
+Moreover the child class can override the arguments of a resource defined in the main class. Note the syntax used when referring to the existing resource File['/etc/puppet/puppet.conf']:
+
+class puppet {
+  file { '/etc/puppet/puppet.conf':
+    content => template('puppet/client/puppet.conf'),
+  }
+}
+
+class puppet::server inherits puppet {
+  File['/etc/puppet/puppet.conf'] {
+    content => template('puppet/server/puppet.conf'),
+  }
+}
+
+
+stage { 'pre':
+  before => Stage['main'],
+}
+
+
+In a typical Package/Service/Configuration file example we want the package to be installed first, configure it and then start the service, eventually managing its restart if the config file changes.
+
+This can be expressed with metaparameters:
+
+package { 'exim':
+  before => File['exim.conf'],  
+}
+
+file { 'exim.conf':
+  notify => Service['exim'],
+}
+
+service { 'exim':
+}
+
+
+
+
+
+Puppet provides different constructs to manage conditionals inside manifests:
+
+Selectors allows to set the value of a variable or an argument inside a resource declaration according to the value of another variable.
+Selectors therefore just returns values and are not used to manage conditionally entire blocks of code.
+
+case statements are used to execute different blocks of code according to the values of a variable. It's possible to have a default block for unmatched entries.
+Case statements are NOT used inside resource declarations.
+
+if elsif else conditionals, like case, are used to execute different blocks of code and can't be used inside resources declarations.
+We can can use any of Puppet's comparison expressions and we can combine more than one for complex patterns matching.
+
+unless is somehow the opposite of if. It evaluates a boolean condition and if it's false it executes a block of code. It doesn't have elsif / else clauses.
+
+
+
+
+
+
+Selector for variable's assignement
+$package_name = $osfamily ? {
+   'RedHat' => 'httpd',
+   'Debian' => 'apache2',
+   default  => undef,
+ }
+case
+case $::osfamily {
+   'Debian': { $package_name = 'apache2' }
+   'RedHat': { $package_name = 'httpd' }
+   default: { notify { "Operating system $::operatingsystem not supported" } }
+ }
+if elsif else
+if $::osfamily == 'Debian' {
+   $package_name = 'apache2'
+ } elsif $::osfamily == 'RedHat' {
+   $package_name = 'httpd'
+ } else {
+   notify { "Operating system $::operatingsystem not supported" }
+ }
+ 
+ 
+ in operator
+The in operator checks if a string present in another string, an array or in the keys of an hash
+
+if '64' in $::architecture
+
+ if $monitor_tool in [ 'nagios' , 'icinga' , 'sensu' ]
+Expressions combinations
+It's possible to combine multiple comparisons with and and or
+
+if ($::osfamily == 'RedHat')
+and ($::operatingsystemrelease == '5') {
+   [ ... ]
+}
+
+if ($::osfamily == 'Debian') or ($::osfamily == 'RedHat') {
+   [ ...]
+}
+
+
+Self Contained and Distributable recipes contained in a directory with a predefined structure
+
+Used to manage an application, system's resources, a local site or more complex structures
+
+Modules must be placed in the Puppet Master's modulepath
+
+puppet config print modulepath
+/etc/puppet/modules:/usr/share/puppet/modules
+
+
+Modules have a standard structure:
+
+mysql/            # Main module directory
+
+mysql/manifests/  # Manifests directory. Puppet code here. Required.
+mysql/lib/        # Plugins directory. Ruby code here
+mysql/templates/  # ERB Templates directory
+mysql/files/      # Static files directory
+mysql/spec/       # Puppet-rspec test directory
+mysql/tests/      # Tests / Usage examples directory
+
+mysql/Modulefile  # Module's metadata descriptor
+
+
+Classes and defines autoloading:
+
+include mysql
+# Main mysql class is placed in: $modulepath/mysql/manifests/init.pp
+
+include mysql::server
+# This class is defined in: $modulepath/mysql/manifests/server.pp
+
+mysql::conf { ...}
+# This define is defined in: $modulepath/mysql/manifests/conf.pp
+
+include mysql::server::ha
+# This class is defined in: $modulepath/mysql/manifests/server/ha.pp
+Provide files based on Erb Templates (Dynamic content)
+
+content => template('mysql/my.cnf.erb'),
+# Template is in: $modulepath/mysql/templates/my.cnf.erb
+Provide static files (Static content). Note we can't use content AND source for the same file.
+
+source => 'puppet:///modules/mysql/my.cnf'
+# File is in: $modulepath/mysql/files/my.cnf
+
+Files provisioned by Puppet can be Ruby ERB templates
+
+In a template all the Puppet variables (facts or user assigned) can be used :
+
+# File managed by Puppet on <%= @fqdn %>
+search <%= @domain %>
+But also more elaborated Ruby code
+
+<% @dns_servers.each do |ns| %>
+nameserver <%= ns %>
+<% end %>
+The computed template content is placed directly inside the catalog
+
+
+
+Given the previous class definition, we can configure it with this sample Hiera data, in YAML format:
+
+---
+redis::config_file_template: 'site/redis/redis.conf.erb'
+redis::options_hash:
+  port: '12312'
+  bind: '0.0.0.0'
+  masterip: '10.0.42.50'
+  masterport: '12350'
+  slave: true
+The referenced template stays in our site module, in $modulepath/site/templates/redis/redis.conf.erb and may look like:
+
+port <%= @options_hash['port'] %>
+bind <%= @options_hash['bind'] %>
+<% if @options_hash['slave'] == true -%>
+slaveof <%= @options_hash['masterip'] %> <%= @options_hash['masterport'] %>
+<% end -%>
+
+
+#########################################################################################3333333333333333333333333333333333333333333333333
+
