@@ -49,5 +49,100 @@ As the day proceeds there comes a lot of work. I am listing a few, it may differ
     
     ######################################################################################################
     
-    
+    Steps to install the s3fs on Centos/RHEL/Amazon Linux
+Login to EC2 Linux Server via SSH
+
+Install required dependencies for Centos/RHEL/Amazon Linux
+$ sudo yum install automake fuse fuse-devel gcc-c++ git libcurl-devel libxml2-devel make openssl-devel
+1
+	
+$ sudo yum install automake fuse fuse-devel gcc-c++ git libcurl-devel libxml2-devel make openssl-devel
+
+#For Ubuntu Systems
+
+$ sudo apt-get install build-essential libcurl4-openssl-dev libxml2-dev mime-support
+1
+	
+$ sudo apt-get install build-essential libcurl4-openssl-dev libxml2-dev mime-support
+
+Now compile s3fs and install it with below command:
+
+# git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+# cd s3fs-fuse
+# ./autogen.sh
+# ./configure
+# make
+# sudo make install
+1
+2
+3
+4
+5
+6
+	
+# git clone https://github.com/s3fs-fuse/s3fs-fuse.git
+# cd s3fs-fuse
+# ./autogen.sh
+# ./configure
+# make
+# sudo make install
+
+Step to mount S3 Bucket to Linux File System
+
+You need root privileges, so login with root user or switch to root user:
+$ sudo su
+1
+	
+$ sudo su
+
+Create IAM user you need access-key and secret key for s3fs, store key details in /etc/passwd-s3fs
+
+#echo <access-key-id>:<secret-access-key> > /etc/passwd-s3fs
+
+#chmod 600 /etc/passwd-s3fs
+1
+2
+3
+	
+#echo <access-key-id>:<secret-access-key> > /etc/passwd-s3fs
+ 
+#chmod 600 /etc/passwd-s3fs
+
+(Replace <access-key-id> and <secret-access-key> with the actual IAM user keys)
+Create Dir to mount s3bucket:
+
+For example:
+#mkdir /mnt/<test-bucket>
+Add entry to fstab to mount the bucket:
+echo s3fs#<s3-bucket> /mnt/<test-bucket> fuse _netdev,rw,nosuid,nodev,allow_other,nonempty 0 0 >> /etc/fstab
+1
+2
+3
+	
+#mkdir /mnt/<test-bucket>
+Add entry to fstab to mount the bucket:
+echo s3fs#<s3-bucket> /mnt/<test-bucket> fuse _netdev,rw,nosuid,nodev,allow_other,nonempty 0 0 >> /etc/fstab
+
+(Replace the leading <s3-bucket> with your AWS s3 bucket name and the /mnt/<test-bucket> with the mount point which you have created)
+
+Use-mention command to mount the partition which has entered in fstab and here we just now added AWS S3 bucket details to mount on Linux:
+# mount -a
+1
+	
+# mount -a
+
+Verify the S3 bucket mounted on Linux server
+
+# df -h
+1
+	
+# df -h
+
+In the command output, you can see the bucket name which you have to add an entry in /etc/fstab.
+
+
+
+################################################################################################################
+
+
     
