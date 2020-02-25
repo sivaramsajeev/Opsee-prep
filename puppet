@@ -170,4 +170,277 @@ edited Dec 9 '14 at 8:08
 
 ########################################################################################################################################
 
+maifests.pp - resources < classes < modules
+
+Resource Types are single units of configuration composed by:
+
+A type (package, service, file, user, mount, exec ...)
+
+A title (how is called and referred)
+
+Zero or more arguments
+
+type { 'title':
+  argument  => value,
+  other_arg => value,
+}
+Example for a file resource type:
+
+file { 'motd':
+  path    => '/etc/motd',
+  content => 'Tomorrow is another day',
+}
+
+
+
+package { 'openssh':
+  ensure => present,
+}
+Creation of /etc/motd file
+
+file { 'motd':
+  path => '/etc/motd',
+}
+Start of httpd service
+
+service { 'httpd':
+  ensure => running,
+  enable => true,
+}
+
+
+
+
+Management of nginx service with parameters defined in module's variables
+
+service { 'nginx':
+  ensure     => $::nginx::manage_service_ensure,
+  name       => $::nginx::service_name,
+  enable     => $::nginx::manage_service_enable,
+}
+Creation of nginx.conf with content retrieved from different sources (first found is served)
+
+file { 'nginx.conf':
+  ensure  => present,
+  path    => '/etc/nginx/nginx.conf',
+  source  => [
+      "puppet:///modules/site/nginx.conf--${::fqdn}",
+      "puppet:///modules/site/nginx.conf" ],
+}
+
+
+
+
+
+Resources are abstracted from the underlying OS
+
+Resource types have different providers for different OS
+
+The package type is known for the great number of providers
+
+ls $(facter rubysitedir)/puppet/provider/package
+Use puppet resource to interrogate the RAL:
+
+puppet resource user
+
+puppet resource user root
+
+puppet resource package
+
+puppet resource service
+Or to directly modify resources:
+
+puppet resource service httpd ensure=running enable=true
+
+
+
+Classes are containers of different resources. Since Puppet 2.6 they can have parameters
+
+Example of a class definition:
+
+class mysql (
+  root_password => 'default_value',
+  port          => '3306',
+) {
+  package { 'mysql-server':
+    ensure => present,
+  }
+  service { 'mysql':
+    ensure    => running,
+  }
+  [...]
+}
+
+
+
+When we have to use a class previously defined, we declare it.
+
+This can be done in 2 different ways:
+
+"Old style" class declaration, without parameters:
+
+include mysql
+(Inside a catalog we can have multiple includes of the same class but that class it's applied only once.)
+
+"New style" (from Puppet 2.6) class declaration with explicit parameters:
+
+class { 'mysql':
+  root_password => 'my_value',
+  port          => '3307',
+}
+
+
+
+We need them to provide different configurations for different kind of servers.
+
+They can be defined in different places and by different actors:
+
+Can be provided by client nodes as facts
+
+Can be defined by users in Puppet code, on Hiera on in the ENC
+
+Can be built-in and be provided directly by Puppet
+
+
+
+ custom variables in different ways:
+
+In Puppet manifests:
+$role = 'mail'
+
+    $package = $::operatingsystem ? {
+      /(?i:Ubuntu|Debian|Mint)/ => 'apache2',
+      default                   => 'httpd',
+    }
+In an External Node Classifier (ENC)
+Commonly used ENC are Puppet DashBoard, the Foreman, Puppet Enterprise.
+
+In an Hiera backend
+$syslog_server = hiera(syslog_server)
+
+
+
+
+Puppet environments allow isolation of Puppet code and data: for each environment we can have different paths manifest files, Hiera data and modules.
+
+Puppet's environments DO NOT necessarily have to match the operational environments of our servers.
+
+
+
+
+
+
+Use the command puppet config print to explore Puppet's configuration options.
+
+Give a look to the various Puppet related directories and their contents:
+/etc/puppet, /var/lib/puppet, /var/log/puppet
+
+
+
+
+Main resources: package, service, file, user, exec
+
+
+
+package { 'apache':
+  name      => 'httpd',  # (namevar)
+  ensure    => 'present' # Values: 'absent', 'latest', '2.2.1'
+  provider  => undef,    # Force an explicit provider
+}
+
+
+service { 'apache':
+  name      => 'httpd',  # (namevar)
+  ensure    => 'running' # Values: 'stopped', 'running'
+  enable    => true,     # Define if to enable service at boot (true|false)
+  hasstatus => true,     # Whether to use the init script' status to check
+                         # if the service is running.
+  pattern   => 'httpd',  # Name of the process to look for when hasstatus=false
+}
+
+
+
+file { 'httpd.conf':
+    # (namevar) The file path
+    path      => '/etc/httpd/conf/httpd.conf',  
+    # Define the file type and if it should exist:
+    # 'present','absent','directory','link'
+    ensure    => 'present',
+    # Url from where to retrieve the file content
+    source    => 'puppet://[puppetfileserver]/<share>/path',
+    # Actual content of the file, alternative to source
+    # Typically it contains a reference to the template function
+    content   => 'My content',
+    # Typical file's attributes
+    owner     => 'root',
+    group     => 'root',
+    mode      => '0644',
+    # The sylink target, when ensure => link
+    target    => '/etc/httpd/httpd.conf',
+    # Whether to recursively manage a directory (when ensure => directory)
+    recurse   => true,
+}
+
+
+
+
+
+Executing commands
+We can run plain commands using Puppet's exec type. Since Puppet applies it at every run, either the command can be safely run multiple times or we have to use one of the creates, unless, onlyif, refreshonly arguments to manage when to execute it.
+
+exec { 'get_my_file':
+    # (namevar) The command to execute
+    command   => "wget http://mysite/myfile.tar.gz -O /tmp/myfile.tar.gz',
+    # The search path for the command. Must exist when command is not absolute
+    # Often set in Exec resource defaults
+    path      => '/sbin:/bin:/usr/sbin:/usr/bin',
+    # A file created by the command. It if exists, the command is not executed
+    creates   => '/tmp/myfile.tar.gz',
+    # A command or an array of commands, if any of them returns an error
+    # the command is not executed
+    onlyif    => 'ls /tmp/myfile.tar.gz && false',
+    # A command or an array of commands, if any of them returns an error
+    # the command IS executed
+    unless    => 'ls /tmp/myfile.tar.gz',
+}
+
+
+
+
+
+user { 'joe':
+    # (namevar) The user name
+    name      => 'joe',  
+    # The user's status: 'present','absent','role'
+    ensure    => 'present',
+    # The user's  id
+    uid       => '1001',
+    # The user's primary group id
+    gid       => '1001',
+    # Eventual user's secondary groups (use array for many)
+    groups    => [ 'admins' , 'developers' ],
+    # The user's password. As it appears in /etc/shadow
+    # Use single quotes to avoid unanted evaluation of $* as variables
+    password  => '$6$ZFS5JFFRZc$FFDSvPZSSFGVdXDlHe�',
+    # Typical users' attributes
+    shell     => '/bin/bash',
+    home      => '/home/joe',
+    mode      => '0644',
+}
+
+
+
+
+Corrected style:
+
+file { '/etc/issue':
+  ensure  => present,
+  content => "Welcome to ${fqdn}",
+  mode    => 0644,
+  group   => 'root',
+  path    => $issue_file_path,
+}
+
+
+###########################################################################################################
 
