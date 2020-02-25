@@ -18,3 +18,36 @@ sudo apt list | grep pdftk
 If output contains '[installed]' tag with pdftk then you can skip step1 i.e if the output is like this
 
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
+
+########################################################################################################
+
+As the day proceeds there comes a lot of work. I am listing a few, it may differ from organization to organization.
+
+    Commissioning and decommissioning of resources as per the need.
+    Disk management
+    user and access management
+    build and release management
+    configuration management
+    troubleshooting applications issues
+    scanning through endless lines of log
+    having project meetings
+    keep an eye on server and application health
+    keeping in check the various components of your infrastructure ensuring the maximum uptime.
+    
+    
+    etup Linux OS Virtual/on-premises Server as per the requirement from Dev team.
+
+    Set repository and Install packages and update to its stable version without losing any data.
+    Create, Delete and modify user and groups
+    Must be comfortable with CLI, and perform a major task using CLI.
+    Manage file system permissions for users and groups and apply system policy.
+    Must be aware of all system configuration file and keep a backup of it.
+    File sharing for Windows and Linux ( samba, NFS )
+    Should be able to work remotely without GUI and understating of SSH.
+    Must have good knowledge of shell scripts, without shell scripting you can’t be a good system admin.
+    Keep a record of changes and able to solve the problem quickly.
+    
+    ######################################################################################################
+    
+    
+    
