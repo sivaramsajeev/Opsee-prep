@@ -142,7 +142,35 @@ In the command output, you can see the bucket name which you have to add an entr
 
 
 
+When a child exits, some process must wait on it to get its exit code. That exit code is stored in the process table until this happens.
+The act of reading that exit code is called "reaping" the child. Between the time a child exits and is reaped, it is called a zombie. 
+(The whole nomenclature is a bit gruesome when you think about it; I recommend not thinking about it too much.)
+
+Zombies only occupy space in the process table. They take no memory or CPU. However, the process table is a finite resource, and
+excessive zombies can fill it, meaning that no other processes can launch. Beyond that, they are bothersome clutter, and should be
+strongly avoided.
+
+If a process exits with children still running (and doesn't kill its children; the metaphor continues to be bizarre), those 
+children are orphans. Orphaned children are immediately "adopted" by init (actually, I think most people call this "reparenting,"
+but "adoption" seems to carry the metaphor better). An orphan is just a process. It will use whatever resources it uses. It is 
+reasonable to say that it is not an "orphan" at all since it has a parent, but I've heard them called that often.
+
+init automatically reaps its children (adopted or otherwise). So if you exit without cleaning up your children, then they will not
+become zombies (at least not for more than a moment).
+
+But long-lived zombies exist. What are they? They're the former children of an existing process that hasn't reaped them. The
+process may be hung. Or it may be poorly written and forgets to reap its children. Or maybe it's overloaded and hasn't gotten 
+around to it. Or whatever. But for some reason, the parent process continues to exist (so they aren't orphans), and they haven't 
+been waited on, so they live on as zombies in the process table.
+
+So if you see zombies for longer than a moment, then it means that there is something wrong with the parent process, and something 
+should be done to improve that program
+
+
+
 ################################################################################################################
 
+The zombie (child died - parent alive)isn't occupying any significant memory or resources, it's (effectively) only an exit status waiting to be delivered.
+An orphan is a live, running process just like any other -- it just has a peculiar name (parent died - child alive)
 
     
