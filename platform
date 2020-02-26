@@ -173,4 +173,11 @@ should be done to improve that program
 The zombie (child died - parent alive)isn't occupying any significant memory or resources, it's (effectively) only an exit status waiting to be delivered.
 An orphan is a live, running process just like any other -- it just has a peculiar name (parent died - child alive)
 
+
+If no parent waiting (did not invoke wait()) process is a zombie
+
+If parent terminated without invoking wait , process is an orphan
+
+
+
     
