@@ -447,3 +447,166 @@ Step 5 − Open your browser and go to Nagios web interface. You can see the hos
 
 ####################################################################################################################################
 
+34
+2
+Share
+Save
+Cyber - Tech - Tips
+693 subscribers
+Website: https://www.nagios.com 
+DOWNLOAD Nagios Core: http://nag.is/coresys
+DOWNLOAD Nagios Plugins: http://nag.is/plugsys
+DOWNLOAD Nagios XI: http://nag.is/xisys
+DOWNLOAD Nagios Log Server:  http://nag.is/logsys
+DOWNLOAD Nagios Network Analyzer: http://nag.is/netsys
+*Install Required Dependencies
+$ apt install -
+y gcc make build-essential libgd2-xpm-dev openssl libssl-dev xinetd apache2-utils unzip gettext
+
+*Create a new nagios user account and set a password.
+$ useradd nagios
+$ passwd nagios
+
+* Download latest Nagios Plugins 2.1.2 package with wget command
+$ wget https://www.nagios-plugins.org/downlo...
+
+*Extract Nagios Plugins
+$ tar xzf nagios-plugins-2.1.2.tar.gz
+
+* Compile and Install Nagios Plugins
+$ cd nagios-plugins-2.1.2
+$ ./configure 
+$ make 
+$ make install
+
+*Set the permissions on the plugin directory
+$ chown nagios.nagios /usr/local/nagios
+$ chown -R nagios.nagios /usr/local/nagios/libexec
+
+*Download latest NRPE Plugin 3.0.0 packages with wget command.
+$ wget https://github.com/NagiosEnterprises/...
+*Unpack the NRPE source code
+$ tar xzf nrpe-3.0.0.tar.gz
+*Compile and install the NRPE
+$ cd nrpe-nrpe-3.0.0/
+$ make all
+$ make install
+$ make install-plugin
+$ make install-daemon
+$ make install-inetd
+$ make install-init 
+$ make install-config
+*Go and open  /etc/xinetd.d/nrpe file and add the localhost and IP address of the Nagios Monitoring Server.
+$ cd /etc/xinetd.d/
+$ nano nrpe
+Restart the xinetd
+$ service xinetd restart
+   OR
+$ etc/init.d/xinetd restart
+***Notice-----Checking everything is working fine
+$ netstat -lnp | grep 5666
+$ /usr/local/nagios/libexec/check_nrpe -H localhost 
+     OR 
+$ /usr/local/nagios/libexec/check_nrpe -H Machine-IP-Address
+****Go to the folder 
+$ cd /usr/local/nagios/libexec/
+$ ./check_nrpe -H localhost -c check_users
+$ ./check_nrpe -H localhost -c check_load
+$ ./check_nrpe -H localhost -c check_hda1
+$ ./check_nrpe -H localhost -c check_total_procs
+$ ./check_nrpe -H localhost -c check_zombie_procs 
+
+Nagios-Server side
+*Install NRPE Plugin 
+$ wget https://github.com/NagiosEnterprises/...
+$ tar xzf nrpe-3.0.0.tar.gz
+$ cd nrpe-nrpe-3.0.0/
+$ apt install openssl libssl-dev
+$ ./configure
+$ make all
+$ make install-daemon
+$ make install-plugin
+-
+Configure the agent in the server now
+$ cd /usr/local/nagios/etc/
+$ touch hosts.cfg
+$ touch services.cfg
+$ nano -c /usr/local/nagios/etc/nagios.cfg
+***Search for You can specify individual object config Crtl + w and paste those two lines under it:
+cfg_file=/usr/local/nagios/etc/hosts.cfg
+cfg_file=/usr/local/nagios/etc/services.cfg
+---
+Go to:
+$ cd /use/local/nagios/etc
+$ nano hosts.cfg
+#paste this in the file 
+--
+## Default Linux Host Template ##
+define host{
+name                            linux-box               ; Name of this template
+use                             generic-host            ; Inherit default values
+check_period                    24x7
+check_interval                  5
+retry_interval                  1
+max_check_attempts              10
+check_command                   check-host-alive
+notification_period             24x7
+notification_interval           30
+notification_options            d,r
+contact_groups                  admins
+register                        0                       ; DONT REGISTER THIS - ITS A TEMPLATE
+}
+## Default
+define host{
+use                             linux-box               ; Inherit default values from a template
+host_name                       agent                 ; The name we're giving to this server
+alias                           CentOS 6                ; A longer name for the server
+address                                     ; IP address of Remote Linux host
+}
+--
+Go to:
+$ nano /usr/local/nagios/etc/services.cfg
+Paste this into the file 
+--------
+define service{
+use                     generic-service
+host_name               agent
+service_description     CPU Load
+check_command           check_nrpe!check_load
+}
+define service{
+use                     generic-service
+host_name               agent
+service_description     Total Processes
+check_command           check_nrpe!check_total_procs
+}
+define service{
+use                     generic-service
+host_name               agent
+service_description     Current Users
+check_command           check_nrpe!check_users
+}
+define service{
+use                     generic-service
+host_name               agent
+service_description     SSH Monitoring
+check_command           check_nrpe!check_ssh
+}
+-----------------------
+***To define the command nrpe
+nano /usr/local/nagios/etc/objects/commands.cfg
+-----------------------
+# Command to use NRPE to check remote host systems
+define command{
+command_name check_nrpe
+command_line $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$
+}
+-------------------
+***Check everything is working fine
+$ /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+---
+Restart your server 
+service nagios restart
+
+###########################################################################################################
+
