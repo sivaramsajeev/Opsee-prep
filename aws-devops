@@ -27,6 +27,8 @@ Amazon Route 53 allows DNS failover with active-active, active-passive, and mixe
 the applications. For instance, if there are many resources that perform the same function, then Route 53 can check the state (health)
 of those resources and respond to DNS queries only the resources that are healthy.
 
+
+
 Each EC2 instance has an elastic IP so that, after a stop/start of the instance, we will receive the same public IP address.
 
 choose health checks - 
