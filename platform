@@ -195,3 +195,223 @@ sysctl -p
 cat /etc/fstab
 
 #################################################################################################################
+
+IP address change Solaris
+-----------------------------------------------------
+
+u can edit the /etc/hostname.interfacename and place the ip address . Also u need to change the ip address in /etc/hosts file . /etc/inet/ipnodes all also sometimes play a tricky part if you are using a IPV6. 
+
+Without rebooting u can use like this, 
+ifconfig e1000g0 plumb 
+ifconfig e100g0 192.168.1.1 netmask 255.255.255.0 up
+
+
+
+Changing the IP Address in Solaris 10 U3
+18 Dec 2006 · Filed in Explanation
+Changing the IP address of a system running Solaris (Solaris 10, specifically) is different than a lot of other operating systems out there. Really, all you have to do is just edit a few files and then take the interface down and back up again. However, there seems to be a “gotcha” with Solaris 10. (I don’t know how far back this procedure goes—it is unclear to me if this is new to Solaris 10, or if it extends back to Solaris 8 or 9.)
+
+Most of the sites out there I found indicated that you only needed to edit the /etc/hosts file (which is actually just a symlink to /etc/inet/hosts) and place the new IP address of the server in that file. Since I wasn’t changing the hostname or default gateway, there was no need to edit /etc/hostname.pcn0 (the hostname file for the only interface in the system), /etc/nodename, or /etc/defaultrouter. So I edited the /etc/inet/hosts file, rebooted the server, and expected to see the new IP address show up on the network.
+
+It didn’t work. A bit more research indicates that in Solaris 10, the operating system uses /etc/inet/ipnodes over /etc/inet/hosts. This is a bit odd since ipnodes is only supposed to be used for IPv6, and I know that I specifically disabled IPv6 in this installation. Some additional targeted searches I performed, however, showed that this was indeed the case even if IPv6 is disabled.
+
+Upon editing /etc/inet/ipnodes and rebooting the server, the IP address change took effect.
+
+So, if you need to change the IP address of a server running Solaris 10, change the following files:
+
+/etc/inet/hosts
+/etc/inet/ipnodes
+Upon a reboot, the server will now have the new IP address.
+
+http://www.machine-unix.com/changing-the-ip-address-of-a-solaris-10-host-without-a-reboot/
+
+
+
+
+
+
+
+Changing the IP address of a Solaris 10 host without a reboot
+23 Mar, 2009 Solaris 0
+It is possible to change the IP address of a solaris 10 host by modifying couple of files.  Here is how:
+
+The ip address of the system is placed under /etc/hosts. This file actually is symbolically linked to /etc/inet/hosts in Solaris 10. In my system, I have the following in my /etc/hosts
+
+# cat /etc/hosts
+
+::1     localhost
+127.0.0.1       localhost
+192.168.1.122   opensolaris     loghost
+
+So I am going to change IP address from 192.168.1.122 to 192.168.1.123. Edit the /etc/hosts file with a text editor of your liking:
+
+#vi /etc/hosts
+
+::1     localhost
+127.0.0.1       localhost
+192.168.1.123   opensolaris     loghost
+
+Since this file is sym linked to /etc/inet/hosts, you should be able to see the change:
+
+# cat /etc/inet/hosts
+
+::1     localhost
+127.0.0.1       localhost
+192.168.1.123   opensolaris     loghost
+
+At this point you should also change the IP address in /etc/inet/ipnodes .
+
+Now use ifconfig command to make the change effect immediately.
+
+# ifconfig pcn0 192.168.1.123 netmask 255.255.255.0
+
+# ifconfig -a
+
+lo0: flags=2001000849<UP,LOOPBACK,RUNNING,MULTICAST,IPv4,VIRTUAL> mtu 8232 index 1
+
+inet 127.0.0.1 netmask ff000000
+
+pcn0: flags=201000843<UP,BROADCAST,RUNNING,MULTICAST,IPv4,CoS> mtu 1500 index 2
+
+inet 192.168.1.123 netmask ffffff00 broadcast 192.168.1.255
+
+If you want to have changes take effect across reboots, you can restart the network/physical service:
+
+# svcadm restart network/physical
+
+That’s it…Now you’ve changed the actual IP address without even rebooting….
+
+
+
+===================================================================================================================
+
+
+Wire Me a Virtual Nic, Would Ya?
+21 Aug, 2011 Solaris 0
+The idea of having a Virtual Nic in a Solaris environment is actually really cool. Virtual Nics have really nice features. It will let you have multiple IP addresses in only 1 NIC thus preventing you to use different physical NICs wired up if it is not necessary. You can find some FAQ’s related to Virtual NICs here. So why would one want to use a Virtual NIC? I am going to demonstrate one of the benefits of using a virtual nic in the following scenario:
+
+I want to drink a Mocha and have my Networking too
+
+So imagine that you are in your favorite coffee shop and you just ordered your Mocha. You are a happy person because you have your Mac and you installed a Virtualization software such as Virtual Box or Vmware Fusion, so that you can have multiple OS’es running in the same laptop. Among your other Linux distributions,  you have your beloved Solaris 10/11 installed and it is ready to be booted up. So you do the inevitable and boot your Solaris 10 VM, and soon you realize that you are not going to be able to reach to your system through your local host and especially if you are running your Solaris 10 in headless-mode. You can boot the OS, you can login to the OS and do interesting things through the GUI but you just can’t ssh into it because you configured your Solaris 10 system at your home with your home network information. So what do you do? Enter the virtual NIC.
+
+Then you decide to configure a Virtual NIC so that you can access your OS in headless-mode by just playing with the network a bit. First thing you will do is to figure out what your network is, so at your coffee shop, in your MAC you just do ifconfig ( adding only relevant part here, and edited )
+
+$ ifconfig -a
+
+en1: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+ether 10:60:1b:50:f7:fa
+inet6 6033::fe81:f4bf:f41e:bff7%en1 prefixlen 64 scopeid 0x5
+inet 192.168.11.88 netmask 0xffffff00 broadcast 192.168.11.255
+media: autoselect
+status: active
+
+Ok, so your IP is 192.168.11.88 and you are in 192.168.11.x network. Next thing you do through your VM GUI is to give a VirtualNIC to your Solaris system. You also do an ifconfig in your solaris VM ( Again adding the relevant parts with edits):
+
+root@solu9# ifconfig -a
+
+e1000g0: flags=1000843<UP,BROADCAST,RUNNING,MULTICAST,IPv4> mtu 1500 index 2
+inet 192.168.1.120 netmask ffffff00 broadcast 192.168.1.255
+ether 8:0:27:dc:14:ff
+
+So your system is in 192.168.1.X network instead of 192.168.11.X network. Also notice that your physical Nic is e1000g0. Here is how you configure your VirtualNic and give it an IP address:
+
+First you create a /etc/hostname.e1000g0:1 file and add a hostname information there so that it will be persistent across reboots.
+
+$ cat /etc/hostname.e1000g0:1
+
+solu9local
+
+e1000g0:1 is a virtualnic and you also want to add this information with the IP address of your choice to your /etc/hosts file:
+
+$ cat /etc/hosts
+
+###########################################################################################################
+
+> /etc/udev/rules.d/70-persistent-net.rules
+
+cpulimit --pid ${PROCESSID} --limit 40 &
+
+create file with fallocate/dd/head
+---------------------------------------------------------------------------------
+
+Here's how to create a 12GB ext4 disk image which you can then mount automatically upon boot:
+
+Create the image file: fallocate -l 12G /path/to/image.img
+Create the filesystem in the file: mkfs.ext4 /path/to/image.img
+Mount the filesystem automatically: echo "/path/to/image.img /srv/data ext4 defaults,auto,loop 0 0" >>/etc/fstab
+
+=========================================================================================================================================
+truncate -s 5M ostechnix.txt
+
+The another command to create a particular size file is fallocate. Please note that you can only specify file sizes in bytes using fallocate command. 
+Now let us create a file of size 5MB using command:
+$ fallocate -l 5242880 ostechnix.txt
+$ fallocate -l $((5*1024*1024)) ostechnix.txt
+fallocate -l 10G /tmp-file
+
+$ head -c 5MB /dev/urandom > ostechnix.txt
+The above command will create 5MB size file filled with random data. You can also create the file with 0s as shown below.
+$ head -c 5MB /dev/zero > ostechnix.txt
+
+$ dd if=/dev/urandom of=ostechnix.txt bs=5MB count=1
+$ dd if=/dev/zero of=ostechnix.txt bs=5MB count=1
+dd if=/dev/zero of=/tmp-file bs=1 count=0 seek=10G
+
+===================================================================================================================================
+
+
+This is a common question -- especially in today's environment of virtual environments. Unfortunately, the answer is not as 
+straight-forward as one might assume.
+
+dd is the obvious first choice, but dd is essentially a copy and that forces you to write every block of data (thus, initializing the 
+file contents)...
+ And that initialization is what takes up so much I/O time. (Want to make it take even longer? Use /dev/random instead of /dev/zero! 
+ Then you'll use CPU
+ as well as I/O time!) In the end though, dd is a poor choice (though essentially the default used by the VM "create" GUIs). E.g:
+
+dd if=/dev/zero of=./gentoo_root.img bs=4k iflag=fullblock,count_bytes count=10G
+truncate is another choice -- and is likely the fastest... But that is because it creates a "sparse file". Essentially, a 
+sparse file is a section of disk  that has a lot of the same data, and the underlying filesystem "cheats" by not really storing all of the data, but just "pretending" 
+that it's all there. Thus, when you use truncate to create a 20 GB drive for your VM, the filesystem doesn't actually allocate 20 GB, 
+ but it cheats and says that there are 20 GB of zeros there, even though as little as one track on the disk may actually (really) be in use. E.g.:
+
+ truncate -s 10G gentoo_root.img
+fallocate is the final -- and best -- choice for use with VM disk allocation, because it essentially "reserves" (or "allocates" all 
+of the space you're  seeking, but it doesn't bother to write anything. So, when you use fallocate to create a 20 GB virtual drive 
+space, you really do get a 20 GB file  (not a "sparse file", and you won't have bothered to write anything to it -- which means 
+virtually anything could be in there  -- kind of like a brand  new disk!) E.g.:
+
+fallocate -l 10G gentoo_root.img
+
+find /proc/*/fd -ls | grep  '(deleted)'
+
+#####################################################################################################################################
+
+[VMware]
+# cat /sys/block/sda/device/model
+Virtual disk
+
+Emergency_vs_rescue
+---------------------------------------------------------------------------------------------
+
+emergency.target == /bin/sh 
+rescue.target == single user mode /S/init 1
+
+
+The emergency.target has no corresponding sysvinit runlevel, and would just boot your machine to a shell with really nothing started.
+
+rescue.target is like the old single user or runlevel 1 from sysvinit. It 
+
+Here is a short explanation from the developer:
+
+In systemd, "emergency" is little more than an equivalent to init=/bin/sh on the kernel command like. i.e. you get a shell, but almost nothing else 
+(except for systemd in the background which you can then ask to do more). No services are started, no mount points mounted, no sockets established, nothing. 
+Just a raw, delicious shell and systemd's promise to be around if you need more. In contrast to that "rescue" is equivalent to the old runlevel 1 (or S), 
+i.e. sysinit is run, everything is mounted, but no normal services are started yet.
+
+I think emergency mode is kinda nice for debugging purposes, since it allows you to boot bit-by-bit, simply by starting in the emergency mode
+ and then starting the various services and other units that are part of the early boot step-by-step. This will become particularly useful when 
+ Fedora splits up sysinit into various smaller scripts which could then be started seperately and independently.
+
+Consider it a part of our boot-up debugging tools.
+
