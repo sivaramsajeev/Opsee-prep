@@ -180,4 +180,18 @@ If parent terminated without invoking wait , process is an orphan
 
 
 
-    
+  ####################################################################################################################
+  
+  netstat -nr | egrep -iv '^kernel|^destination' | awk '{print $1 "\t\t" $2 "\t\t" $3 "\t\t" $8}' | sort -n -k1
+ifconfig -a | awk -F ':' '/inet/ {print $2 ":"} /Link/ {print $1}' | awk '{ print $1}' | egrep -iv 'lo|127.0.0.1'
+df -Ph | awk '{print $1 "\t\t" $6}' | egrep -iv '^filesystem|tmpfs' | sort -k1
+pvs | awk '{print $1 "\t" $2 "\t" $3}' | grep -iv 'pv' | sort -k1
+vgs | awk '{print $1 "\t" $2 "\t" $3 "\t" $4}'| sort -k1
+lvs | awk '{print $1 "\t" $2}'| sort -k1
+cat /etc/redhat-release
+cat /etc/hosts
+cat /etc/resolv.conf
+sysctl -p
+cat /etc/fstab
+
+#################################################################################################################
