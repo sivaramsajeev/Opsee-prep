@@ -20,6 +20,10 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 
 ########################################################################################################
+/run for the run time config while /etc for mainual and /usr/lib for system 
+
+
+
 Just use /sys.
 
 Example. I want to find the driver for my Ethernet card:
