@@ -20,6 +20,41 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 
 ########################################################################################################
+The /sys filesystem (sysfs) contains files that provide information about devices: whether it's powered on, the vendor name and model, what bus the device is plugged into, etc. It's of interest to applications that manage devices.
+
+The /dev filesystem contains files that allow programs to access the devices themselves: write data to a serial port, read a hard disk, etc. It's of interest to applications that access devices.
+
+A metaphor is that /sys provides access to the packaging, while /dev provides access to the content of the box.
+
+In addition to /proc, the kernel also exports information to another virtual file system called sysfs. sysfs is used by programs 
+such as udev to access device and device driver information. The creation of sysfs helped clean up the proc file system because 
+much of the hardware information has been moved from proc to sysfs.
+
+The sysfs file system is mounted on /sys. The top-level directories are shown. Following is a brief description of some of these 
+directories:
+
+/sys/block
+This directory contains entries for each block device in the system. Symbolic links point to the physical device that the device
+maps to in the physical device tree. For example, attributes for the sda disks reside in the following directory:
+
+Use udev (and or define and publish some major & minor device numbers, like for mknod). See makedev(3)
+
+Application programs want to access physical devices in /dev/ (not in /sys/). Data to/from a device go usually thru /dev/ char or 
+block devices. Metadata and configuration can go thru sysfs
+
+'/dev' contains a list of device files (pseudo-devices, block devices, device nodes, queues, etc). The whole directory is nowadays 
+managed automatically by a system resource called 'udev'. Everything under /dev communicates directly with the kernel.
+
+'/sys' (part of sysfs) contains a directory tree of the devices grouped by category as well as an interface to a variety of device
+properties such as bus settings, bus speeds, device IDs, device names, firmware info, manufacturer data, etc.
+
+The important thing is that '/dev' is a real filesystem (disk based) whereas '/sys' is a virtual filesystem (RAM based).
+
+'/sys/class' is used to group all devices that are similar (by class) so you'll find all memory stuff under '/sys/class/mem',
+sensor stuff under '/sys/class/thermal', network stuff under '/sys/class/net' and so on.
+
+
+#################################################################################################################
 
 All process when spawned, they are assigned a priority based on a numeric value called as “nice value“. The priority of a process 
 denotes how much processor time allocated to that process. There are 40 niceness values, with –20 being the highest and +19 the 
