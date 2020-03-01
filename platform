@@ -82,6 +82,45 @@ each phase of hardware probing is completed with creation of file in /sys
 
 #####################################################################################################
 
+[root@server ~]# df -h /mnt1
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sdb1       248M  199M   38M  85% /mnt1
+[root@server ~]# mount | grep -i /mnt1
+/dev/sdb1 on /mnt1 type ext2 (rw,relatime,seclabel,stripe=8192)
+
+[root@server ~]# umount /dev/sdb1
+[root@server ~]# tune2fs -j /dev/sdb1
+tune2fs 1.42.9 (28-Dec-2013)
+Creating journal inode: done
+[root@server ~]# mount /dev/sdb1 /mnt1
+[root@server ~]# mount | grep /mnt1
+/dev/sdb1 on /mnt1 type ext3 (rw,relatime,seclabel,stripe=8192,data=ordered)
+------------------------------------------------------------------------------------------------------------------
+[root@server ~]# umount /dev/sdb1
+[root@server ~]# tune2fs -O ^has_journal /dev/sdb1
+tune2fs 1.42.9 (28-Dec-2013)
+Creating journal inode: done
+[root@server ~]# mount /dev/sdb1 /mnt1
+[root@server ~]# mount | grep /mnt1
+/dev/sdb1 on /mnt1 type ext2 (rw,relatime,seclabel,stripe=8192)
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+[root@server ~]# umount /dev/sdb1
+[root@server ~]# tune2fs -O extents,uninit_bg,dir_index /dev/sdb1
+tune2fs 1.42.9 (28-Dec-2013)
+Creating journal inode: done
+[root@server ~]# mount /dev/sdb1 /mnt1
+[root@server ~]# mount | grep /mnt1
+/dev/sdb1 on /mnt1 type ext4 (rw,relatime,seclabel,stripe=8192)
+
+
+Formatting disk for DBA dd if=/dev/zero of=/dev/sdm bs=1024 count=100
+
+While a forward proxy proxies in behalf of clients ( or requesting hosts ), a reverse proxy proxies in behalf of servers
+In effect, whereas a forward proxy hides the identities of clients, a reverse proxy hides the identities of servers
+
+
 As the day proceeds there comes a lot of work. I am listing a few, it may differ from organization to organization.
 
     Commissioning and decommissioning of resources as per the need.
@@ -109,6 +148,131 @@ As the day proceeds there comes a lot of work. I am listing a few, it may differ
     Keep a record of changes and able to solve the problem quickly.
     
     ######################################################################################################
+    
+    
+Hard Mount Vs Soft Mount:
+
+
+A hard mount using some kind of network file system (nfs or fuse) can (sometimes) block forever while trying to re-establish a broken connection. This means, 
+every process trying to access that mount goes into disk sleep (D) until the device is available again or the system is rebooted.
+
+Disk sleep can not be interrupted or killed. Its like the zombie of zombie processes.
+
+In short, do not use hard mounts for network file systems, ever. You want the file system to fail (immediately, to processes using syscalls) if I/O is 
+not possible. Otherwise, the memory that they claim may as well be leaked if the FS fails.
+
+==========================================================================================================================================================================
+  
+Using NFS protocol, the NFS client can mount the filesystem existing on a NFS server, just like a local filesystem. For example, you will be able to mount
+ “/home” directory of host.server.com to your client machine as follows: 
+
+# mount host.server.com:/home /mymountpoint 
+
+The directory “/mymountpoint” should be created in your machine to hold the NFS partition. 
+Hard mount or Soft mount options define how the NFS client should handle NFS server crash/failure.
+Hard Mount:
+A Hard mount is generally used for block resources like a local disk or SAN. When a NFS filesystem mount is a Hard mount, an NFS request affecting any part 
+of the mounted resource is issued repeatedly until the request is satisfied (for example, the server crashes and comes back up later). Once the server is back 
+online, the program will continue to execute undisturbed from the state where it was during server crash. We can use the mount option “intr” which allows
+ NFS requests to be interrupted if the server goes down or cannot be reached. Hence the recommended settings are hard and intr options.
+Advantages:
+In case of connection loss all NFS clients freeze until NFS server comes back online. Hence no loss of data.
+Data integrity and messaging is assured.
+Disadvantage:
+There could be a performance impact with the constant connection.
+Command to hard mount the directory /home from the remote machine host.server.com on the mount-point /mymountpoint. rw – for resource mounted to be
+ read-write and intr – for keyboard interrupt enabled.  
+
+mount -o rw,hard,intr host.server.com/home /mymountpoint
+Soft Mount:
+A Soft mount is usually used for network file protocols like NFS or CIFS. When a NFS filesystem mount is a soft mount, a program or application requests a 
+file from the NFS filesystem, NFS client daemons will try to retrieve the data from the NFS server. NFS tries repeatedly to contact the server until either:
+A connection is established
+The NFS retry threshold is met
+The nfstimeout value is reached
+Control returns to the calling program if one of these events occur. 
+But, if it doesn’t get any response from the NFS server (due to any crash, time out or failure of NFS server), the NFS client will report an error to the 
+process on the client machine requesting the file access, then quits.
+Advantage:
+The advantage of this mechanism is “fast responsiveness” as it doesn’t wait for the NFS server to respond.
+If the NFS server is unavailable, the kernel will time out the I/O operation after a pre-configured period of time.
+Disadvantage:
+The disadvantage is that if your NFS driver caches data and the soft mount times out, your application may not know which writes to the NFS volumes were 
+actually committed to disk.
+Data corruption or loss of data.
+Command to soft mount from remote machine host.server.com on the mount-point /mymountpoint 
+
+mount -o rw,soft host.server.com/home /mymountpoint 
+
+To check what kind of a mount is present on the system currently: 
+[usero1@Linux01 ~]$ nfsstat -m 
+
+/home from vrouter:/home
+Flags: rw,relatime,vers=4.1,rsize=262144,wsize=262144,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr= 10.0.0.1,local_lock=none,addr=10.0.0.2 
+/mnt/test from svm-data-lif1:/vol_unix
+Flags: rw,relatime,vers=4.0,rsize=65536,wsize=65536,namlen=255,hard,proto=tcp,port=0,timeo=600,retrans=2,sec=sys,clientaddr= 10.0.0.1,local_lock=none,addr=10.0.0.2 
+ 
+
+hard mounts and "intr" (interruptible) is a good compromise (for kernels before 2.6.25, see comment by Ryan Horrisberger) . The application is not fooled 
+about successful writes, yet you can kill them if something clogs up the tubes.
+
+
+#########################################################################################################################################
+
+ip aliasing_research
+---------------------------------------------------------------------------------------------------------------
+
+Resolution
+There are two ways to add another IP address to an interface:
+
+The old way creates a new virtual interface named in the style of ethX:Y where X and Y are numbers, for instance, eth0:1. Each interface has one IP address.
+ It appears in ifconfig output as an ordinary interface and in ip output with a label attached.
+
+The new way adds a secondary address to the main interface. So, instead of having one interface per IP address, it is possible to add many addresses to the 
+real interface. However, ifconfig tool is too old and can't see the additional IP addresses, so in this case the ip tool must be used instead. This is the
+ preferred way nowadays.
+
+
+
+Now adding IP address 172.31.33.1/255.255.255.0 to that file
+
+Raw
+# cat /etc/sysconfig/network-scripts/ifcfg-eth0 
+TYPE=Ethernet
+BOOTPROTO=none
+IPADDR=192.168.122.2
+PREFIX=24
+DNS1=192.168.122.1
+DOMAIN=lan
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=yes
+IPV6INIT=no
+NAME=eth0
+UUID=8dc6deb4-4868-46a1-bc3b-0a8fb55fxxxx
+ONBOOT=yes
+LAST_CONNECT=1380032766
+IPADDR2=172.31.33.1
+NETMASK2=255.255.255.0
+
+
+Then bring down and up the interface to make the changes take effect:
+
+Raw
+# ifdown eth0; ifup eth0
+Verifying:
+
+Raw
+# ip address list dev eth0
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
+    link/ether 52:54:00:XX:XX:XX brd ff:ff:ff:ff:ff:ff
+    inet 192.168.122.2/24 brd 192.168.122.255 scope global eth0
+    inet 172.31.33.1/24 brd 172.31.33.255 scope global eth0
+    inet6 fe80::5054:ff:fexx:xxxx/64 scope link 
+       valid_lft forever preferred_lft forever
+
+    
+    
+    #########################################################################################################
     
     Steps to install the s3fs on Centos/RHEL/Amazon Linux
 Login to EC2 Linux Server via SSH
@@ -256,6 +420,193 @@ sysctl -p
 cat /etc/fstab
 
 #################################################################################################################
+
+/sbin/iptables -A INPUT -i eth0 -p tcp --dport 80 -j ACCEPT
+/sbin/iptables -A INPUT -i eth0 -p tcp --dport 8080 -j ACCEPT
+/sbin/iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+iptables -L
+iptables-save
+
+
+
+/etc/security/limits.conf
+# Oracle-Grid Preinstall setting for nproc hard limit is 16384
+oracle   hard   nproc    16384
+grid   hard   nproc    16384
+
+
+#############################################################################################################################
+
+
+full_manual_sox_report_generation
+
+Create a file named /tmp/man_sosreport.sh, copy the script given below and save it in the /tmp/man_sosreport.sh file.
+
+Raw
+#!/bin/bash
+export LANG=C
+
+# If this script hangs, un-comment the below two entries and note the command that the script hangs on.  Then comment out that command and re-run the script.
+# set -x
+# set -o verbose
+
+[[ -d /tmp/sosreport ]] && rm -rf /tmp/sosreport
+mkdir /tmp/sosreport && cd /tmp/sosreport && mkdir -p  var/log etc/lvm etc/sysconfig network storage sos_commands/networking
+
+echo -e "Gathering system information..."
+uname -n &> hostname  
+cp -a /etc/redhat-release  ./etc/ 2>> error_log
+uptime &> uptime 
+
+echo -e "Gathering application information..."
+chkconfig --list &> chkconfig
+top -bn1 &> top_bn1
+service --status-all &> service_status_all
+date &> date
+ps auxww &> ps_auxww
+ps -elf &> ps_-elf
+rpm -qa --last &> rpm-qa
+echo -e "Running 'rpm -Va'. This may take a moment."
+rpm -Va &> rpm-Va
+
+echo -e "Gathering memory information..."
+free -m &> free  
+vmstat 1 10 &> vmstat
+
+echo -e "Gathering network information..."
+ifconfig &> ./network/ifconfig  
+netstat -s &>./network/netstat_-s
+netstat -agn &> ./network/netstat_-agn
+netstat -neopa &> ./network/netstat_-neopa
+route -n &> ./network/route_-n
+for i in $(ls /etc/sysconfig/network-scripts/{ifcfg,route,rule}-*) ; do echo -e "$i\n----------------------------------"; cat $i;echo " ";  done &> ./sos_commands/networking/ifcfg-files    
+for i in $(ifconfig | grep "^[a-z]" | cut -f 1 -d " "); do echo -e "$i\n-------------------------" ; ethtool $i; ethtool -k $i; ethtool -S $i; ethtool -i $i;echo -e "\n" ; done &> ./sos_commands/networking/ethtool.out
+cp /etc/sysconfig/network ./sos_commands/networking/ 2>> error_log
+cp /etc/sysconfig/network-scripts/ifcfg-* ./sos_commands/networking/ 2>> error_log
+cp /etc/sysconfig/network-scripts/route-* ./sos_commands/networking/ 2>> error_log
+cat /proc/net/bonding/bond* &> ./sos_commands/networking/proc-net-bonding-bond 2>> error_log
+iptables --list --line-numbers &> ./sos_commands/networking/iptables_--list_--line-numbers
+ip route show table all &> ./sos_commands/networking/ip_route_show_table_all
+ip link &> ./sos_commands/networking/ip_link
+
+echo -e "Gathering Storage/Filesystem information..."
+df -l &> df
+fdisk -l &> fdisk
+parted -l &> parted
+cp -a /etc/fstab  ./etc/ 2>> error_log
+cp -a /etc/lvm/lvm.conf ./etc/lvm/ 2>> error_log
+cp -a /etc/lvm/backup/ ./etc/lvm/ 2>> error_log
+cp -a /etc/lvm/archive/ ./etc/lvm/ 2>> error_log
+cp -a /etc/multipath.conf ./etc/ 2>> error_log
+cat /proc/mounts &> mount  
+iostat -tkx 1 10 &> iostat_-tkx_1_10
+parted -l &> storage/parted_-l
+vgdisplay -v &> storage/vgdisplay
+lvdisplay &> storage/lvdisplay
+pvdisplay &> storage/pvdisplay
+pvs -a -v &> storage/pvs
+vgs -v &> storage/vgs
+lvs -o +devices &> storage/lvs
+multipath -v4 -ll &> storage/multipath_ll
+pvscan -vvvv &> storage/pvscan
+vgscan -vvvv &> storage/vgscan
+lvscan -vvvv &> storage/lvscan
+lsblk &> storage/lsblk
+lsblk -t &> storage/lsblk_t
+dmsetup info -C &> storage/dmsetup_info_c
+dmsetup status &>  storage/dmsetup_status 
+dmsetup table &>  storage/dmsetup_table
+ls -lahR /dev &> storage/dev
+
+echo -e "Gathering kernel information..."
+cp -a /etc/security/limits.conf ./etc/ 2>> error_log
+cp -a /etc/sysctl.conf ./etc/ 2>> error_log
+ulimit -a &> ulimit
+cat /proc/slabinfo &> slabinfo
+cat /proc/interrupts &> interrupts 
+cat /proc/iomem &> iomem
+cat /proc/ioports &> ioports
+slabtop -o &> slabtop_-o
+uname -a &> uname
+sysctl -a &> sysctl_-a
+lsmod &> lsmod
+cp -a /etc/modprobe.conf ./etc/ 2>> error_log
+cp -a  /etc/sysconfig/* ./etc/sysconfig/ 2>> error_log
+for MOD in `lsmod | grep -v "Used by"| awk '{ print $1 }'`; do modinfo  $MOD 2>&1 >> modinfo; done;
+ipcs -a &> ipcs_-a
+ipcs -s | awk '/^0x/ {print $2}' | while read semid; do ipcs -s -i $semid; done &> ipcs_-s_verbose
+sar -A &> sar_-A
+cp -a /var/log/dmesg dmesg 2>> error_log
+dmesg &> dmesg_now
+
+echo -e "Gathering hardware information..."
+dmidecode &> dmidecode
+lspci -vvv &> lspci_-vvv
+lspci &> lspci
+cat /proc/meminfo &> meminfo  
+cat /proc/cpuinfo &> cpuinfo
+
+echo -e "Gathering kump information..."
+cp -a /etc/kdump.conf ./etc/ 2>> error_log
+ls -laR /var/crash &> ls-lar-var-crash
+ls -1 /var/crash | while read n; do mkdir -p var/crash/${n}; cp -a /var/crash/${n}/vmcore-dmesg* var/crash/${n}/ 2>> error_log; done
+
+echo -e "Gathering container related information..."
+mkdir container
+rpm -q podman || alias podman="docker"
+podman ps &> container/ps
+podman image list &> container/image_list
+podman ps | awk '$1!="CONTAINER" {print $1}' | while read id; do podman inspect $id &> container/inspect_${id}; done
+
+echo -e "Gathering logs..."
+cp -a /var/log/{containers*,message*,secure*,boot*,cron*,yum*,Xorg*,sa,rhsm,audit,dmesg} ./var/log/ 2>> error_log
+cp -a /etc/*syslog.conf ./etc/ 2>> error_log
+
+echo -e "Compressing files..."
+tar -cjf /tmp/sosreport.tar.bz2 ./
+
+echo -e "Script complete."
+
+
+#############################################################################################################################
+
+Configure X windows in Linux server
+Before Login into GUI of any linux server we need to install basic package into the specific server ,Those package are:
+X Windows System
+Desktop
+code to install
+yum groupinstall "X Windows System" "Desktop" -y
+Edit the below conf file
+vi /etc/gdm/custom.conf
+place this entry on xdmcp block “Enable=true”
+
+Change the ID in the inittab /etc/inittab as “5”
+Do
+gdm &
+Do
+init 5
+Use MoboXterm to login to GUI of Linux server configured
+select using server name ,write the server name,hit connect .
+
+
+
+############################################################################################################################
+
+When should I start to worry?
+A healthy Linux system with more than enough memory will, after running for a while, show the following expected and harmless behavior:
+
+free memory is close to 0
+used memory is close to total
+available memory (or "free + buffers/cache") has enough room (let's say, 20%+ of total)
+swap used does not change
+Warning signs of a genuine low memory situation that you may want to look into:
+
+available memory (or "free + buffers/cache") is close to zero
+swap used increases or fluctuates
+dmesg | grep oom-killer shows the OutOfMemory-killer at work
+
+
+#################################################################################################################################
 
 IP address change Solaris
 -----------------------------------------------------
@@ -475,4 +826,377 @@ I think emergency mode is kinda nice for debugging purposes, since it allows you
  Fedora splits up sysinit into various smaller scripts which could then be started seperately and independently.
 
 Consider it a part of our boot-up debugging tools.
+
+###################################################################################################################################
+
+linux_networking_research
+-----------------------------------------------------------------------------------------------------
+
+https://developer.ibm.com/tutorials/l-lpic1-109-2/
+
+TCP/IP host configuration
+A Linux system has a name which is called the host name and this name is used within the system (stand alone or connected to a network) to identify it.
+ Usually, the same host name will be used to identify the system if it is part of a network. When the system is connected to a network or the Internet, 
+ has a more rigorous name as part of the Domain Name System (DNS). A DNS name has two parts, the host name and a domain name. The fully qualified domain
+ name (FQDN) consists of the host name followed by a period and then the domain name (for example, myhost.mydomain). Domain names usually consist of
+ multiple parts separated by periods (for example, ibm.com or lpi.org).
+
+The kernel sets the host name value during boot, usually from configuration files.
+
+
+The kernel stores the currently active host name in the virtual /proc file system in the file, /proc/sys/kernel/hostname. The host name and FQDN may also
+ be stored in /etc/hosts.
+
+[root@eplnx002 y6e8jjc]# find /proc | grep hostname
+/proc/sys/kernel/hostname
+
+[root@eplnx002 y6e8jjc]# cat /proc/sys/kernel/hostname
+eplnx002
+
+
+Changing your host name
+You can use the hostname command with root privilege to change your host name. This does not update the value in /etc/hostname. This is illustrated on 
+my Fedora 29 system in Listing 2.
+
+Listing 2. Changing host name with the hostname command
+
+[ian@attic5-f29 ~]$ cat /etc/hostname
+attic5-f29
+[ian@attic5-f29 ~]$ hostname
+attic5-f29
+[ian@attic5-f29 ~]$ sudo hostname attic5-f29-a
+[ian@attic5-f29 ~]$ hostname
+attic5-f29-a
+[ian@attic5-f29 ~]$ cat /etc/hostname
+attic5-f29
+[ian@attic5-f29 ~]$ cat /proc/sys/kernel/hostname
+attic5-f29-a
+
+Note that /etc/hostname has not been updated while the virtual /proc/sys/kernel/hostname does show the updated value. If you want to make this change 
+permanent, you need to update /etc/hostname yourself. You may also need to update /etc/hosts or other files.
+
+If your system uses the systemd system and service manager, use the hostnamectl command. The hostnamectl command has several commands to show status, 
+set host names, or set other values. If used with no commands, or with the status command, it displays the current host name status as shown in Listing 3.
+
+Listing 3. Displaying host name using the hostnamectl command
+
+[ian@attic5-f29 ~]$ hostnamectl status
+   Static hostname: attic5-f29
+Transient hostname: attic5-f29-a
+         Icon name: computer-desktop
+           Chassis: desktop
+        Machine ID: 434ef6f0139941b8bbdeb5b2950278d0
+           Boot ID: 3f2201af05364f819287617d8c215ec7
+  Operating System: Fedora 29 (Workstation Edition)
+       CPE OS Name: cpe:/o:fedoraproject:fedora:29
+            Kernel: Linux 5.0.14-200.fc29.x86_64
+      Architecture: x86-64
+
+You see that the old host name, attic5-f29, is shown as the static host name while the new name, attic5-f29-a, is shown as the transient host name. 
+The hostnamectl command distinguishes a third name called the pretty name which can be a descriptive name such as Ian’s UEFI computer. Use the set-hostname
+ command to set one or all of these names. If you do not specify a particular one, all three will be updated to the same new value. Listing 4 shows how to 
+ set the host name to attic5-f29-b and verify that the /etc/host6name file has been updated. I also show how to set a pretty host name. The status no longer
+ shows a distinct transient name as it is now the same as the static host name.
+
+Listing 4. Setting a host name using the hostnamectl command
+
+[ian@attic5-f29 ~]$ cat /etc/hostname
+attic5-f29
+[ian@attic5-f29 ~]$ sudo hostnamectl set-hostname attic5-f29-b
+[ian@attic5-f29 ~]$ sudo find /etc -type f -mmin -5
+/etc/hostname
+[ian@attic5-f29 ~]$ cat /etc/hostname
+attic5-f29-b
+[ian@attic5-f29 ~]$ sudo hostnamectl --pretty set-hostname "Ian's UEFI desktop"
+[ian@attic5-f29 ~]$ hostnamectl
+   Static hostname: attic5-f29-b
+   Pretty hostname: Ian's UEFI desktop
+         Icon name: computer-desktop
+           Chassis: desktop
+        Machine ID: 434ef6f0139941b8bbdeb5b2950278d0
+           Boot ID: 3f2201af05364f819287617d8c215ec7
+  Operating System: Fedora 29 (Workstation Edition)
+       CPE OS Name: cpe:/o:fedoraproject:fedora:29
+            Kernel: Linux 5.0.14-200.fc29.x86_64
+      Architecture: x86-64
+Show less
+A third way to change the host name is to use the Network Manager command line interface (nmcli) to interact with the Network Manager daemon. As with 
+hostnamectl, the nmcli command has several commands within it. Use the general command with the hostname option to view or change the host name. As you might
+ expect, you don’t need any authority to view the host name but you need root authority to change the host name. Listing 5 shows how to view and set the host
+ name using the nmcli general command.
+
+Listing 5. Setting a host name using the nmcli command
+
+ian@attic5-f29 ~]$ nmcli general hostname
+attic5-f29-b
+[ian@attic5-f29 ~]$ sudo nmcli general hostname attic5-f29
+[ian@attic5-f29 ~]$ cat /etc/hostname
+[ian@attic5-f29 ~]$ hostname
+attic5-f29
+attic5-f29
+[ian@attic5-f29 ~]$ hostnamectl
+   Static hostname: attic5-f29
+   Pretty hostname: Ian's UEFI desktop
+Transient hostname: attic5-f29-b
+         Icon name: computer-desktop
+           Chassis: desktop
+        Machine ID: 434ef6f0139941b8bbdeb5b2950278d0
+           Boot ID: 3f2201af05364f819287617d8c215ec7
+  Operating System: Fedora 29 (Workstation Edition)
+       CPE OS Name: cpe:/o:fedoraproject:fedora:29
+            Kernel: Linux 5.0.14-200.fc29.x86_64
+      Architecture: x86-64
+Show more
+Note that the nmcli general command updates /etc/hostname and changes the host name as displayed by hostname and the static host name as displayed by 
+hostnamectl. The transient host name as displayed by hostnamectl is not affected immediately, but will shortly change to the same as the new static host
+ name. The pretty name stored by hostnamectl is not affected.
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+If your system uses systemd, the nameserver value in resolv.conf is likely to be 127.0.0.53 which is an internal DNS stub resolver that is part of 
+systemd-resolved. If you run systemd-resolved --status on a system similar to the above, you will see that the stub also connects to 192.168.1.1. 
+The /etc/resolv.conf file is also likely to be a symbolic link to /run/systemd/resolve/stub-resolv.conf. If you want to create your own resolv.conf, 
+you should first break this link.
+
+There are other things you can specify in resolv.conf, including a list of domains to search for names that are not fully qualified. See the man page for 
+resolv.conf for additional information.
+
+The Name Service Switch file, /etc/nsswitch.conf, provides additional configuration, including the sources or so-called databases to use for name lookup. 
+Listing 10 shows /etc/nsswitch.conf from my Ubuntu 18.04 LTS system. In this example, host names are resolved according to the specification in the hosts line. 
+First, search for files (/etc/hosts), then use mdns4_minimal (multicast DNS used for searching small local networks using semantics of regular DNS searches),
+ then use DNS, and finally see if the current host name matches the search. Now you see why Fedora might choose not to create an entry for the host name in
+ /etc/hosts. Try dig $(hostname) to look up your host name on such a system.
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+nmcli  
+
+According to the information page for nmcli, Network Manager stores all network configuration as “connections”, which are collections of data (Layer2 details,
+ IP addressing, etc.) that describe how to create or connect to a network. A connection is “active” when a device uses that connection’s configuration to create
+ or connect to a network. There may be multiple connections that apply to a device, but only one of them can be active on that device at any given time.
+ The additional connections can be used to allow quick switching between different networks and configurations.
+
+You can show the connection status for a connection such as enp4s0 using the nmcli connection show enp4s0 command. Indeed nmcli can handle several different
+ types of objects or commands as summarized in Table 1. These can be abbreviated to an unambiguous prefix, currently as short as the first letter.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Listing 17. Cloning and modifying a connection using nmcli
+
+[ian@attic4-ce7 ~]$ sudo nmcli connection clone enp4s0 enp4s0new
+enp4s0 (132a0ea9-e934-4961-b278-0c70dbab84a2) cloned as enp4s0new (ded070be-f416-4313-acfd-f09899c4b27a).
+[ian@attic4-ce7 ~]$ sudo nmcli connection modify enp4s0new connection.autoconnect no
+[ian@attic4-ce7 ~]$ sudo nmcli connection modify enp4s0new ipv4.addresses 192.168.1.67/24
+[ian@attic4-ce7 ~]$ sudo nmcli connection modify enp4s0new -ipv4.dns 1
+[ian@attic4-ce7 ~]$ nmcli -f \ipv4.addresses,ipv4.dns,connection.autoconnect,connection.interface-name conn show enp4s0new
+[ian@attic4-ce7 ~]$ nmcli -f \
+> ipv4.addresses,ipv4.dns,connection.autoconnect,connection.interface-name \
+> conn show enp4s0new
+ipv4.addresses:                         192.168.1.67/24
+ipv4.dns:                               8.8.8.8
+connection.autoconnect:                 no
+connection.interface-name:              enp4s0
+Show less
+Listing 18 shows how to use ifup and ifdown to deactivate the original static interface and activate the cloned one.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+# nmcli con add type ethernet con-name Myhome1 ifname enp0s3   ---> since IP not mentioned it will become a dhcp config. check ifcfg-enp0s3 file 
+
+nmcli conn add type ethernet testnet ifname eth1
+nmcli conn add type ethernet con-name testnet ifname eth1
+nmcli c s
+cat ifcfg-testnet
+nmcli d s
+nmcli c up testnet
+nmcli connection delete testnet
+nmcli c s
+
+As you can see it has BOOTPROTO=dhcp, because we didn’t give any static ip address.
+
+Hint: We can modify any connection with the “nmcli con mod“ command. However if you modify a dhcp connection and change it to static don’t forget to change its 
+“ipv4.method” from “auto” to “manual”. Otherwise you will end up with two IP addresses: one from dhcp server and the static one.
+
+
+nmcli con add type ethernet con-name static2 ifname enp0s3 ip4 192.168.1.50/24 gw4 192.168.1.1      ---> To add static IP
+
+
+Let’s modify the last connection profile and add two dns servers.
+
+# nmcli con mod static2 ipv4.dns “8.8.8.8 8.8.4.4”
+Hint: There is something here you must pay attention: the properties for IP address and gateway have different names when you add and when you modify a 
+connection. When you add connections you use “ip4” and  “gw4”, while when you modify them you use “ipv4” and “gwv4”.
+
+Now let’s bring up this connection profile:
+
+# nmcli con down static1 ; nmcli con up static2
+
+
+
+For example: when you bring down a connection profile, the NetworkManager searches for another connection profile and brings it up automatically. 
+(I leave it as exercise to check it). If you don’t want your connection profile to autoconnect:
+
+# nmcli con mod static2 connection.autoconnect no
+The last exercise is very usefull: you made a connection profile but you want it to be used by specific users. It’s good to classify your users!
+
+We let only user stella to use this profile:
+
+# nmcli con mod static2 connection.permissions stella
+Hint: If you want to give permissions to more than one users, you must type user:user1,user2 without blank space between them:
+
+# nmcli con mod static2 connection.permissions user:stella,john
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+---> next  systemd-networkd   replacing network manager itself !!!
+
+A minimal file to provide a static IPv4 address of 192.168.1.68 instead of the DHCP assigned (192.168.1.25 shown in Listing 21) might be stored in
+ /etc/systemd/network/. A sample is shown in Listing 22.
+
+Listing 22. Sample .network file for systemd-networkd
+
+[ian@attic5-f29 ~]$ cat /etc/systemd/network/20-static-enp9s0.network
+[Match]
+Name=enp9s0
+
+[Network]
+Address=192.168.1.68/24
+Gateway=192.168.1.1
+DNS=8.8.8.8
+
+To switch from Network Manager to systemd-networkd, use the systemctl command to first disable Network manager and then enable and start 
+systemd-networkd and systemd-resolved. Note that systemd-resolved will create its own resolv.conf file under the /run/systemd directory. 
+Since other system services may depend on the one in /etc, it is better to create a symbolic link to the new one.
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+
+#######################################################################################################################################
+
+systemctl list-unit-files | grep enabled will list all enabled ones.
+
+If you want which ones are currently running, you need systemctl | grep running.
+
+To check if a network service (here httpd) is enabled at boot, type:
+
+# systemctl is-enabled httpd
+disabled
+
+To check if a service starts on boot, run the systemctl status command on your service and check for the “Loaded” line.
+
+$ systemctl status httpd
+httpd.service - The Apache HTTP Server
+   Loaded: loaded (/usr/lib/systemd/system/httpd.service; enabled)
+...
+The last word, either enabled or disabled, will tell you if the service starts on boot. In the case above, the Apache2 webserver “httpd”, it’s Enabled
+
+
+#################################################################################################################################
+
+1) am I correct in how they work
+
+Yes, although ifupdown prefers ifup@<interface>.service now.
+
+2) should you only have one of these services enabled at any given time
+
+Generally yes, but the important bit is that only one service should manage an interface at any given time. It is quite possible (but probably not recommended) to use different services for different interfaces, e.g. use systemd-networkd for setting up tunnels while still using ifupdown to set up Ethernet.
+
+(For example, I use NetworkManager for my general PC networking, but also have systemd-networkd to create WireGuard links, a "virtual machines" bridge, and such.)
+
+3) once everything is setup, are they both compatible with the ip/ifconfig commands
+
+ip – yes.
+
+ifconfig – partially. Among other problems it has, this tool is incapable of showing multiple IPv4 addresses per interface (unless they're labelled with legacy "aliases"). This is not actually an incompatibility of networkd and ifconfig specifically; rather it's an incompatibility of modern Linux IP stack and ifconfig.
+
+3) once everything is setup, are they both compatible with [...] the ifup and ifdown commands?
+
+The ifup/ifdown commands are exactly the same "ifupdown" which you mentioned. You could say that networking.service just runs ifup <name> for every interface listed as 'auto'. (It's a common misconception that they're low-level tools, or abbreviations for ifconfig up, but they are not.)
+
+Therefore, only interfaces listed in /etc/network/interfaces are compatible with ifup/ifdown.
+
+
+#########################################################################################################################
+
+Persisting the journal
+By default, CentOS/RHEL 7 stores the system journal in /run/log/journal, which is stored on a tmpfs. This implies that on a reboot all stored information will be lost. If the directory /var/log/journal is present the journal will be stored there, thus enabling a persistent journal across reboots.
+
+Enabling a persistent journal can be done by using the following steps:
+
+1. Create the directory /var/log/journal.
+
+# mkdir /var/log/journal
+2. Set the group ownership of the new directory to systemd-journal, and the permissions to 2755.
+
+# chown root:systemd-journal /var/log/journal
+# chmod 2755 /var/log/journal
+3. Inform systemd-journald that the new location should be used by sending a USR1 signal to it. A reboot will also suffice.
+
+# killall -USR1 systemd-journald
+
+
+journalctl _SYSTEMD_UNIT=sshd.service
+This will display all messages generated by the sshd.service systemd unit.
+
+# journalctl _SYSTEMD_UNIT=sshd.service
+
+Boot Messages
+Journald tracks each log to a specific system boot. To limit the logs shown to the current boot, use the -b switch.
+
+$ journalctl -b
+You can view messages from an earlier boot by passing in its offset from the current boot. For example, the previous boot has an offset of -1, the boot before that is -2, and so on. Here, we are retrieving messages from the last boot:
+
+$ journalctl -b -1
+To list the boots of the system, use the following command.
+
+$ journalctl --list-boots
+
+
+To see messages logged within a specific time window, we can use the --since and --until options. The following command shows journal messages logged within the last hour.
+
+$ journalctl --since "1 hour ago"
+To see messages logged in the last two days, the following command can be used.
+
+$ journalctl --since "2 days ago"
+
+journalctl -u nginx.service
+The -u switch can be used multiple times to specify more than one unit source. For example, if you want to see log entries for both nginx and mysql, the following command can be used.
+
+$ journalctl -u nginx.service -u mysql.service
+
+this command “follows” the mysql service log.
+
+$ journalctl -u mysql.service -f
+
+journalctl _PID=8088
+At other times, you may wish to show all of the entries logged from a specific user or group. This can be done with the _UID or _GID filters. For instance, if your web server runs under the www-data user, you can find the user ID by typing:
+
+id -u www-data
+33
+Afterwards, you can use the ID that was returned to filter the journal results:
+
+journalctl _UID=33 --since today
+
+One of the impetuses behind the systemd journal is to centralize the management of logs regardless of where the messages are 
+originating. Since much of the boot process and service management is handled by the systemd process, it makes sense to standardize 
+the way that logs are collected and accessed. The journald daemon collects data from all available sources and stores them in a 
+binary format for easy and dynamic manipulation.
+
+This gives us a number of significant advantages. By interacting with the data using a single utility, administrators are able to 
+dynamically display log data according to their needs. This can be as simple as viewing the boot data from three boots ago, or
+combining the log entries sequentially from two related services to debug a communication issue.
+
+
+
+
+
+
+
 
