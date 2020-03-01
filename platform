@@ -20,6 +20,44 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 
 ########################################################################################################
+systemctl -t help   shows service/mount/socket/swap etc
+
+[Unit]
+description=
+after=
+before=
+
+[Service/socker/mount]
+ExecStart=
+ExecStop=
+
+[Install]
+WantedBy=multi-user.target
+
+
+systemctl show sshd   to show all the configurable parameters for the service
+
+systemctl list-dependencies NetworkManager.service --reverse
+
+conflicts
+mount vs umount
+network vs NetworkManager
+iptables vs firewall
+ntp vs chrony
+
+Need to mask to ensure conflicting services are not started together
+
+systemctl --type=target --all   but the ones with AllowIsolate=yes in target file  set can only be isolated
+
+yum group list   then yum group install "server with gui"
+
+kernel = heart and allowing users to interact with hardware  while initramfs = mini fs mounted during boot with kernel 
+modules required for the rest of the boot process  eg LVM & SCSI which are not supported by kernel by default  
+
+ls -l /boot/grub2/i386-pc   shows the modules that are available to grub2     they determine what you can do from grub2 
+boot loader   can see them in insmod section of grub.cfg     remove rhgb and quiet for verbose logging
+
+
 /run for the run time config while /etc for mainual and /usr/lib for system 
 
 
