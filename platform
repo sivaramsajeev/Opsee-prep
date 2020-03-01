@@ -18,8 +18,95 @@ sudo apt list | grep pdftk
 If output contains '[installed]' tag with pdftk then you can skip step1 i.e if the output is like this
 
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
+###########################################################################################################
+VIRT stands for the virtual size of a process, which is the sum of memory it is actually using, memory it has mapped into itself (for instance the video
+ card’s RAM for the X server), files on disk that have been mapped into it (most notably shared libraries), and memory shared with other processes. 
+ VIRT represents how much memory the program is able to access at the present moment.
+
+RES stands for the resident size, which is an accurate representation of how much actual physical memory a process is consuming. (This also corresponds 
+directly to the %MEM column.) This will virtually always be less than the VIRT size, since most programs depend on the C library.
+
+SHR indicates how much of the VIRT size is actually sharable (memory or libraries). In the case of libraries, it does not necessarily mean that the entire 
+library is resident. For example, if a program only uses a few functions in a library, the whole library is mapped and will be counted in VIRT and SHR, 
+but only the parts of the library file containing the functions being used will actually be loaded in and be counted under RES.
+
+
+
+I would perhaps only re-word "VIRT represents how much memory the program is able to access at the present moment." to something like "VIRT represents the
+ size of the program's entire addressable space at the present moment." OK, that could still use polish. But the point is, "how much memory" can still give 
+ the impression we're discussing RAM, when VIRT has nothing to do with RAM space. In fact, large programs will often have a VIRT size that's several MULTIPLEs
+ of the total system RAM size — because that VIRT is almost entirely file-backed address regions (AKA "disk not RAM").
+ 
+ 
+ You have to create device nodes into /dev with mknod. The device nodes in dev have a type (block, character and so on), a major number and a minor number.
+ You can find out the type and the major number by doing ls -l /dev/loop0:
+
+user@foo:/sys# ls -l /dev/loop0
+brw-rw---- 1 root disk 7, 0 Oct  8 08:12 /dev/loop0
+This means loop device nodes should have the block type and major number of 7. The minor numbers increment by one for each device node, starting from 0, so
+ loop0 is simply 0 and loop7 is 7.
+
+To create loop8 you run, as root, command mknod -m 0660 /dev/loop8 b 7 8. This will create the device node /dev/loop8 with permissions 
+specified along the -m switch (that's not necessary as you're probably running a desktop system, but it's a good idea not to let 
+everyone read and write your device nodes).
+
+When you run it as root, losetup -f will automatically create loop devices as needed if there aren't any free ones available.
+
+So rather than doing it yourself with mknod, the easiest way to create a new loop device is with sudo losetup -f. 
+That approach will give you a free existing loop device if one exists, or automatically create a new one if needed.
+
+
 
 ########################################################################################################
+Create a file
+1. First step is to create a file of desired size. The following command will create a file that is 1 GB in size:
+
+# dd if=/dev/zero of=loopbackfile.img bs=100M count=10
+
+Create the loop device
+1. Next step is to create a loop device with the file. Use the command “losetup” to create a loop device “loop0”
+
+# losetup -fP loopbackfile.img
+Here,
+-f – find the first unused loop device. If a file argument is present, use this device. Otherwise, print its name.
+-P – force kernel to scan partition table on newly created loop device.
+2. To print the loop device generated using the above command use “losetup -a”.
+
+# losetup -a
+/dev/loop0: [64769]:4199216 (/root/loopbackfile.img)
+
+1. Now lets create a ext4 filesystem on the loopback device.
+
+# mkfs.ext4 /root/loopbackfile.img 
+
+Mount the loopback filesystem
+1. We can now mount the loopback filesystem onto a directory. The “-o loop” additional option is used to mount loopback filesystems.
+
+# mkdir /loopfs
+# mount -o loop /dev/loop0 /loopfs
+2. Verify the size of the new mount point and type of filesystem using below commands.
+
+# df -hP /loopfs/
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop1      969M  2.5M  900M   1% /loopfs
+
+
+Removing loop device
+If you want remove the new filesystem, use the following steps:
+1. Umount and delete the directory /loopfs
+
+umount /loopfs
+rmdir /loopfs
+2. Delete the loopback device “loop0” created using the “losetup -d” command.
+
+# losetup -d /dev/loop0
+3. Finally remove the file “/root/loopbackfile.img” used to create the loop device.
+
+# rm /root/loopbackfile.img
+
+
+
+###############################################################################################################
 The /sys filesystem (sysfs) contains files that provide information about devices: whether it's powered on, the vendor name and model, what bus the device is plugged into, etc. It's of interest to applications that manage devices.
 
 The /dev filesystem contains files that allow programs to access the devices themselves: write data to a serial port, read a hard disk, etc. It's of interest to applications that access devices.
