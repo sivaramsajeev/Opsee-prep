@@ -20,6 +20,25 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 
 ########################################################################################################
+Just use /sys.
+
+Example. I want to find the driver for my Ethernet card:
+
+$ sudo lspci
+...
+02:00.0 Ethernet controller: Realtek Semiconductor Co., Ltd. RTL8111/8168B PCI Express Gigabit Ethernet controller (rev 01)
+$ find /sys | grep drivers.*02:00
+/sys/bus/pci/drivers/r8169/0000:02:00.0
+
+That is r8169.
+
+udevadm monitor    systemd-udevd    /etc/udev/rules.d/  
+lspci -k  to look for just bus and no modules   need to check with vendor for open source support before tainting kernel
+
+each phase of hardware probing is completed with creation of file in /sys
+
+
+#####################################################################################################
 
 As the day proceeds there comes a lot of work. I am listing a few, it may differ from organization to organization.
 
