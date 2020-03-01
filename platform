@@ -20,6 +20,129 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 
 ########################################################################################################
+
+All process when spawned, they are assigned a priority based on a numeric value called as “nice value“. The priority of a process 
+denotes how much processor time allocated to that process. There are 40 niceness values, with –20 being the highest and +19 the 
+lowest. Most system-started processes use the default niceness of 0. If the niceness value is high number like 19 the task will be
+set to the lowest priority and the CPU will process it whenever it gets a chance. The default nice value is zero. A child process
+inherits the niceness of its calling process in calculating its priority.
+
+
+# ps -elf
+At this point you are probably wondering how you can set your own priority levels on processes. To change the priority when issuing a new command you do
+
+# nice -n [nice value] [command]
+For example to run the yum update command with nice value of +10 which gives it less priority over other processes. This makes sure that yum update does not load the system more.
+
+# nice -n 10 yum update
+Setting Priority of currently running process
+To change the priority of an existing process use the renice command :
+
+# renice [nice value] -p [process id]
+For Example to change the priority of the currently running process (with pid 390) to 15.
+
+# renice 15 -p 390
+390: old priority 0, new priority 15
+
+For example, you can have below entries for user and group respectively.
+
+# vi /etc/security/limits.conf
+user01 hard priority -10
+@group01 hard priority -10
+This would add priority to all the applications running under user ‘user01’ or group ‘group01’ priority set to ‘-10’
+
+Understanding the Linux Kernel Scheduler
+A kernel scheduler is a unit of the kernel that determines the most suitable process out of all runnable processes to execute next;
+it allocates processor time between the runnable processes on a system. A runnable process is one which is waiting only for CPU time, 
+it’s ready to be executed.
+
+The scheduler forms the core of multitasking in Linux, using a priority-based scheduling algorithm to choose between the runnable
+processes in the system. It ranks processes based on the most deserving as well as the need for CPU time.
+
+ps -eo pid,ppid,ni,comm
+
+109
+
+Nice value is a user-space and priority PR is the process's actual priority that use by Linux kernel. In linux system priorities are
+0 to 139 in which 0 to 99 for real time and 100 to 139 for users. nice value range is -20 to +19 where -20 is highest, 0 default 
+and +19 is lowest. relation between nice value and priority is :
+
+PR = 20 + NI
+so , the value of PR = 20 + (-20 to +19) is 0 to 39 that maps 100 to 139.
+
+According to top manual:
+
+PR -- Priority The scheduling priority of the task. If you see 'rt' in this field, it means the task is running under 'real time' 
+scheduling priority.
+
+NI is nice value of task.
+
+NI -- Nice Value The nice value of the task. A negative nice value means higher priority, whereas a positive nice value means lower
+priority.Zero in this field simply means priority will not be adjusted in determining a task's dispatch-ability
+
+
+############################################################################################################
+
+ulimit -v, it's a shell builtin, but it should do what you want.
+
+I use that in init scripts sometimes:
+
+ulimit -v 128k
+command
+ulimit -v unlimited
+It seems however, that you want ways of manipulating the maximum allocatable memory while the program is running
+
+
+If you need to change the limit for a running process, there's no utility for that. You have to get the process to execute the setrlimit system call. This can often be done with a debugger, although it doesn't always work reliably. Here's how you might do this with gdb (untested; 9 is the value of RLIMIT_AS on Linux):
+
+gdb -n -pid $pid -batch -x /dev/stdin <<EOF
+call setrlimit(9, {409600, -1})
+detach
+quit
+EOF
+
+
+If you're using systemd, you can set some additional options in a .service file   MemoryLimit=50M
+
+
+Vss: called VSZ in the ps command and VIRT in top, is the total amount of memory mapped by a process. It is the sum of all the regions
+shown in /proc/<PID>/map. This number is of limited interest, since only part of the virtual memory is committed to physical memory 
+at any one time.
+
+Rss: called RSS in ps and RES in top, is the sum of memory that is mapped to physical pages of memory. This gets closer to the actual
+memory budget of the process, but there is a problem, if you add up the Rss of all the processes, you will get an overestimate the
+memory in use because some pages will be shared.
+
+
+Using smem to check memory usage per process
+In 2009, Matt Mackall began looking at the problem of accounting for shared pages in process memory measurement and added two new 
+metrics called the unique set size or Uss, and the proportional set size or Pss
+
+Uss: This is the amount of memory that is committed to physical memory and is unique to a process; it is not shared with any other.
+It is the amount of memory that would be freed if the process were to terminate.
+Pss: This splits the accounting of shared pages that are committed to physical memory between all the processes that have them mapped.
+For example, if an area of library code is 12 pages long and is shared by six processes, each will accumulate two pages in Pss.
+Thus, if you add the Pss numbers for all processes, you will get the actual amount of memory being used by those processes. 
+In other words, Pss is the number we have been looking for.
+ 
+
+The information is available in /proc/<PID>/smaps, which contains additional information for each of the mappings shown
+in /proc/<PID>/maps. Here is one section from such a file which provides information about the mapping for the libc code segment:
+
+
+# cat /proc/31768/smaps | grep -i pss |  awk '{Total+=$2} END {print Total/1024" MB"}'
+56.4102 MB         --> number we are looking for 
+
+# cat /proc/31768/smaps | grep -i rss |  awk '{Total+=$2} END {print Total/1024" MB"}'
+58.7109 MB
+
+
+
+
+##################################################################################################################
+
+
+
 systemctl -t help   shows service/mount/socket/swap etc
 
 [Unit]
