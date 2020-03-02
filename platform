@@ -1,5 +1,77 @@
 
+I have server which runs liquidsoap+icecast bundle and simple website (httpd+mysqld). Nothing special. Visitors around 2000+ per day, 
+with around 50 being online simultaneously on average.
 
+Server has 8GB RAM. As the time goes by, amount of free memory constantly decreases, although nothing new is started on server and 
+there are no new users. At some point it starts to swap, load on server goes up and it becomes unresponsive. Usually what I do 
+is just restart the server...
+
+What can be done to detect what exactly leaks memory? I use top to monitor usage of resources, but as far as I see it shows nothing
+helpful:
+
+
+Normal memory usage: Free memory is not something you want a lot of. If your system has been up for a long time and has a lot of free memory something is wrong. Every time you read or write a file, the blocks will go into the buffer cache. This will reduce your free memory, and is a good thing. The system will keep enough free space to start a few programs without looking elsewhere for memory. As many programs run quickly, their memory will be returned to the free pool when they stop running.
+
+When you read a file that is in buffer cache, no disk access is required and the read is resolved from the buffer cache. Writes use a similar mechanism. If your system needs memory, the buffer cache is one of the first places that is used. Most buffers can be released immediately.
+
+If you have a memory leak, you will see free memory and buffers both begin to shrink. This is still not a severe problem, as the leaked memory should eventually be moved to swap space. Your system will still run fine until you fill the swap space, and draw down the remaining free space to the point programs can't be started. It is typical that a small amount of swap space may be used.
+
+
+You can use limits.conf to limit the maximum core size of programs. Properly set, this should kill any programs which are leaking memory. This works with the pam_limits module. Limits can also be set with the ulimits command.
+
+You are running a few programs which could use large amounts of memory. Some things you could look at include.
+
+Poorly programmed applications running under apache2 can leak memory. You should see the memory size increase when this happens. You can tune apache2 to recycle children after a certain number of uses by setting MaxRequestsPerChild to 100 or so. If this resolves the problem, then you need to resolve the leak. I would watch this first.
+MySQL may try to load data into memory. If you have a lot of data in memory this may cause some thrashing, but should not be as dramatic as you are seeing.
+If you have a large tmpfs file system mounted, then you may leak memory if files are not deleted when used. Large long lived files can also be a problem.
+If the problem is occurs at roughly the same time of day, you may have a scheduled program which is leaking memory.
+If you have a program that allocates shared memory, but does not release it before exiting, you will have a relatively invisible memory leak. If the shared memory is locked in memory, then it may force swapping. The amount of available shared memory is typically relatively limited.
+The liquidsoap+icecast bundle could run into buffering issues that use memory. I haven't used this combination, so I am not sure how this would appear.
+
+
+You can use this command to see the top 10 applications regarding RAM usage:
+
+ps -A --sort -rss -o comm,pmem | head -n 11
+Sometimes this command helps you if many sub processes have been generated:
+
+ps auxf
+This way you can see which processes belong together.
+
+
+CGroups Method (Recommended)
+Limit the memory usage of every process that is ran by a specific user. This will limit a specific user to only 8GB of memory for all processes they want to run. Use this method to achieve your goal, because it is the most efficient and likely what you originally wanted to do.
+
+ 
+
+1) Open /etc/cgconfig.conf and add:
+
+group memlimit {
+    memory {
+        memory.limit_in_bytes = "8G";
+    }
+}
+This will create the cgroup "memlimit" and define the task "memory" to limit the total amount of memory used at 8GB.
+
+ 
+
+You can also limit the swap usage by adding memory.memsw.limit_in_bytes="2G"; under memory.limit_in_bytes = "8G";
+
+
+
+If you’re concerned about a memory leak, try typing free repeatedly into a terminal. If you suddenly start to see RAM use quickly
+growing, then you’ve already detected a memory leak. Should you receive an error that reads something like bash: Not enough Memory 
+while doing this and you have nothing but a terminal or even just a virtual console open, then you’re almost unquestionably dealing
+with one. Some memory leaks can be a bit subtler, but Ubuntu and it’s various spin-offs feature tools and packages that can help
+you detect these.
+
+Try dropping cache and see if it helps
+This should get you a root shell if performed correctly, but may cause a memory error if you’re working with a leak that’s already
+gone too far. If you’re indeed able to access a root shell, then try typing echo 3 > /proc/sys/m/drop_caches, push the enter key 
+and then type exit. Try running free or free -m again to see if that’s helped to release memory.
+
+
+
+#############################################################################################################################
 df -i .   ---> find . -xdev -empty -print |wc -l
 
 
@@ -19,6 +91,56 @@ If output contains '[installed]' tag with pdftk then you can skip step1 i.e if t
 
 qpdf -password=<your-password> -decrypt /path/to/secured.pdf out.pdf
 ###########################################################################################################
+
+Create test.c:
+
+#include <stdlib.h>
+ 
+  void f(void)
+  {
+     int* x = malloc(10 * sizeof(int));
+     x[10] = 0;        // problem 1: heap block overrun
+  }                    // problem 2: memory leak -- x not freed
+ 
+  int main(void)
+  {
+     f();
+     return 0;
+  }
+You can compile and run it as follows to detect problems:
+gcc test.c
+valgrind --log-file=output.file --leak-check=yes --tool=memcheck ./a.out
+vi output.file
+
+######################################################################################################################
+
+Check if your process is at risk
+If your server’s memory gets used up to the extent at which it can threaten system stability, the Out-of-memory killer will choose
+which process to eliminate based on many variables such as the amount of work done that would be lost and total memory freed.
+Linux keeps a score for each running process, which represents the likelihood at which the process would be killed in OOM situation.
+
+This score is stored on file in /proc/<pid>/oom_score, where pid is the identification number for the process you are looking into. 
+The pid can be easily found using the following command.
+
+ps aux | grep <process name>
+The output of the command when searching for mysql, for example, would be similar to the example below.
+
+mysql     5872  0.0  5.0 623912 5
+
+Here the process ID is the first number on the row, 5872 in this case, which then can be used to get further information on this
+particular task.
+
+cat /proc/5872/oom_score
+The readout of this gives us a single numerical value for the chance of the process getting axed by the OOM killer. The higher the
+number the more likely the task is to be chosen if an out of memory situation should arise.
+
+If your important process has a very high OOM score, it is possible the process is wasting memory and should be looked into.
+However just high OOM score, if the memory usage otherwise remains nominal, is no reason for concern. OO
+
+
+
+
+##################################################################################################################
 VIRT stands for the virtual size of a process, which is the sum of memory it is actually using, memory it has mapped into itself (for instance the video
  card’s RAM for the X server), files on disk that have been mapped into it (most notably shared libraries), and memory shared with other processes. 
  VIRT represents how much memory the program is able to access at the present moment.
