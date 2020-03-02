@@ -107,6 +107,29 @@ rmdir /loopfs
 
 
 ###############################################################################################################
+
+
+Out of Memory (OOM) refers to a computing state where all available memory, including swap space, has been allocated. Normally this will cause the system 
+to panic and stop functioning as expected. There is a switch that controls OOM behavior in /proc/sys/vm/panic_on_oom. When set to 1 the kernel will panic 
+on OOM. A setting of 0 instructs the kernel to call a function named oom_killer on an OOM. Usually, oom_killer can kill rogue processes and the system will 
+survive. The easiest way to change this is to echo the new value to /proc/sys/vm/panic_on_oom.
+
+# cat /proc/sys/vm/panic_on_oom 1
+
+# echo 0 > /proc/sys/vm/panic_on_oom
+
+# cat /proc/sys/vm/panic_on_oom 0
+
+The RHEL5 kernel includes 2 files for each process to control when that process will be considered for termination when the system must start OOM killing.
+
+/proc/<pid>/oom_adj - Adjust the oom-killer score.
+
+This file can be used to adjust the score used to select which processes shall be killed in an out-of-memory situation. Giving a process a high score, 
+increase the likelihood of this process being killed by the oom-killer. Valid values are in the range [-16:15], plus the special value -17, which disables
+ oom-killing that process altogether.
+ 
+
+######################################################################################################################
 The /sys filesystem (sysfs) contains files that provide information about devices: whether it's powered on, the vendor name and model, what bus the device is plugged into, etc. It's of interest to applications that manage devices.
 
 The /dev filesystem contains files that allow programs to access the devices themselves: write data to a serial port, read a hard disk, etc. It's of interest to applications that access devices.
@@ -464,6 +487,386 @@ about successful writes, yet you can kill them if something clogs up the tubes.
 
 #########################################################################################################################################
 
+ps -eo pid,state,comm | sort -k2 | head
+20675 R ps
+ 6433 S acpid
+  549 S aio/0
+  550 S aio/1
+
+  
+  ==========================================================================================================================
+  
+  Getting Rid of Zombie Processes
+You can’t kill zombie processes as you can kill normal processes with the SIGKILL signal — zombie processes are already dead. Bear in mind that you don’t 
+need to get rid of zombie processes unless you have a large amount on your system – a few zombies are harmless. However, there are a few ways you can get
+ rid of zombie processes.
+
+One way is by sending the SIGCHLD signal to the parent process. This signal tells the parent process to execute the wait() system call and clean up 
+its zombie children. Send the signal with the kill command, replacing pid in the command below with the parent process’s PID:
+
+kill -s SIGCHLD pid
+
+However, if the parent process isn’t programmed properly and is ignoring SIGCHLD signals, this won’t help. You’ll have to kill or close the zombies’ 
+parent process. When the process that created the zombies ends, init inherits the zombie processes and becomes their new parent. 
+(init is the first process started on Linux at boot and is assigned PID 1.) init periodically executes the wait() system call to clean up its zombie children,
+ so init will make short work of the zombies. You can restart the parent process after closing it.
+
+If a parent process continues to create zombies, it should be fixed so that it properly calls wait() to reap its zombie children. 
+File a bug report if a program on your system keeps creating zombies.
+
+top command lists total count of all these states in its output header
+Tasks: 325 total,   1 running, 323 sleeping,   1 stopped,   0 zombie
+
+
+
+Process state : Running
+
+Most healthy state of all. It indicates process is active and serving its requests. Process is properly getting system resources (especially CPU) to perform
+ its operations. Running process is process which is being served by CPU currently. It can be identified by state flag R in ps or top output.
+
+Runnable state is when process has got all the system resources to perform its operation except CPU. This means process is ready to go once CPU is free.
+ Runnable processes are also flagged with state flag R
+
+Process state : Sleeping
+
+Sleeping process is the one who awaits for resources to run. Since its on waiting stand, it gives up CPU and goes to sleep mode. Once its required resource 
+is free, it gets placed in scheduler queue for CPU to execute. There are two types of sleep modes : Interruptible and Uninterruptible
+
+Interruptible sleep mode
+
+In this mode process awaits for particular time slot or specific event to occur. If those conditions occur, then process will come out of sleep mode.
+ These processes are shown with state S in ps or top output.
+
+Uninterruptible sleep mode
+
+Process in this sleep mode gets its timeout value before going to sleep. Once the timeout sets off, it awakes. Or it awakes when waited-upon resources 
+becomes available for it. It can be identified by state D in outputs.
+
+Process state : Stopped
+
+Process ends or terminates when they receive kill signal or they enter exit status. At this moment, process gives up all the occupied resources but does 
+not release entry in process table. Instead it sends signal about termination to its parent process. This helps parent process to decide if child is exited 
+successfully or not. Once SIGCHLD received by parent process, it takes action and release child process entry in process table.
+
+Process state : Zombie
+
+As explained above, while exiting process sends SIGCHLD to parent. During the time between sending signal to parent and then parent clearing out process slot 
+in process table, process enters zombie mode. Process can stay in zombie mode if its parent died before it release child process’s slot in process table. 
+It can be identified with Z in outputs.
+
+
+So complete life cycle of process can be circle as –
+•Spawn
+•Waiting
+•Runnable
+•Running
+•Stopped
+•Zombie
+•Removed from process table
+
+######################################################################################################################################
+
+
+Yes there are several overheads involved in installing a program in a computer Like the following.
+
+Is the program compatible with my computer architecture.
+Is that program compatible with my operating system version.
+Does all the programs and libraries required to run a certain program there in the system
+Will the newly installed program conflict with an already installed program
+ 
+
+An installer or program manager, must handle those overhead by itself by not harassing the user
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+yum history
+yum history list all
+yum history info httpd
+yum history summary httpd
+yum history info 15
+# yum history package-list httpd
+OR
+# yum history package-info httpd
+
+This is how the sub-commands above work: If we have 5 transactions: V, W, X, Y and Z, where packages where installed respectively.
+# yum history undo 2    #will remove package W
+# yum history redo 2    #will  reinstall package W
+# yum history rollback 2    #will remove packages from X, Y, and Z.
+
+yum remove firefox
+yum list openssh kernel
+yum search vsftpd --> regex match searching 
+yum info firefox
+yum list | less --> to list all packages
+yum provides /etc/httpd/conf/httpd.conf   --> package providing specific file
+yum check-update  --> how many of the INSTALLED packs have update
+yum groupinstall 'MySQL Database'
+yum groupupdate 'DNS Name Server'
+yum repolist --> to list all ENABLED repos
+yum repolist all  --> to list all ENABLED & DISABLED repos
+yum --enablerepo=epel install phpmyadmin --> to install form a particular repo 
+yum clean all    --> clean yum cache
+
+
+In Yum 3.2.22, which come with Red Hat Enterprise Linux 5.4, there is a downgrade option. This will downgrade a package to the previously highest version 
+or you can specify the whole version and release number for the package to downgrade. For example:
+yum downgrade vsftpd-2.0.5-12.el5 
+
+yum deplist httpd | grep dependency
+
+yum deplist bind | awk '/provider:/ {print $2}' | sort -u | xargs yum -y install
+
+-------------------------------------------------------
+[ian@attic-f21 ~]$ rpm -q gcc-gfortran
+gcc-gfortran-4.9.2-6.fc21.x86_64
+[ian@attic-f21 ~]$ yum deplist $(rpm -q gcc-gfortran)
+Loaded plugins: langpacks
+package: gcc-gfortran.x86_64 4.9.2-6.fc21
+  dependency: /bin/sh
+   provider: bash.x86_64 4.3.39-1.fc21
+  dependency: /sbin/install-info
+   provider: info.x86_64 5.2-5.fc21
+  dependency: gcc = 4.9.2-6.fc21
+   provider: gcc.x86_64 4.9.2-6.fc21
+  dependency: ld-linux-x86-64.so.2()(64bit)
+   provider: glibc.x86_64 2.20-8.fc21
+   
+   -----------------------------------------------------------------------
+  
+yum list installed    --> to list INSTALLED
+yum list available    --> to list all AVAILABLE
+yum whatprovides '/usr/bin/whois'
+which repoquery
+yum whatprovides /usr/bin/repoquery
+repoquery -a --installed 
+rpm -q --fileprovide mplayer
+rpm -q --requires mplayer
+
+rpm -qR gcc-gfortran     ---> R for requires 
+
+user@my-pc:~$ rpm -qp --requires proj1-1.0-1.x86_64.rpm
+libtest1.so()(64bit)
+
+user@my-pc:~$ rpm -qp --provides libtest1-1.0-1.x86_64.rpm
+libtest1.so()(64bit)
+
+rpm -vK /usr/local/depot/adm/linux/epel-release-latest-5.noarch.rpm   ------> to check the key status of rpm 
+
+
+$rpm -V python-inotify-0.9.4-4.el7.noarch        ----> to check whether any change has occured sice install. 
+No o/p => fine 
+~$rpm -vV python-inotify-0.9.4-4.el7.noarch
+.........    /usr/bin/pyinotify
+.........    /usr/lib/python2.7/site-packages/pyinotify-0.9.4-py2.7.egg-info
+.........    /usr/lib/python2.7/site-packages/pyinotify.py
+.........    /usr/lib/python2.7/site-packages/pyinotify.pyc
+.........    /usr/lib/python2.7/site-packages/pyinotify.pyo
+.........    /usr/share/doc/python-inotify-0.9.4
+.........  d /usr/share/doc/python-inotify-0.9.4/ACKS
+.........  d /usr/share/doc/python-inotify-0.9.4/COPYING
+.........  d /usr/share/doc/python-inotify-0.9.4/README.md
+
+
+
+=============================================================================================================================================================
+
+
+So if RPM is already there, why was YUM made?
+RPM and YUM are completely two different things. RPM is the package manager tool which installs the package. YUM is a repository 
+management tool 
+which will fetch the appropriate package for your particular version of Linux(along with all other required packages).
+
+Repositories is an organized collection of packages that YUM uses. YUM can use these repositories to fetch the correct and exact
+version of a particular
+ package compatible for your system. Previously before YUM(or before the existence of such repository management tools), the user 
+ had to fetch the rpm package 
+ for installation, and if a dependency problem arises, the user had to fetch those dependencies from internet or some other sources.
+
+YUM will contain the URL's(Uniform Resource Locators) of different repositories in its configuration files. You can in fact update 
+all the installed 
+applications on your system, with the help of a single YUM command(yum will fetch different packages from appropriate different 
+repositories.)
+
+deplist	Produces a list of all dependencies and what packages provide those dependencies for the given packages. As of 3.2.30 it 
+now just shows the latest 
+version of each package that matches (this can be changed by using --showduplicates) and it only shows the newest providers 
+(which can be changed by using --verbose).
+
+
+You can block kernel updated by adding:
+exclude=kernel,kernel-devel,kernel-firmware,kernel-headers
+to /etc/yum.conf. Comment out the line when you want to get an update
+
+
+==========================================================================================================================================================
+
+yum --showduplicates --disableexcludes=all list \*gitlab-ce\*
+
+If you just downloaded a package and want the same kind of information, you can get this using the -p option (for package file)
+on your query along
+ with specifying the package file name (as used for installing the package).
+
+[ian@attic-f21 ~]$ #Query vim packages
+[ian@attic-f21 ~]$ rpm -qp .rpm
+vim-common-7.4.475-2.fc21.x86_64
+vim-enhanced-7.4.475-2.fc21.x86_64
+[ian@attic-f21 ~]$ #Query vim configuration files
+[ian@attic-f21 ~]$ rpm -qpc .rpm
+/etc/vimrc
+/etc/profile.d/vim.csh
+/etc/profile.d/vim.sh
+
+
+
+============================================================================================================================================================================
+
+Verifying an installed package
+Like checking the integrity of an rpm, you can also check the integrity of your installed files using rpm -V. This step makes 
+sure that the files
+ haven’t been modified since they were installed from the rpm. As shown in Listing 21, there is no output from this command if
+ the package is still good,
+ but you can add the -v option to get much more detailed output.
+
+Listing 21. Verifying the installed vim-common package
+
+[ian@attic-f21 ~]$ rpm -V vim-common
+
+Let’s become root and corrupt our vim-common installation by deleting /usr/bin/xxd and replacing 
+/usr/share/vim/vim74/syntax/bindzone.vim with 
+/bin/bash. Let’s try the verification again. The results are shown in Listing 22.
+
+Listing 22. Tampering with the vim-common package
+
+root@attic-f21 ~rpm -qf /usr/bin/xxd /usr/share/vim/vim74/syntax/bindzone.vim
+vim-common-7.4.475-2.fc21.x86_64
+vim-common-7.4.475-2.fc21.x86_64
+root@attic-f21 ~rm /usr/bin/xxd
+rm: remove regular file ‘/usr/bin/xxd’? y
+root@attic-f21 ~cp /bin/bash /usr/share/vim/vim74/syntax/bindzone.vim
+cp: overwrite ‘/usr/share/vim/vim74/syntax/bindzone.vim’? y
+root@attic-f21 ~rpm -V vim-common
+missing     /usr/bin/xxd
+S.5....T.    /usr/share/vim/vim74/syntax/bindzone.vim
+
+This output shows us that the /usr/share/vim/vim74/syntax/bindzone.vim file fails MD5 sum, file size, and mtime tests. One way to 
+solve the problem would 
+be to remove the package and then reinstall it, but there are other packages that depend on vim-common and that are installed and 
+still OK.
+ The solution is to forcibly reinstall it using the --force option of rpm, or the reinstall function of yum. Listing 23 shows how 
+ to reinstall with yum,
+ and then verify that the package is now okay and the deleted file has been restored.
+
+Listing 23. Reinstalling the vim-common package
+
+root@attic-f21 ~yum reinstall vim-common
+Loaded plugins: langpacks
+Resolving Dependencies
+--> Running transaction check
+---> Package vim-common.x86_64 2:7.4.475-2.fc21 will be reinstalled
+--> Finished Dependency Resolution
+
+Dependencies Resolved
+
+================================================================================
+ Package           Arch          Version                    Repository     Size
+================================================================================
+Reinstalling:
+ vim-common        x86_64        2:7.4.475-2.fc21           fedora        5.9 M
+
+Transaction Summary
+================================================================================
+Reinstall  1 Package
+
+Total download size: 5.9 M
+Installed size: 21 M
+Is this ok [y/d/N]: y
+Downloading packages:
+vim-common-7.4.475-2.fc21.x86_64.rpm                        | 5.9 MB  00:03     
+Running transaction check
+Running transaction test
+Transaction test succeeded
+Running transaction (shutdown inhibited)
+  Installing : 2:vim-common-7.4.475-2.fc21.x86_64                           1/1 
+  Verifying  : 2:vim-common-7.4.475-2.fc21.x86_64                           1/1 
+
+Installed:
+  vim-common.x86_64 2:7.4.475-2.fc21                                            
+
+Complete!
+root@attic-f21 ~rpm -V vim-common
+root@attic-f21 ~ls /usr/bin/xxd
+/usr/bin/xxd
+Show more
+If you need more force
+Usually the package management system keeps your packages in order. However, if you manage to delete some file that is an important 
+part of a package—and 
+reinstalling the package without removing does not fix the problem—then you may need to remove the package before reinstalling. For 
+such a case,
+ you probably want to delete the existing copy and reinstall it, without needing to uninstall and reinstall all the packages that 
+ depend on it. 
+ For this, you can use the rpm command’s --nodeps option to bypass dependency checking when you remove a package. Listing 24 shows 
+ how this might work if 
+ you accidentally removed the /usr/bin/xxd file, which is part of the vim-common package, as we did earlier.
+
+Listing 24. Updating packages with rpm
+
+root@attic-f21 ~rm /usr/bin/xxd
+rm: remove regular file ‘/usr/bin/xxd’? y
+root@attic-f21 ~#Oops! we needed that file
+root@attic-f21 ~rpm -Fvh vim-common-7.4.475-2.fc21.x86_64.rpm 
+root@attic-f21 ~ls /usr/bin/xxd
+ls: cannot access /usr/bin/xxd: No such file or directory
+root@attic-f21 ~#Oh! Freshening the package didn't replace the missing file
+root@attic-f21 ~rpm -e vim-common
+error: Failed dependencies:
+    vim-common = 2:7.4.475-2.fc21 is needed by (installed) vim-enhanced-2:7.4.475-2.fc21.x86_64
+root@attic-f21 ~#Can't remove vim-common because vim-enhanced needs it
+root@attic-f21 ~rpm -e --nodeps vim-common
+warning: file /usr/bin/xxd: remove failed: No such file or directory
+root@attic-f21 ~#Bypassing the dependency check allowed removal
+root@attic-f21 ~#No surprise that /usr/bin/xxd was not found
+root@attic-f21 ~#Update (or install) vim-common again
+root@attic-f21 ~rpm -Uvh vim-common-7.4.475-2.fc21.x86_64.rpm
+Preparing...                          #################################100%Updating / installing...
+   1:vim-common-2:7.4.475-2.fc21      #################################100%root@attic-f21 ~ls /usr/bin/xxd
+/usr/bin/xxd
+root@attic-f21 ~#And /usr/bin/xxd is back
+Show more
+So now you have some approaches to updating or repairing if accidents happen and the ordinary update process fails. Note that you 
+can also bypass 
+dependency checking when installing an RPM, but this not usually a good idea.
+
+=================================================================================================================================================
+
+
+Downloading RPMs from repositories
+Although yum will automatically retrieve packages from repositories, you may want to download RPMs and save them, perhaps to install
+them on a 
+non-networked system, or to examine their contents, or for some other reason. You can use the yumdownloader command to do this as
+shown in Listing 25. 
+In our case, the gcc-gfortran.x86_64 package is already installed, so there are no additional packages to download.
+
+Listing 25. Downloading the gcc-gfortran package
+
+[ian@attic-f21 ~]$ yumdownloader --resolve gcc-gfortran.x86_64
+Loaded plugins: langpacks
+--> Running transaction check
+---> Package gcc-gfortran.x86_64 0:4.9.2-6.fc21 will be reinstalled
+--> Finished Dependency Resolution
+gcc-gfortran-4.9.2-6.fc21.x86_64.rpm                       | 7.7 MB  00:04     
+
+The --resolve option of yumdownloader will cause other required packages to be downloaded, too. To illustrate this I 686-download 
+also shows the files 
+downloaded using the --resolve option when we download gcc-gfortran. Note that we did not specify an architecture (x86_64 or i686), 
+so the default download 
+is for the i686 version.
+
+
+================================================================================================================================================================
+
+If you can’t find a particular RPM through your system tools, a good Internet resource for locating RPMs is the Rpmfind.Net server.
+
+
+###########################################################################################################################################
 ip aliasing_research
 ---------------------------------------------------------------------------------------------------------------
 
@@ -640,7 +1043,8 @@ should be done to improve that program
 
 ################################################################################################################
 
-The zombie (child died - parent alive)isn't occupying any significant memory or resources, it's (effectively) only an exit status waiting to be delivered.
+The zombie (child died - parent alive)isn't occupying any significant memory or resources, it's (effectively) only an exit status 
+waiting to be delivered.
 An orphan is a live, running process just like any other -- it just has a peculiar name (parent died - child alive)
 
 
@@ -815,6 +1219,92 @@ echo -e "Script complete."
 
 #############################################################################################################################
 
+Re-reading partition table
+
+All the following commands did not make kernel reread partition :
+
+partprobe /dev/sda (warning : kernel failed to reread ....)
+hdparm -z /dev/sda (BLKRRPART failed : device or resource busy)
+blockdev -rereadpt /dev/sda (BLKRRPART failed : device or resource busy)
+sfdisk -R /dev/sda (BLKRRPART failed : device or resource busy)
+
+
+blockdev --rereadpt /dev/sdX       
+
+
+Rehat Suggested Fix
+
+Issue
+Added a new partition to a disk that have some existing partitions already mounted. Can the new partition be used without reboot in RHEL6?
+New partition created with fdisk command is not visible in the OS.
+Resolution
+partprobe was commonly used in RHEL 5 to inform the OS of partition table changes on the disk. In RHEL 6, it will only trigger the OS 
+to update the partitions on a disk that none of its partitions are in use (e.g. mounted). If any partition on a disk is in use, partprobe 
+will not trigger the OS to update partitions in the system because it is considered unsafe in some situations.
+
+So in general we would suggest:
+
+Unmount all the partitions of the disk before modifying the partition table on the disk, and then run partprobe to update the partitions in system.
+If this is not possible (e.g. the mounted partition is a system partition), reboot the system after modifying the partition table. 
+The partitions information will be re-read after reboot.
+If a new partition was added and none of the existing partitions were modified, consider using the partx command to update the system
+ partition table. Do note that the partx command does not do much checking between the new and the existing partition table in 
+ the system and assumes the user knows what they are doing. So it can corrupt the data on disk if the existing partitions are modified or
+ the partition table is not set correctly. So use at one's own risk.
+
+For example, a partition #1 is an existing partition and a new partition #2 is already added in /dev/sdb by fdisk. Here we 
+use partx -v -a /dev/sdb to add the new partition to the system:
+
+Raw
+# ls /dev/sdb*  
+/dev/sdb  /dev/sdb1  
+List the partition table of disk:
+
+Raw
+# partx -l /dev/sdb
+# 1:        63-   505007 (   504945 sectors,    258 MB)  
+# 2:    505008-  1010015 (   505008 sectors,    258 MB)  
+# 3:         0-       -1 (        0 sectors,      0 MB)  
+# 4:         0-       -1 (        0 sectors,      0 MB)  
+Read disk and try to add all partitions to the system:
+
+Raw
+# partx -v -a /dev/sdb                                         
+device /dev/sdb: start 0 size 2097152  
+gpt: 0 slices  
+dos: 4 slices  
+# 1:        63-   505007 (   504945 sectors,    258 MB)  
+# 2:    505008-  1010015 (   505008 sectors,    258 MB)  
+# 3:         0-       -1 (        0 sectors,      0 MB)  
+# 4:         0-       -1 (        0 sectors,      0 MB)  
+BLKPG: Device or resource busy
+error adding partition 1
+(These last 2 lines are normal in this case because partition 1 is already added in the system before partition 2 is added)
+
+Check that we have device nodes for /dev/sdb itself and the partitions on it:
+
+Raw
+# ls /dev/sdb*  
+/dev/sdb  /dev/sdb1  /dev/sdb2
+
+#################################################################################################################################
+
+In the sosreport, I'm not seeing an audit rule that is monitoring the /etc/resolv.conf file. 
+
+Could you please add the following rule in the /etc/audit/rules.d/audit.rules file? 
+
+-w /etc/resolv.conf -p wa -k resolv_alert
+
+Once you add the rule, please restart the service with the following command. 
+
+ #service auditd restart
+
+Then, please reboot the server and see if the resolv.conf gets replaced. 
+
+We will need a fresh sosreport once you notice the issue again.
+
+###############################################################################################################################
+
 Configure X windows in Linux server
 Before Login into GUI of any linux server we need to install basic package into the specific server ,Those package are:
 X Windows System
@@ -852,6 +1342,429 @@ dmesg | grep oom-killer shows the OutOfMemory-killer at work
 
 
 #################################################################################################################################
+
+
+Background
+The routing table contains information used by the network stack to decide where each packet should be sent next. This decision may result in the packet 
+being delivered locally, or forwarded to another machine, or rejected as unroutable. For packets that are forwarded the routing table is concerned only 
+with selection of the next ‘hop’, at which point another routing decision will be made.
+
+Within the routing table is a list of routes. Each route specifies an address range (expressed as a network address and a netmask), the interface to which
+ packets matching that address range should be sent, and (optionally) the address of a gateway machine.
+
+The route that is used for a given packet is the most specific one with an address range that matches the ultimate destination address. If the route has a 
+gateway then the packet is forwarded to that gateway, otherwise it is forwarded directly to its final destination.
+
+If the network address and netmask of a route are both zero then it will match packets with any destination address, but only if there is no other route 
+that matches. Most routing tables have such an entry, which is known as the ‘default route’.
+
+There are a number of different ways in which routes may be created:
+
+Whenever you bring up an interface using ifup, a route is automatically created for the address range that is directly reachable through that interface.
+You can specify further static routes to be created when an interface is brought up.
+If an interface uses an automatic configuration protocol such as DHCP and is able to obtain a suitable gateway address then it may create a default route 
+to that gateway.
+If an interface uses a point-to-point protocol such as PPP then it may automatically create a default route to the far end of the link.
+If your network is sufficiently complex to make use of a routing protocol such as BGP or RIP then these can automatically add any number of dynamic routes 
+to the table.
+Symptoms
+A routing table error may result in:
+
+traffic being forwarded to the wrong interface, or
+traffic not being forwarded when it should have been.
+Note that either of these issues could equally indicate a problem with iptables, and a failure to forward could indicate that forwarding has not been enabled.
+
+In the unlikely event that you are using the NAT capabilities of iproute2 (as opposed to NAT in iptables) then a configuration error could additionally 
+cause traffic to be given the wrong source or destination address. You should also be aware that iproute2 has the ability to support multiple 
+routing tables, therefore the route taken by a packet may depend on more than just its destination address.
+
+Scenario
+Suppose that a machine has been configured to act as a boundary router between a local area network (connected to interface eth0 with the
+ address 192.168.0.1/24) and the public Internet (connected to interface ppp0 with the address 203.0.113.144/32). The default gateway is 203.0.113.1. 
+ Because the local area network uses a private address range, iptables on the boundary router has been configured to SNAT them to its public IP address.
+
+In order to test this configuration you have attempted to ping a machine on the public Internet (198.51.100.1) from a machine on the local area 
+network (192.168.0.2), but this has failed.
+
+Investigation
+Strategy
+There are two possibilities to consider:
+
+that the routing table has not been populated with the routes that you intended, or
+that the table has been populated as intended but the routes do not have the desired effect.
+It is usually worth quickly checking the first point before launching into any detailed investigation of the second.
+
+Remember that routes created using the route and ip route commands are not persistent. Even if you are certain that the routing table was correct at some 
+point in the past, that configuration will not necessarily survive a reboot.
+
+Inspecting the routing table
+The traditional method for viewing the content of the routing table is by means of the route command, however this predates iproute2 and the information 
+it displays may be incomplete. The preferred method is to use the ip route command:
+
+ip route show
+The response is a list of routes, which for the scenario described above should be similar to:
+
+203.0.113.1 dev ppp0  proto kernel  scope link  src 203.0.113.144
+192.168.0.0/24 dev eth0  proto kernel  scope link  src 192.168.0.1
+default via 203.0.113.1 dev ppp0
+These routes specify that:
+
+traffic to 203.0.113.1 (the gateway to the public Internet) should be forwarded directly to its destination through ppp0;
+traffic to anywhere within 192.168.0.0/24 (the local area network) should be forwarded directly to its destination through eth0; and
+traffic to anywhere else should be forwarded through ppp0 to the gateway at 203.0.113.1.
+There is little benefit in attempting to predict the effect of the table on individual packets because this can be done more quickly and reliably using 
+the automated method below. However you should aim to ensure that there are no spurious or missing routes, and that the destination addresses and device 
+names are correct.
+
+Testing the routing table
+It is possible to test the effect of the routing table on a particular packet using the command ip route get. You need to know where the packet came from 
+(IP address and interface name) and where it is supposed to go to (IP address).
+
+For example, the outbound test packet in the scenario above originates from 192.168.0.2 and is received by the router on eth0. It is destined for 198.51.100.1.
+ You can inquire how such packets are routed using the command:
+
+ip route get to 198.51.100.1 from 192.168.0.2 iif eth0
+which should give a response of the form:
+
+198.51.100.1 from 192.168.0.2 via 203.0.113.1 dev ppp0  src 192.168.0.1
+    cache <src-direct>  mtu 1500 advmss 1460 hoplimit 64 iif eth0
+The main points to check are that the IP address of the next hop is correct (203.0.113.1 in this case) and that the packet is being sent onwards through 
+the appropriate interface (ppp0).
+
+You should also check the reverse path, because you will get no response to a ping unless it can be routed in both directions:
+
+ip route get to 192.168.0.2 from 198.51.100.1 iif ppp0
+This should give a response of the form:
+
+192.168.0.2 from 198.51.100.1 dev eth0  src 203.0.113.144
+    cache  mtu 1500 advmss 1460 hoplimit 64 iif ppp0
+Points to note:
+
+The ip route get command is sensitive to whether forwarding has been enabled, so if it returns the error ‘No route to host’ then that may be the reason.
+Routing is performed before any change to the source address by the iptables SNAT target. You should therefore use the real address from which traffic 
+originates, not the address from which it purports to originate after NATting.
+Routing is performed after any change to the destination address by the iptables DNAT target. You should therefore use the address to which the traffic
+ is redirected after NATting, not the address to which it was originally sent.
+Variations
+The route command
+Though deprecated, the route command it adequate for inspecting most of the configurations that are likely to be encountered in practice:
+
+route -n
+The -n option causes IP addresses to be displayed numerically. This is usually preferable to converting them into names.
+
+For the scenario described above the output should look similar to the following:
+
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+203.0.113.1     0.0.0.0         255.255.255.255 UH    0      0        0 ppp0
+192.168.0.0     0.0.0.0         255.255.255.0   U     0      0        0 eth0
+0.0.0.0         203.0.113.1     0.0.0.0         UG    0      0        0 ppp0
+
+
+
+=====================================================================================================================
+
+To find the port or universal addresses of a remote program, the client sends an RPC to well-known port 111 of the server’s host. If the server 
+listening on port 111 (rpcbind or portmapper) has an entry for the remote program, it provides the port number or universal addresses in a 
+return RPC. The client then contacts the remote program by sending an RPC to the port number or universal addresses provided.
+
+#############################################################################################################################################
+#######################################
+Process flow : client--> rpc to 111 of server --> if server has entry for reqeusted port ---> port/universal address to client --> 
+client sends rpc --> provided port on server 
+
+Either portmap/rpcbind runs not both of them simultaneously
+
+netstat -tulpn | grep -w 111
+tcp        0      0 0.0.0.0:111                 0.0.0.0:*                   LISTEN      4929/portmap
+udp        0      0 0.0.0.0:111                 0.0.0.0:*                               4929/portmap
+
+
+The rpcbind[1] utility maps RPC services to the ports on which they listen. RPC processes notify rpcbind when they start, registering the ports 
+they are listening on and the RPC program numbers they expect to serve. The client system then contacts rpcbind on the server with a particular 
+RPC program number. The rpcbind service redirects the client to the proper port number so it can communicate with the requested service.
+Because RPC-based services rely on rpcbind to make all connections with incoming client requests, rpcbind must be available before any of these 
+services start.
+
+
+Because rpcbind[1] provides coordination between RPC services and the port numbers used to communicate with them, it is useful to view the status
+ of current RPC services using rpcbind when troubleshooting. The rpcinfo command shows each RPC-based service with port numbers, an RPC program 
+ number, a version number, and an IP protocol type (TCP or UDP).
+
+rpcinfo -p 
+
+If one of the NFS services does not start up correctly, rpcbind will be unable to map RPC requests from clients for that service to the correct 
+port. In many cases, if NFS is not present in rpcinfo output, restarting NFS causes the service to correctly register with rpcbind and begin working.
+
+#############################################################################################################################
+
+sar Command examples
+In addition, you can use various command options with sar to display additional information or control the program’s operations. A few of the more common 
+options are listed in the following table.
+
+Option	Displayed statstics
+-A	All
+-b	I/O
+-B	swap
+-d	I/O for each block device on the system
+-n ALL	All network statistics. Instead of ALL, you can use DEV (device), NFS (network file system), SOCK (sockets), and additional options to
+ display subsets of network data.
+-q	Processor queue (cache)
+-r	Memory and swap
+-u	CPU (the default when no options are specified)
+-v	Kernel
+-W	Simplified swap statistics (pages swapped in and out per second only)
+
+
+Raw
+# sar -r -s 10:00:00 -e 14:00:00 -f /var/log/sa07 -o /tmp/mem.txt
+
+
+
+#################################################################################################################################
+
+Statically linked executables: Contain all the library functions that they need to execute; all library functions are linked into the executable. 
+They are complete programs that do not depend on external libraries to run. One advantage of statically linked programs is that they work without your 
+needing to install prerequisites.
+Dynamically linked executables: Much smaller programs; they are incomplete in the sense that they require functions from external shared
+ libraries to run. Besides being smaller, dynamic linking permits a package to specify prerequisite libraries without needing to include the 
+ libraries in the package. By using dynamic linking, many running programs can share one copy of a library rather than occupying memory with
+ many copies of the same code. For these reasons, most programs today use dynamic linking.
+
+ ldd /usr/bin/ln
+        linux-vdso.so.1 =>  (0x00007fff7e1db000)
+        libc.so.6 => /lib64/libc.so.6 (0x00007feb5db8e000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007feb5df5b000)
+
+		
+ ldd /sbin/sln
+        not a dynamic executable
+
+
+Apart from knowing that a statically linked program is likely to be large, how can you tell whether a program is statically linked? And if it 
+is dynamically linked, how do you know what libraries it needs? The ldd command can answer both questions. If you are running a system such as 
+Debian or Ubuntu, you probably don’t have the sln executable, so you might also want to check the /sbin/ldconfig executable.
+
+
+
+strace -f -tt -s 10000 -o /var/tmp/mhl.out -p 29738 -p 30096 -p 30099 -p 30102
+
+When you start a service, it creates a "lock" file to indicate that the service is running. This helps avoid multiple instances of the service. 
+When you stop a service, this lock file is removed.
+
+When a running service crashes, the lock file exists but the process no longer exists. Thus, the message.
+
+Look at the two areas /var/run/*.pid and /var/lock/subsys/*. These are expected to agree with each other. That is, if the (emtpy file) 
+lockfile /var/lock/subsys/crond exists, then the first line of the file /var/run/crond.pid is expected to contain the PID of the process 
+running for this service. If no such process is running, then something is wrong. If a process is indeed running (as you see) but it is not that PID, 
+then something is probably confused.
+
+#################################################################################################################################
+
+
+What is  Sticky Bit
+The sticky bit works on directories only. If a user wants to create or delete a file/directory in some directory, he needs write permission on 
+that directory. The write permission on a directory gives a user the privilege to create a file as well as the privilege to remove it.
+
+The /tmp directory is the directory for temporary files/directories. This directory has all the rights on all the three levels because all the 
+users need to create/delete their temporary files. But as the users have write permission on this directory, they can delete any file in this directory.
+The permissions of that file do not have any effect on deletion.
+
+But with sticky bit set on a directory, anyone can create a file/directory in it, but can delete his own files only. Files owned by other users cannot
+ be deleted.
+
+
+ 
+How to view and set stickybit
+You could notice t tag added to /tmp directory and it means bit is set for this directory.
+
+$ ls -ld /tmp/
+drwxrwxrwt 4 root root 4096 Aug 19 02:29 /tmp/
+In linux sticky bit can be set with chmod command. You can use +t tag to add and -t tag to delete sticky bit.
+
+$ chmod o-t dir1
+$ ls -l
+total 8
+drwxr-xr-x 2 root root 4096 Aug 19 03:08 dir1
+$ chmod o+t dir1
+$ ls -l
+total 8
+drwxr-xr-t 2 root root 4096 Aug 19 03:08 dir1
+Alternatively,
+
+$ chmod 1777 dir1/
+$ ls -l
+total 8
+drwxrwxrwt 2 root root 4096 Aug 19 03:08 dir1
+Note: In Unix flavored OS, sticky bit has a different purpose but we are not discussing it here.
+
+What is SUID Bit and How to set it
+When an executable file runs, it runs under the ownership of the user who has executed it. It means that when student user runs ls command, 
+then the corresponding process will run under the ownership of student. The SUID bit, also known as Set User ID bit, overwrites this behavior.
+ If SUID bit is set on a program, then that program will run as the owner of that file, irrespective of who is executing it.
+
+The passwd command in Linux has SUID bit set.
+
+$ ls -l /usr/bin/passwd
+-rwsr-xr-x 1 root root 23420 Aug 3 2010 /usr/bin/passwd
+This can be seen in the third field of permissions. The 's' in place of 'x' indicates that SUID bit is set. With SUID bit set, 
+when a normal user (say student) runs the passwd command, the command runs with the ownership of 'root', and not as student, 
+because root is the owner of this file. This behavior is required because the passwords are stored in the /etc/shadow file, 
+which has no permission on group or other level.
+
+$ ls -l /etc/shadow
+-r-------- 1 root root 1027 Jul 13 21:56 /etc/shadow
+You need to understand that all users cannot be given read or write permission on this file for security reasons; otherwise, 
+they will read/change the passwords of other users. So this causes a problem that if the users don't have permission on this file,
+ then how will they change their own passwords? So SUID bit solves the problem. The passwd command has SUID bit set, so when normal 
+ users execute this command, they run it with the ownership of root, i.e. the owner of passwd command.
+
+How to Set and unset SUID bit
+This is to be noted that SUID bit works on files only. To set the SUID bit on a file, use the chmod command as follows
+
+$ ls -l
+total 8
+-rwxr--r-- 1 root root 104 Aug 19 01:26 hello.sh
+$ chmod u+s hello.sh
+$ ls -l
+total 8
+-rwsr--r-- 1 root root 104 Aug 19 01:26 hello.sh
+The numeric method for changing permissions can also be used. Suppose if the normal permissions for a file are 744, then with SUID bit set, these will become 4744. SUID bit has value 4.
+
+$ ls -l
+total 8
+-rwxr--r-- 1 root root 104 Aug 19 01:26 hello.sh
+$ chmod 4744 hello.sh
+$ ls -l
+total 8
+-rwsr--r-- 1 root root 104 Aug 19 01:26 hello.sh
+How SGID Bit work on file and directory
+Unlike SUID bit, SGID bit works on both files and directories, but it has a different meaning in both cases.
+
+On files:
+
+For file, it has similar meaning as the SUID bit, i.e. when any user executes a file with SGID bit set on it, it will always be executed with the group 
+ownership of that file, irrespective of who is running it. For example, the file /sbin/netreport has SGID bit set, which can be seen in the 
+'s' instead of 'x' in group permissions.
+
+$ ls -l /sbin/netreport
+-rwxr-sr-x 1 root root 6020 Oct 13 2010 /sbin/netreport
+This file has group ownership of root group. So when a user (say student) executes it, then the corresponding process will not have group ownership of
+ student, but that of root group.
+
+On directories:
+
+Now let’s talk about SGID on directories. SGID on directories is used for creating collaborative directories. To understand SGID bit on directories, 
+consider the following scenario:
+
+Suppose three users jack, jones and jenny are working together on some project. All of them belong to a group named javaproject. 
+For the course of the project, they need to share all the files related to the project. All of them must be able to see each other's file. 
+This can be done simply by providing read permission on group level. Further, suppose that the directory used for the project is "/javaproject".
+
+Here, a problem arises that when a file is created, it belongs to the primary group of the user who created the file. So, when different users 
+create their files in this directory, those files will not have group ownership of javaproject group.
+
+What we do for our problem is that we set the group of /javaproject directory to be javaproject group, 
+and set the SGID bit set on it. When SGID bit is set on a directory, all the files and directory created within it has the group ownership of the
+ group associated with that directory. It means that after setting SGID bit on /javaproject directory, all the files and directories being 
+ created in this directory will have the group ownership of "javaproject" group. Moreover, this behavior is recursive, 
+ i.e. the directories created in this directory will have SGID bit set as well. The permissions for the new directory will also be same as that of
+ /javaproject directory.
+
+The SGID bit can be set with chmod command as follows:
+
+$ ls -ld /javaproject
+drwxrwxr-x 2 root javaproject 4096 Aug 19 02:33 /javaproject
+$ chmod g+s /javaproject
+$ ls -ld /javaproject
+drwxrwsr-x 2 root javaproject 4096 Aug 19 02:33 /javaproject
+Now when jones user creates a file in this directory, it is created under the group ownership of javaproject group.
+
+$ touch /javaproject/jones1.txt
+$ mkdir /javaproject/jones1dir
+$ ls -l /javaproject/
+total 12
+drwxrwsr-x 2 jones javaproject 4096 Aug 19 02:38 jones1dir
+-rw-rw-r-- 1 jones javaproject 0 Aug 19 02:37 jones1.txt
+The numeric value corresponding to SGID bit is 2. So to add SGID bit numerically, use the following command:
+
+$ ls -ld /shared/
+drwxrwxr-x 2 root adm 4096 Aug 19 02:47 /shared/
+$ chmod 2775 /shared/
+$ ls -ld /shared/
+drwxrwsr-x 2 root adm 4096 Aug 19 02:47 /shared/
+
+######################################################################################################################################
+
+When you want to improve the performance or the characteristics of your server, you need to set the kernel runtime parameters.
+
+In order to do this, you’ve got three ways:
+
+through the /proc filesystem,
+with the sysctl command,
+through the /etc/sysctl.conf file.
+The /proc Filesystem
+To get the value of a kernel runtime parameter (here /proc/sys/net/ipv4/ip_forward used for allowing a host to act as an router), type:
+
+# cat /proc/sys/net/ipv4/ip_forward
+To set the value of the same parameter, type:
+
+# echo 1 > /proc/sys/net/ipv4/ip_forward
+Note: 1 is used for On and 0 for off.
+
+This change is instantaneously active but doesn’t persist a reboot. You have to write it into the /etc/rc.d/rc.local file to get it re-applied 
+at each boot. See below for a better solution.
+
+The sysctl Command
+With the sysctl command, you can get all the available kernel runtime parameters with their current value.
+
+# sysctl -a | grep vm.swappiness
+vm.swappiness = 30
+But you can also set a kernel runtime parameter with the -w option.
+
+# sysctl -w vm.swappiness=20
+vm.swappiness = 20
+Still like the previous method, this change is instantaneously active but doesn’t persist a reboot. You have to write it into the 
+/etc/rc.d/rc.local file to get it re-applied at each boot. See below for a better solution.
+
+The /etc/sysctl.conf File
+To permanently store kernel runtime parameters, you need to write them into the /etc/sysctl.conf file.
+
+For example, edit the /etc/sysctl.conf file and paste the following line:
+
+# allow IPv4 forwarding
+net.ipv4.ip_forward = 1
+Caution: Comments are only allowed on a separate line and not at the end of a line!
+Note: It is not a coincidence if the net.ipv4.ip_forward kernel runtime parameter name matches the /proc/sys/net/ipv4/ip_forward path name.
+
+Note: There is also a directory called /etc/sysctl.d. You can create files with .conf extension inside that will be read at boot.
+
+Then, you need to apply the change:
+
+# sysctl -p
+Caution: Only changes in the /etc/sysctl.conf file will be applied. If you created some files in the /etc/sysctl.d directory, 
+you will need either to type sysctl -p /etc/sysctl.d/file.conf (if file.conf is the file where kernel runtime parameters are stored)
+ or sysctl –system to get the associated changes applied.
+
+Many kernel runtime parameters can be set this way. Here are only a few examples:
+
+# don't respond to a ping
+net.ipv4.icmp_echo_ignore_all = 1
+# don't respond to a ping to the broadcast address
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+# disable IPv6 for all network interfaces
+net.ipv6.conf.all.disable_ipv6 = 1
+Note: As seen before, the sysctl -a command gets all the kernel runtime parameters with their current value. By redirecting the output to a file
+, this is also a good way to back up your configuration before any change.
+
+Default kernel runtime configuration is located in the /usr/lib/sysctl.d directory.
+
+To know the order the files are read and apply the various settings, type: # sysctl –system.
+
+Caution: Kernel runtime parameters set in the /etc/sysctl.conf file can be overrided by the application of a tuned profile (see this example).
+
+
+#######################################################################################################################################
 
 IP address change Solaris
 -----------------------------------------------------
@@ -942,6 +1855,92 @@ That’s it…Now you’ve changed the actual IP address without even rebooting�
 
 ===================================================================================================================
 
+
+tcpdump -i eth0 src 192.168.0.2
+
+
+ tcpdump -i eth0 dst 50.116.66.139
+ 
+ tcpdump -i eth0 host 10.10.1.1
+ 
+ Capture packets for particular destination IP and Port
+The packets will have source and destination IP and port numbers. Using tcpdump we can apply filters on source or destination IP and port number.
+ The following command captures packets flows in eth0, with a particular destination ip and port number 22.
+
+
+$ tcpdump -w xpackets.pcap -i eth0 dst 10.181.140.216 and port 22
+
+
+
+Capture TCP communication packets between two hosts
+If two different process from two different machines are communicating through tcp protocol, we can capture those packets using tcpdump as shown below.
+
+$tcpdump -w comm.pcap -i eth0 dst 16.181.170.246 and port 22
+
+
+tcpdump src 10.170.101.64 and dst host 10.44.43.181 -w /tmp/tcpdump_314to627_new.log
+
+
+########################################################################################################################
+
+
+TCP/IP network model
+Before we get into routing, it helps to understand a little bit about how packets find their way to the correct host on a network. The TCP/IP network
+ model defines a five layer stack that describes the mechanisms necessary to move data packets from one host to another, whether that host is on the 
+ local network or halfway around the world. Each of the layers in the following description of this model is numbered and also contain the names of the 
+ data units that are handled by that layer.
+
+5. Application layer: Message This layer consists of the connection protocols required for various network applications to communicate,
+ such as HTTP, DHCP, SSH, FTP, SMTP, IMAP, and others. When you request a web page from a remote web site, a connection request is sent to 
+ the web server and the response is sent back to your host at this layer and then your browser displays the web page in its window.
+
+4. Transport layer: TCP segment. The transport layer provides end-to-end data transport and flow management services that are independent of 
+the data and types of protocols being transported. It uses ports such as 80 for HTTP and 25 for SMTP to make connections between the sending host 
+and the remote host.
+
+3. Internet layer: Packet. Packet routing is performed on the Internet layer. This layer is responsible for routing packets across two or more 
+different networks in order to reach their final destination. This layer uses IP Addresses and the routing table to determine which device to send 
+the packets to next. If sent to a router, each router is responsible for sending the data packets only to the next router in the series and not for 
+mapping out the entire route from the local host to the target host. The Internet layer is mostly about routers talking to routers in order to determine
+ the next router in the chain.
+
+2. Data Link layer: Frame. The Link layer manages the direct connections between hardware hosts on a single, local, logical, physical network.
+ This layer uses the Media Access Control (MAC) addresses embedded in the Network Interface Cards (NICs) to identify the physical devices attached 
+ to the local network. This layer cannot access hosts that are not on the local network.
+
+1. Physical layer: Bits. This is the hardware layer and consists of the NICs and the physical Ethernet cable as well as the hardware level protocols 
+used to transmit individual bits that make up the data frames between any two hosts or other network nodes that are locally connected.
+
+A simple example
+So what does that look like when a host is actually sending data on the network using the TCP/IP network model? Here is my own made-up description
+ of how data are moved from one network to another. In this example, my computer is sending a request to a remote server for a web page.
+
+On the application layer, the browser initiates an HTTP connection request message to the remote host, www.example.com, to send back the data
+ comprising the contents of a web page. This is the message, and it includes only the IP Address of the remote web server.
+
+The transport layer encapsulates the message containing the web page request in a TCP datagram with the IP address of the remote web
+ server as the destination. Along with the original request packet, this packet now includes the source port from which the request will originate, 
+ usually a very high number random port, so that the return data knows which port the browser is listening on; and the destination port on the remote 
+ host, port 80 in this case.
+
+The Internet layer encapsulates the TCP datagram in a packet that also contains both the source and destination IP addresses.
+
+The data Link layer uses the Address Resolution Protocol (ARP) to identify the physical MAC address of the default router and encapsulates the 
+Internet packet in a frame that includes both the source and destination MAC addresses.
+
+The frame is sent over the wire, usually CAT5 or CAT6, from the NIC on the local host to the NIC on the default router.
+
+The default router opens the datagram and determines the destination IP address. The router uses its own routing table to identify the 
+IP address of the next router that will take the frame onto the next step of its journey. The router then re-encapsulates the frame in a new datagram 
+that contains its own MAC as the source and the MAC address of the next router and then sends it on through the appropriate interface. 
+The router performs its routing task at layer 3, the Internet layer.
+
+Note that switches are invisible to all protocols at layers two and above, so they do not affect the transmission of data in any logical manner. 
+The function of switches is merely to provide a simple means to connect multiple hosts into a single physical network via lengths of Ethernet cable.
+
+You can use the arp [-n] command to view all of the MAC addresses that your host has stored in its arp table. These are always hosts on the local network.
+
+##################################################################################################################
 
 Wire Me a Virtual Nic, Would Ya?
 21 Aug, 2011 Solaris 0
@@ -1438,8 +2437,86 @@ This gives us a number of significant advantages. By interacting with the data u
 dynamically display log data according to their needs. This can be as simple as viewing the boot data from three boots ago, or
 combining the log entries sequentially from two related services to debug a communication issue.
 
+################################################################################################################################
+
+The "number of cores = max load" Rule of Thumb: on a multicore system, your load should not exceed the number of cores available.
+
+The "cores is cores" Rule of Thumb: How the cores are spread out over CPUs doesn't matter. Two quad-cores == four dual-cores == eight single-cores.
+ It's all eight cores for these purposes.
+
+Bringing It Home
+Let's take a look at the load averages output from uptime:
+
+~ $ uptime
+23:05 up 14 days, 6:08, 7 users, load averages: 0.65 0.42 0.36
+This is on a dual-core CPU, so we've got lots of headroom. I won't even think about it until load gets and stays above 1.7 or so.
+
+Now, what about those three numbers? 0.65 is the average over the last minute, 0.42 is the average over the last five minutes, and 0.36 is the average 
+over the last 15 minutes. Which brings us to the question:
+
+Which average should I be observing? One, five, or 15 minute?
+
+For the numbers we've talked about (1.00 = fix it now, etc), you should be looking at the five or 15-minute averages. Frankly, 
+if your box spikes above 
+1.0 on the one-minute average, you're still fine. It's when the 15-minute average goes north of 1.0 and stays there that you need
+to snap to. 
+(obviously, as we've learned, adjust these numbers to the number of processor cores your system has).
+
+###########################################################################################################################################
 
 
+All processes use memory, of course, but each process doesn't need all its allocated memory all the time. Taking advantage of this 
+fact, the kernel 
+frees up physical memory by writing some or all of a process' memory to disk until it's needed again.
+
+The kernel uses paging and swapping to perform this memory management. Paging refers to writing portions, termed pages, of a 
+process' memory to disk. 
+Swapping, strictly speaking, refers to writing the entire process, not just part, to disk. In Linux, true swapping is exceedingly 
+rare, but the terms 
+paging and swapping often are used interchangeably.
+
+When pages are written to disk, the event is called a page-out, and when pages are returned to physical memory, the event is called 
+a page-in. A page 
+fault occurs when the kernel needs a page, finds it doesn't exist in physical memory because it has been paged-out, and re-reads it 
+in from disk.
+
+Page-ins are common, normal and are not a cause for concern. For example, when an application first starts up, its executable image 
+and data are paged-in. 
+This is normal behavior.
+
+Page-outs, however, can be a sign of trouble. When the kernel detects that memory is running low, it attempts to free up memory by
+paging out. Though this 
+may happen briefly from time to time, if page-outs are plentiful and constant, the kernel can reach a point where it's actually 
+spending more time managing 
+paging activity than running the applications, and system performance suffers. This woeful state is referred to as thrashing.
+
+
+
+
+Using swap space is not inherently bad. Rather, it's intense paging activity that's problematic. For instance, if your 
+most-memory-intensive application is
+ idle, it's fine for portions of it to be set aside when another large job is active. Memory pages belonging to an idle application
+ are better set aside so 
+ the kernel can use physical memory for disk buffering.
+
+
+All fields are explained in the vmstat man page, but the most important columns for this article are free, si and so. The free
+column shows the amount 
+of free memory, si shows page-ins and so shows page-outs. In this example, the so column is zero consistently, indicating there are
+no page-outs.
+
+The abbreviations so and si are used instead of the more accurate po and pi for historical reasons.
+
+It isn't necessarily bad for your system to be using some of its swap space. But if you discover your system is often running low
+on physical memory and
+ paging is causing performance to suffer, add more memory. If you can't add more memory, run memory-intensive jobs at different 
+ times of the day, avoid 
+ running nonessential jobs when memory demand is high or distribute jobs across multiple systems if possible.
+
+================================================================================================================================================================
+
+If the %I/O wait is more than zero for a longer period of time then we can consider there is some bottleneck in 
+I/O system ( Hard disk or Network )
 
 
 
