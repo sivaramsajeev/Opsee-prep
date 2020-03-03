@@ -1,0 +1,366 @@
+
+/etc/nginx/conf.d/<domain>.conf
+
+create an upstream and details of member nodes and ports
+
+WS + LB + caching + backend routing
+
+backend could be pods,nodeports,containers,different ip or ports of same machine
+
+(number of CPU cores / Average Page Response Time in seconds) * 60 * User Click Frequency in seconds = Maximum simultaneous users
+
+
+he server has 32 cores available. The number of CPU cores sets the limit for how much PHP you can run before the server reaches it’s max capacity.  The CPU frequency (Ghz) will impact the overall performance of your website but is not relevant for the calculation of the max capacity.
+
+CPU(s):                32
+On-line CPU(s) list:   0-31
+Thread(s) per core:    2
+Core(s) per socket:    8
+Socket(s):             2
+
+
+
+How much CPU time does an average PHP request to your site consume?
+The other metric we need for making the estimate is the amount of time the CPU uses to produce “the average” webpage on your site. The simplest way to do this is to check a few different pages (use the pages you expect your visitors to hit), and calculate an average.
+The number we use for estimation is the sum of Time To First Byte + the Content Download time. In the example below we can read that the time spent to produce the front page is 323 ms which is 0.3 seconds.
+
+What is the relation between CPU cores and the time of PHP requests?
+When a visitor hits your web page, the server is busy working with producing that web page until you have received it. For the example above, the CPU is busy for 323 milliseconds while producing this page for you. With 1 CPU core the limit of the server would be to deliver 3 pages per second
+
+
+
+
+Formula for calculating the max capacity of your web server
+Number of CPU cores / Average time for a page request (in seconds) = Max number of Page Requests per second
+The servers capacity is 32 CPU cores, so when every request to the website on average uses 0.323 seconds of CPU time – we might expect it to be able to deal with approximately 32 cores / 0.323 seconds CPU time = 99 requests per second.
+
+
+
+
+Why is the number of page requests per second an important metric for Scalability?
+The scalability of your website usually boils down to when your server hits the CPU limit. The average page request time captures both the time PHP consumes and the time the database uses for the queries.
+
+Number of max requests per second * 60 * Click frequency of users in seconds = Maximum Number of Simultaneous Users
+
+
+There are a lot of questions you can raise regarding this way of calculating, but from our experience this way of calculating gives fairly precise estimates. You should however, always round numbers pessimistically to stay on the safe side!
+
+Average PHP request time: 650ms
+CPU cores: 2
+Click frequency: 45 seconds (normal for e-commerce)
+2 cores / 0.65 = 3 pageviews per second * 60 * 0.75 = 135 Max simultaneous users
+
+
+How to improve the scalability of your website
+There are basically two things you can do to improve the scalability of your website. Either your website must consume less resources per visitor, or you have to increase the server resources.
+For E-commerce server resources is crucial, because most requests are dynamic and will run PHP. Full Page Caching will help you scale a little bit, but with many sessions and carts, the server resources will usually be spent quickly anyway. Therefore, it is always a good idea to make your web application use less resources and make it faster.
+
+
+Node.js handles 10K concurrent requests performing better than WS   Because most of the work (moving data around) doesn't involve the CPU. Along with single threading, Node.js does something called as "non blocking I/O". Here is where all the magic is done
+
+
+
+you're probably unfamiliar with what most web applications/services do. You're probably thinking that all software do this:
+user do an action
+       │
+       v
+ application start processing action
+   └──> loop ...
+          └──> busy processing
+ end loop
+   └──> send result to user
+However, this is not how web applications, or indeed any application with a database as the back-end, work. Web apps do this:
+user do an action
+       │
+       v
+ application start processing action
+   └──> make database request
+          └──> do nothing until request completes
+ request complete
+   └──> send result to user
+In this scenario, the software spend most of its running time using 0% CPU time waiting for the database to return.
+Multithreaded network app:
+Multithreaded network apps handle the above workload like this:
+request ──> spawn thread
+              └──> wait for database request
+                     └──> answer request
+request ──> spawn thread
+              └──> wait for database request
+                     └──> answer request
+request ──> spawn thread
+              └──> wait for database request
+                     └──> answer request
+So the thread spend most of their time using 0% CPU waiting for the database to return data. While doing so they have had to allocate the memory required for a thread which includes a completely separate program stack for each thread etc. Also, they would have to start a thread which while is not as expensive as starting a full process is still not exactly cheap.
+Singlethreaded event loop
+Since we spend most of our time using 0% CPU, why not run some code when we're not using CPU? That way, each request will still get the same amount of CPU time as multithreaded applications but we don't need to start a thread. So we do this:
+request ──> make database request
+request ──> make database request
+request ──> make database request
+database request complete ──> send response
+database request complete ──> send response
+database request complete ──> send response
+In practice both approaches return data with roughly the same latency since it's the database response time that dominates the processing.
+The main advantage here is that we don't need to spawn a new thread so we don't need to do lots and lots of malloc which would slow us down.
+Magic, invisible threading
+The seemingly mysterious thing is how both the approaches above manage to run workload in "parallel"? The answer is that the database is threaded. So our single-threaded app is actually leveraging the multi-threaded behaviour of another process: the database.
+Where singlethreaded approach fails
+A singlethreaded app fails big if you need to do lots of CPU calculations before returning the data. Now, I don't mean a for loop processing the database result. That's still mostly O(n). What I mean is things like doing Fourier transform (mp3 encoding for example), ray tracing (3D rendering) etc.
+Another pitfall of singlethreaded apps is that it will only utilise a single CPU core. So if you have a quad-core server (not uncommon nowdays) you're not using the other 3 cores.
+Where multithreaded approach fails
+A multithreaded app fails big if you need to allocate lots of RAM per thread. First, the RAM usage itself means you can't handle as many requests as a singlethreaded app. Worse, malloc is slow. Allocating lots and lots of objects (which is common for modern web frameworks) means we can potentially end up being slower than singlethreaded apps. This is where node.js usually win.
+One use-case that end up making multithreaded worse is when you need to run another scripting language in your thread. First you usually need to malloc the entire runtime for that language, then you need to malloc the variables used by your script.
+So if you're writing network apps in C or go or java then the overhead of threading will usually not be too bad. If you're writing a C web server to serve PHP or Ruby then it's very easy to write a faster server in javascript or Ruby or Python.
+Hybrid approach
+Some web servers use a hybrid approach. Nginx and Apache2 for example implement their network processing code as a thread pool of event loops. Each thread runs an event loop simultaneously processing requests single-threaded but requests are load-balanced among multiple threads.
+Some single-threaded architectures also use a hybrid approach. Instead of launching multiple threads from a single process you can launch multiple applications - for example, 4 node.js servers on a quad-core machine. 
+
+What you seem to be thinking is that most of the processing is handled in the node event loop. Node actually farms off the I/O work to threads. I/O operations typically take orders of magnitude longer than CPU operations so why have the CPU wait for that? Besides, the OS can handle I/O tasks very well already. In fact, because Node does not wait around it achieves much higher CPU utilisation.
+By way of analogy, think of NodeJS as a waiter taking the customer orders while the I/O chefs prepare them in the kitchen. Other systems have multiple chefs, who take a customers order, prepare the meal, clear the table and only then attend to the next customer.
+Robert has a brilliant way of framing the problem that I’ve never heard of before. He starts with a little bit of history, relating how Unix wasn’t originally designed to be a general server OS, it was designed to be a control system for a telephone network. It was the telephone network that actually transported the data so there was a clean separation between the control plane and the data plane. The problem is we now use Unix servers as part of the data plane, which we shouldn’t do at all. If we were designing a kernel for handling one application per server we would design it very differently than for a multi-user kernel. 
+Which is why he says the key is to understand:
+The kernel isn’t the solution. The kernel is the problem.
+Which means:
+Don’t let the kernel do all the heavy lifting. Take packet handling, memory management, and processor scheduling out of the kernel and put it into the application, where it can be done efficiently. Let Linux handle the control plane and let the the application handle the data plane.
+The result will be a system that can handle 10 million concurrent connections with 200 clock cycles for packet handling and 1400 hundred clock cycles for application logic. As a main memory access costs 300 clock cycles it’s key to design in way that minimizes code and cache misses.
+Why calculate when you can measure? Throw a load testing tool at it like JMeter or Gatling and see what you can get out of the little sucker!
+
+Wikipedia defines Load and Stress Testing as “Load testing is the process of putting demand on a system or device and measuring its response. Stress testing refers to tests that determine the robustness of software by testing beyond the limits of normal operation”
+
+70 requests per second works out to an hourly rate of 252,000 page renders / hour.
+If you assume that the average browsing session for your site is 10 pages deep, then you can support 25,000 uniques / hour. 
+You should probably check these numbers against your expected visitor count, which should be available from the folks on the business side.
+Many of the sites I work on see about 50% of their daily traffic in a roughly 3 hour peak period on each day. If this is the case with your site (it depends on the kind of content you provide, and the audience), then you should be able to support a daily unique visit count of around 150,000.
+These are pretty good numbers; I think you should be fine. It's wise to look into opcode caching and database tuning now, but remember- premature optimization is the root of all evil. Monitor the site, look for hotspots, and wait for traffic to grow before you go through an expensive optimization effort for a problem you may not have
+
+You state in a comment that your server can handle 2,900 requests per second on an empty page. That indicates pretty strongly that it's not the webserver itself - it's the processing.
+If you're using PHP, consider an opcode cacher like APC. If the DB is a bottleneck, memcached will help you as well.
+
+We are going to use RPS (requests per second) as the metric. This measures the throughput, which is typically the most important measure. There are other parameters that can be interesting (latency) depending on the application, but in a typical application, throughput is the main metric.
+Those requests can be pure HTTP requests (getting a URL from a web server), or can be other kind of server requests. Database queries, fetch the mail, bank transactions, etc. The principles are the same.
+I/O bound or CPU bound
+There are two type of requests, I/O bound and CPU bound.
+
+by Jaime Buelta
+Requests per second. A server load reference
+As there seems to be a lot of misconceptions about what Big Data, there are also not really a good baseline to know “how much is high load”, specially from the point of view of people with not that much experience in servers. If you have some experience dealing with servers, you will probably know all this. So, just for the sake of convenience, I am going to do some back-of-the-envelope calculations to try to set a few numbers and explain how to calculate how many requests per second a server can hold.
+We are going to use RPS (requests per second) as the metric. This measures the throughput, which is typically the most important measure. There are other parameters that can be interesting (latency) depending on the application, but in a typical application, throughput is the main metric.
+Those requests can be pure HTTP requests (getting a URL from a web server), or can be other kind of server requests. Database queries, fetch the mail, bank transactions, etc. The principles are the same.
+I/O bound or CPU bound
+There are two type of requests, I/O bound and CPU bound.
+ 
+Typically, requests are limited by I/O. That means that it fetches the info from a database, or reads a file, or gets the info from network. CPU is doing nothing most of the time. Due the wonders of the Operative System, you can create multiple workers that will keep doing requests while other workers wait. In this case, the server is limited by the amount or workers it has running. That means RAM memory. More memory, more workers.[1]
+In memory bound systems, getting the number of RPS is making the following calculation:
+RPS = (memory / worker memory)  * (1 / Task time)
+For example:
+Total RAM
+Worker memory
+Task time
+RPS
+16Gb
+40Mb
+100ms
+4,000
+16Gb
+40Mb
+50ms
+8,000
+16Gb
+400Mb
+100ms
+400
+16Gb
+400Mb
+50ms
+800
+
+
+Some other requests, like image processing or doing calculations, are CPU bound. That means that the limiting factor in the amount of CPU power the machine has. Having a lot of workers does not help, as only one can work at the same time per core.  Two cores means two workers can run at the same time. The limit here is CPU power and number of cores. More cores, more workers.
+In CPU bound systems, getting the number of RPS is making the following calculation:
+RPS = Num. cores * (1 /Task time)
+For example:
+Num. cores
+Task time
+RPS
+4
+10ms
+400
+4
+100ms
+40
+16
+10ms
+1,600
+16
+100ms
+160
+Of course, those are ideal numbers. Servers need time and memory to run other processes, not only workers.  And, of course, they can be errors. But there are good numbers to check and keep in mind.
+
+
+Calculating the load of a system
+If we don’t know the load a system is going to face, we’ll have to make an educated guess. The most important number is the sustained peak. That means the maximum number of requests that are going to arrive at any second during a sustained period of time. That’s the breaking point of the server.
+That can depend a lot on the service, but typically services follow a pattern with ups and downs. During the night the load decreases, and during day it increases up to certain point, stays there, and then goes down again. Assuming that we don’t have any idea how the load is going to be, just assume that all the expected requests in a day are going to be done in 4 hours. Unless load is very very spiky, it’ll probably be a safe bet.
+For example,1 million requests means 70 RPS. 100 million requests mean 7,000 RPS. A regular server can process a lot of requests during a whole day.
+That’s assuming that the load can be calculated in number of requests. Other times is better to try to estimate the number of requests a user will generate, and then move from the number of users. E.g. A user will make 5 requests in a session. With 1 Million users in 4 hours, that means around 350 RPS at peak. If the same users make 50 requests per sessions, that’s 3,500 RPS at peak.
+
+
+A typical load for a server
+This two numbers should only be user per reference, but, in my experience, I found out that are numbers good to have on my head. This is just to get an idea, and everything should be measured. But just as rule of thumb.
+1,000 RPS is not difficult to achieve on a normal server for a regular service.
+2,000 RPS is a decent amount of load for a normal server for a regular service.
+More than 2K either need big servers, lightweight services, not-obvious optimisations, etc (or it means you’re awesome!). Less than 1K seems low for a server doing typical work (this means a request that is simple and not doing a lot of work) these days.
+Typically, a web server will create X “workers”, and will direct alternatively the requests to each of them. These workers are just a copy of the server application (the code specific for the application, your code) that is already started.
+With only one worker, the server will be able to attend only one request at the time, waiting until the first one is finished. With more, the app server (Apache, nginx, etc) will direct new requests to other workers to spread the load.
+As the worker is started and normally not killed after one request (this is wasteful because it adds all the start up time to each request), it keeps a memory footprint. This is related to the memory used on each request, but not the same thing. There could be memory leaks over time, or maybe the memory used is the memory used by the worst kind of request in the system. (A common approach to avoid memory leaks is to restart each worker after X requests)
+
+I’m also talking about “simple requests”, if you’re request takes ages to complete because does a lot of stuff (a complicated DB query, for example), that’s going to be taken into account.
+Is it going to depend on memory, CPU, how much work each request do, etc.and what is the bottleneck (DB? CPU? Memory? an external service? reading from disk?)
+Normally a laptop or desktop is going to have less available memory (you’ll have other stuff running, most likely) and less cores than a server. That’s a huge difference. Most likely, the number of workers will be much lower.
+The difference on the servers, it depends. If your task needs a lot of CPU, a beefy server with more cores and more raw power will make the difference. If the task is more dependent on the DB, it could depend on the memory or disk speed (obviously of the DB machine, which may be the same server or not).
+
+
+Knowing how many requests a user will generate depends greatly on the application. It can be as simple as one (a marketing campaign the displays some info, only a single call) or a few per minute in a session (e.g. the user register and needs to fill out a form with 3 pages). I’d say that if your user needs to call the backend more than a couple times per minute for a sustained period of time, it’s probable that you can reduce it (aka you’re likely doing it wrong), but it really depends on the case.
+In your particular case, you can run a test run responding to the campaign and see how many requests you get from a single user. Then you can run the math. E.g. let’s say that each user that responds to your campaign will perform 5 actions in 5 minutes (register in your site). You can then expect an increate of load of:
+users responding * 1 req/min / 240 min = 4 req/min * 1K users
+Unless you have millions of users responding, it’s probably an increase in load that won’t be too difficult to handle. But your particular case may demand way more load, maybe the session will be more intense, a lot of analytics produce more requests, or the users will all connect at the start of the period creating a huge spike… It’s all about checking your specific application and running the possibilities.
+
+
+OpenStreetMap seems to have 10-20 per second
+Wikipedia seems to be 30000 to 70000 per second spread over 300 servers (100 to 200 requests per second per machine, most of which is caches)
+
+information was posted about Twitter (and here too):
+The Stats
+Over 350,000 users. The actual numbers are as always, very super super top secret. 
+600 requests per second. 
+Average 200-300 connections per second. Spiking to 800 connections per second. 
+MySQL handled 2,400 requests per second. 
+180 Rails instances. Uses Mongrel as the "web" server. 
+1 MySQL Server (one big 8 core box) and 1 slave. Slave is read only for statistics and reporting. 
+30+ processes for handling odd jobs. 
+8 Sun X4100s. 
+Process a request in 200 milliseconds in Rails. 
+Average time spent in the database is 50-100 milliseconds. 
+Over 16 GB of memcached. 
+
+personally, I like both analysis done every time....requests/second and average time/request and love seeing the max request time as well on top of that. it is easy to flip if you have 61 requests/second, you can then just flip it to 1000ms / 61 requests.
+To answer your question, we have been doing a huge load test ourselves and find it ranges on various amazon hardware we use(best value was the 32 bit medium cpu when it came down to $$ / event / second) and our requests / seconds ranged from 29 requests / second / node up to 150 requests/second/node. 
+
+And, as Mituzas pointed out, everything on Facebook is social, so every action has a ripple effect that spreads beyond that specific user. “It’s not just about me accessing some object,” he said. “It’s also about analyzing and ranking through that include all my friends’ activities.” The result (although Mituzas noted these numbers are somewhat outdated) is 60 million queries per second, and nearly 4 million row changes per second.
+Facebook shards, or splits its database into numerous distinct sections, because of the sheer volume of the data it stores (a number it doesn’t share), but it caches extensively in order to write all these transactions in a hurry. In fact, most queries (more than 90 percent) never hit the database at all but only touch the cache layer. Facebook relies heavily on the open-source memcached MySQL caching tool, as well as it custom-built Flashcache module for caching data on solid-state drives.
+
+Facebook’s MySQL user database is composed of approximately 60 percent hard disk drives, 20 percent SSDs and 10 percent hybrid HDD-plus-SSD servers running Flashcache.
+However, Facebook wants to buy fewer servers while still improving MySQL performance. Looking forward, Konetchy said some primary objectives are to automate the splitting of large data sets onto underutilized hardware, to improve MySQL compression and to move more data to the Hadoop-based HBase data store when appropriate. NoSQL databases such as HBase (which powers Facebook Messages) weren’t really around when Facebook built its MySQL environment, so there likely are unstructured or semistructured data currently in MySQL that are better suited for HBase.
+
+he Slashdot effect, also known as slashdotting, occurs when a popular website links to a smaller website, causing a massive increase in traffic. This overloads the smaller site, causing it to slow down or even temporarily become unavailable. 
+
+‘X’ can only see external metrics such as throughput, latency and error rate. While as resource owner, we also have to take account of internal metrics and factors including but is not limited to CPU and memory usage, I/O and network activities, system load, server hardware/software configuration, server architecture and service deployments strategy etc.
+
+latency
+In practice, the latency requirement should correspond to the specific service type. In our case, it is <100ms since QSS users expect real-time feedback after every single character input. On the other hand, users of a map & navigation service would feel 2~5 seconds for a route suggestion acceptable
+
+throughput
+Throughput indicates the volume of traffic a service handles. There is a phenomenal correlation between throughput and latency in a performance test, that is, latency increases along with the growth of throughput. This is simply because, under high-pressure, a server is generally slower than that in a normal load. To be more specific, when throughput is low, the latency largely stays consistent regardless of the throughput fluctuation; when the throughput goes higher than a threshold, the latency start increasing linearly (sometimes close to exponentially); and when the throughput reaches the crisis point, the latency skyrockets. The crisis point is determined by hardware configuration, software architecture and network conditions.
+error rate
+Normally network issues (e.g., congestion) caused errors should not exceed 5% of the total requests, and application caused errors should not exceed 1%.
+Basically, a slow service can be identified by high latency, low throughput or both. A problematic service can be identified by high error rate.
+
+Internal metrics
+CPU
+As the workhorse, CPU largely determines a server’s performance. So let’s start with CPU usage, briefly,
+us: the of CPU time spent in user mode;
+when your code does not bother the kernel, it increases us, e.g., i++;.
+sy: the of CPU time spent in kernel mode;
+when your code bothers the kernel, it increases both us and sy, e.g., gettimeofday(&t, NULL);.
+ni: the CPU time spent on executing processes that are niced;
+id: the time when a CPU idles;
+wa: the time when a CPU waits for I/O;
+hi: the time when CPU responds hardware interrupts;
+si: the time percentage spent on software interrupts.
+We use a relay server in production as an example and give the output of the top command in the following figure.
+
+
+
+Next, we look at each metrics in more detail,
+us & sy: in a majority of the back-end servers, the major CPU time is spent in us and sy. us indicates the CPU time spent on user mode and sy indicates that on kernel mode. These two arguments “argue” with each other for determined CPU capacity, the higher us goes, the lower sy goes, and vice versa;
+rule of thumb, a high sy indicates the server switch between user mode and kernel mode too often, which impacts the overall performance negatively. We need to profile the process for more information. Moreover, in a multi-core architecture, CPU0 is responsible for scheduling among cores. Thus, CPU0 deserves more notice because a high usage of CPU0 will affect other CPU cores as well.
+ni: every Linux process has a priority, CPU will execute processes with higher priority values (pri). Besides, Linux defines niceness for priority fine-tune;
+rule of thumb, a service normally should not have favorable niceness to hog the CPU that could be otherwise used by other services. If so, we need to check the system configuration and the service startup parameters.
+id: indicates the amount of CPU time that is not used by any processes;
+rule of thumb, for any online service, we normally preserve a certain amount of id to deal with throughput spikes. However, low id plus low throughput (i.e., a slow service) mean that some processes are using CPU excessively. If this only happens after a recent release, it is highly possible that some new code introduces hefty big o so better check the newly merged pull requests. If not, maybe it is time for horizontal scaling.
+wa: it indicates time waiting for the disk I/O activities (local disk or NFS but NOT network wait);
+rule of thumb, if high wa is observed in a service that is not I/O intensive, we need to a) run iostat to check the detailed I/O activities from the system perspective, and b) check the log strategy and data load frequency etc., from the application perspective. A low wa in a slow service can only rule out disk I/O, which highlights network activities as the next checkpoint.
+hi & si: basically, hi and si together show the CPU time spent on processing interruptions.
+rule of thumb, hi should stay in a reasonable range for most services. si is normally higher in I/O intensive services than ordinary ones.
+
+Load averages
+Technically, CPU load averages (a.k.a., run-queue length) count the number of processes that are running or waiting for running.
+Linux provides several commands for checking load averages, such as top and uptime. The output of the two commands are load averages sampled from last 1 minute, last 5 minutes and last 15 minutes
+
+
+
+In systems with has one CPU core, 1 is the ideal load. In such load CPU is fully saturated and is running in threshold state. Hence any value above 1 indicate some levels of issues. Likewise, in multi-core systems, the number of cores is the actual threshold, which can be checked with:
+cat /proc/cpuinfo|grep ‘model name’|wc -l
+rule of thumb, In production, 70%~80% of the threshold are our experience values for production servers running ideal state. In such state, most of the server’s capacity are utilized while there are margins for potential throughput increase. In performance tests, the system load could be close to but should not exceed the threshold value during pressure test; it should not exceed 80% during concurrent test; and it should be maintained around 50% during stability test.
+
+
+
+Memory
+
+VIRT: the virtual memory used by a process;
+RES: the physical memory used by a process;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
