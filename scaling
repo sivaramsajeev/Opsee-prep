@@ -311,6 +311,187 @@ RES: the physical memory used by a process;
 
 
 
+Difference between VIRT and RES is like difference between budget and real money. The VIRT is how much memory a process claims to use, and RES is how much physical memory it is actually using. To be specific,
+int *i = malloc(1024 * sizeof(int)); claims, whilst *i = 1; starts using.
+
+SHR: the amount of memory usage shared with other process;
+SWAP: the size of swap area for a process. OS swap some of data to disk for the memory shortfall which is one of the reasons of high wa;
+DATA: the sum of stack, heap used by a process.
+
+Network
+bandwidth
+nethogs, like top , runs in a real time manner.
+
+connection state
+In performance test we monitor the connection state changes and exceptions. For service based on TCP and HTTP, we need to monitor the established TCP connection state, the in-test process’ network buffer, TIME_WAIT state and connection count. We use netstat and ss for this purpose.
+
+Disk I/O
+Too frequent read/write the disk will cause the service in I/O waiting state (as counted with wa), which causes long latency and low throughput.
+We use iostat to monitor disk I/O:
+tips: the number of I/O requests per second. Because multiple logic requests could be merged into one I/O request, the exact request number, and the size per request can not be fully reflected by this number;
+kB_read/s: the size of data read from the device per second;
+kB_wrtn/s: the size of data written to the device per second;
+kB_read: total amount of data read from the device;
+kB_wrtn: total amount of data written to the device.
+We can gather a basic information from the command above. For more information, we need to add -x
+rrqm/s: how many read requests are merged (If the FS noticed that the requests sent from the OS are reading from the same Block, it merges the requests);
+wrqm/s: how many write requests are merged;
+await: the average waiting time for all I/O requests (milliseconds);
+%util: the percentage of time spent for I/O. This parameter implies how busy is the device.
+N.b., the unit of the numbers listed above is Kilobytes.
+
+
+
+Some common performance issues
+Throughput reached the upper limit while CPU load is low: Normally this is caused by a lack of resource allocated for the service. If such phenomenon is noticed, we need to check ulimit, thread number and memory allowance for the process in test.
+us and sy are low, and wa is high: high wa is normal if the service is I/O intensive. Otherwise, high wa means problems. There are roughly two potential reasons, a) application-logic flaws: might it be too many read/write requests, too large I/O data, irrational data loading strategy or excessive logging; and b) memory deficiency caused excessive swap.
+Latency jitter for the same API: if the throughput is normal, it is normally caused by unnecessary contention, caused by a) flaws in inter-threads/processes locking logic; or b) limited resource, e.g., threads, memory allocated for the service so it has to wait for available resource frequently.
+Memory usage increases over time: in constant throughput, it is a typical indicator of memory leakage. We need to use valgrind to profile the service process.
+
+
+
+Requirements:
+Two networked computers which both have iperf3 installed. 
+How to Install iperf3 in Linux Systems
+Before you start using iperf3, you need to install it on the two machines you will use for benchmarking. Since iperf3 is available in the official software repositories of most common Linux distributions, installing it should be easy, using a package manager as shown.
+$ sudo apt install iperf3       #Debian/Ubuntu
+$ sudo yum install iperf3       #RHEL/CentOS
+$ sudo dnf install iperf3       #Fedora 22+ 
+Once you have iperf3 installed on both machines, you can start testing network throughput.
+How to Test Network Throughput Between Linux Servers
+First connect to the remote machine which you will use as the server and fire up iperf3 in server mode using -s flag, it will listen on port 5201 by default.
+You can specify the format (k, m, g for Kbits, Mbits, Gbits or K, M, G for KBytes, Mbytes, Gbytes) to report in, using the -f switch as shown.
+$ iperf3 -s -f K 
+If port 5201 is being used by another program on your server, you can specify a different port (e.g 3000) using the -p switch as shown.
+$ iperf3 -s -p 3000
+Optionally, you can run the server as a daemon, using the -D flag and write server messages to a log file, as follows.
+$ iperf3 -s -D > iperf3log 
+Then on your local machine which we will treat as the client (where the actual benchmarking takes place), run iperf3 in client mode using -c flag and specify the host on which the server is running on (either using its IP address or domain or hostname).
+$ iperf3 -c 192.168.10.1 -f K
+After about 18 to 20 seconds, the client should terminate and produce results indicating the average throughput for the benchmark, as shown in the following screenshot.
+
+Test Network Throughput Between Servers
+Important: From the benchmark results, as shown in the above screenshot, there is a variation in values from the server and client. But, you should always consider using the results obtained from the iperf client machine in every test you carry out.
+How to Perform Advanced Network Test Throughput in Linux
+There are a number of client-specific options for performing an advanced test, as explained below.
+One of the important factors that determine the amount of data in the network a given time is the TCP window size – it is important in tuning TCP connections. You can set the window size/socket buffer size using the -w flag as shown.
+$ iperf3 -c 192.168.10.1 -f K -w 500K   
+To run it in reverse mode where the server sends and the client receives, add the -R switch.
+$ iperf3 -c 192.168.10.1 -f K -w 500K -R        
+To run a bi-directional test, meaning you measure bandwidth in both directions simultaneously, use the -d option.
+$ iperf3 -c 192.168.10.1 -f K -w 500K -d
+If you want to get server results in the client output, use the --get-server-output option.
+$ iperf3 -c 192.168.10.1 -f K -w 500K -R --get-server-output
+
+Get Server Network Results in Client
+It is also possible to set the number of parallel client streams (two in this example), which run at the same time, using the -P options.
+$ iperf3 -c 192.168.10.1 -f K -w 500K -P 2
+For more information, see the iperf3 man page.
+$ man iperf3
+
+
+
+The quickest way to get that info would be to restart the service, generate a known level of load (say, 100k requests), check the CPU time of the process (e.g. as shown in top) at the end, and divide that by the request count. That would tell you how much CPU time a request consumes.
+
+The metrics marketers tend to be responsible for can depend heavily on how the backend of a website is developed. For example, a high number of HTTP requests by your webpage can slow down the page's load time, which ultimately damages the user experience. This can cause your visitors to leave the page more quickly if it doesn't load fast enough (which increases your 
+"bounce rate").
+
+
+Each time someone visits a page on your website, here's what typically happens:
+1. The person's web browser (popular browsers include Chrome, Firefox, and Safari) sends a request to your web server. Your server hosts the webpage they're trying to visit on your site. 
+2. The browser requests that your server send over a file containing content associated with that page. This file may contain text, images, or multimedia that exist on your webpage. 
+3. Once the person's browser receives this file, it begins to render your website on the person's computer screen or mobile device. 
+4. If there is more content on your webpage the browser has not yet received, the browser will send another HTTP request. 
+The above steps describe a single HTTP request, from ask to answer.
+
+
+Why HTTP Requests Affect the User Experience
+There are two reasons HTTP requests can affect your website's user experience: the number of files being requested and the size of the files being transferred.
+More Files = More HTTP Requests
+A web browser needs to make a separate HTTP request for every single file on your website. If your website doesn't have many files, it won't take very long to request and download the content on your site. But most good websites do have a lot of files.
+The more files on your website, the more HTTP requests your user's browser will need to make. The more HTTP requests a browser makes, the longer your site takes to load.
+Bigger Files = Longer HTTP Requests
+The size of the file being transferred is also a factor in how long a page may take to load on a user's screen. And just as the files on your computer have various file sizes -- measured in bytes (B), kilobytes (KB), megabytes (MB), and so on -- so too do the files embedded on your webpage. Big, high-definition images are a common culprit of large file sizes.
+In other words, the larger or higher definition the content is on your website, the larger its file size is. The larger the file size, the longer it will take to transfer it from your server to a user's browser.
+The longer this file is it transit, the longer a user's browser has to wait before it renders this content on his/her screen.
+
+
+
+Load testing is essential for web applications to know website capacity. If you are to choose the web server, then one of the first things you want to do is to perform the load testing and see which one works well for you.
+Benchmarking can help you to decide;
+Which web server works the best 
+Number of servers you need to serve x number of requests 
+Which configuration gives you the best results 
+
+
+
+
+ApacheBench
+ApacheBench (ab) is an open source command line program which works with any web server. In this post, I will explain how to install this small program and perform the load test to benchmark the results.
+Apache
+Let’s get ApacheBench installed by using a yum command.
+yum install httpd-tools
+If you already have httpd-tools, then you may ignore this.
+Now, let’s see how it performs for 5000 requests with a concurrency of 500.
+[root@lab ~]# ab -n 5000 -c 500 http://localhost:80/
+This is ApacheBench, Version 2.3 <$Revision: 655654 $>
+Copyright 1996 Adam Twiss, Zeus Technology Ltd, http://www.zeustech.net/
+Licensed to The Apache Software Foundation, http://www.apache.org/
+Benchmarking localhost (be patient)
+Completed 500 requests
+Completed 1000 requests
+Completed 1500 requests
+Completed 2000 requests
+Completed 2500 requests
+Completed 3000 requests
+Completed 3500 requests
+Completed 4000 requests
+Completed 4500 requests
+Completed 5000 requests
+Finished 5000 requests
+Server Software:        Apache/2.2.15
+Server Hostname:        localhost
+Server Port:            80
+Document Path:          /
+Document Length:        4961 bytes
+Concurrency Level:      500
+Time taken for tests:   13.389 seconds
+Complete requests:      5000
+Failed requests:        0
+Write errors:           0
+Non-2xx responses:      5058
+Total transferred:      26094222 bytes
+HTML transferred:       25092738 bytes
+Requests per second:    373.45 [#/sec] (mean)
+Time per request:       1338.866 [ms] (mean)
+Time per request:       2.678 [ms] (mean, across all concurrent requests)
+Transfer rate:          1903.30 [Kbytes/sec] received
+Connection Times (ms)
+min  mean[+/-sd] median   max
+Connect:        0   42  20.8     41    1000
+Processing:     0  428 2116.5     65   13310
+Waiting:        0  416 2117.7     55   13303
+Total:         51  470 2121.0    102   13378
+Percentage of the requests served within a certain time (ms)
+50%    102
+66%    117
+75%    130
+80%    132
+90%    149
+95%    255
+98%  13377
+99%  13378
+100%  13378 (longest request)
+[root@lab ~]#
+So as you can see, Apache has handled 373 requests per second, and it took a total 13.389 seconds to serve the total requests.
+Now you know the default configuration can serve these many requests so when you make any configuration changes you can do the test again to compare the results and choose the best one.
+
+
+Apache JMeter
+JMeter is one of the most popular open source tools to measure web application performance. JMeter is java based application and not only web server, but you can use it against PHP, Java. ASP.net, SOAP, REST, etc.
+
+
+
 
 
 
