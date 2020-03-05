@@ -493,6 +493,85 @@ JMeter is one of the most popular open source tools to measure web application p
 
 
 
+In lines saying 'ESTABLISHED', you need the remote port to identify what has connected to the remote site.
+In lines saying 'LISTENING', you need the local port to identify what is listening there.
+Each outbound TCP connection also causes a LISTENING entry on the same port.
+Most UDP listening ports are duplicates from a listening TCP port. Ignore them unless they don't have a TCP twin.
+TIME_WAIT entries are not important.
+If it says 0.0.0.0 on the Local Address column, it means that port is listening on all 'network interfaces' (i.e. your computer, your modem(s) and your network card(s)).
+If it says 127.0.0.1 on the Local Address column, it means that port is ONLY listening for connections from your PC itself, not from the Internet or network. No danger there.
+If it displays your online IP on the Local Address column, it means that port is ONLY listening for connections from the Internet.
+If it displays your local network IP on the Local Address column, it means that port is ONLY listening for connections from the local network.
+
+
+
+State
+       The state of the socket. Since there are no states in raw mode and usually no states  used
+       in UDP, this column may be left blank. Normally this can be one of several values:
+
+       ESTABLISHED
+              The socket has an established connection.
+
+       SYN_SENT
+              The socket is actively attempting to establish a connection.
+
+       SYN_RECV
+              A connection request has been received from the network.
+
+       FIN_WAIT1
+              The socket is closed, and the connection is shutting down.
+
+       FIN_WAIT2
+              Connection is closed, and the socket is waiting for a shutdown from the remote end.
+
+       TIME_WAIT
+              The socket is waiting after close to handle packets still in the network.
+
+       CLOSE  The socket is not being used.
+       CLOSE_WAIT
+              The remote end has shut down, waiting for the socket to close.
+
+       LAST_ACK
+              The  remote  end  has shut down, and the socket is closed. Waiting for acknowledge‐
+              ment.
+
+       LISTEN The socket is listening for incoming connections.  Such sockets are not included in
+              the output unless you specify the --listening (-l) or --all (-a) option.
+
+       CLOSING
+              Both sockets are shut down but we still don't have all our data sent.
+
+       UNKNOWN
+              The state of the socket is unknown.
+
+
+Consider two programs attempting a socket connection (call them a and b). Both set up sockets and transition to the LISTEN state. Then one program (say a) tries to connect to the other (b). a sends a request and enters the SYN_SENT state, and b receives the request and enters the SYN_RECV state. When b acknowledges the request, they enter the ESTABLISHED state, and do their business. Now a couple of things can happen:
+1. a wishes to close the connection, and enters FIN_WAIT1. b receives the FIN request, sends an ACK (then a enters FIN_WAIT2), enters CLOSE_WAIT, tells a it is closing down and the enters LAST_ACK. Once a acknowledges this (and enters TIME_WAIT), b enters CLOSE. a waits a bit to see if anythings is left, then enters CLOSE. 
+2. a and b have finished their business and decide to close the connection (simultaneous closing). When a is in FIN_WAIT, and instead of receiving an ACK from b, it receives a FIN (as b wishes to close it as well), a enters CLOSING. But there are still some messages to send (the ACK that a is supposed to get for its original FIN), and once this ACK arrives, a enters TIME_WAIT as usual. 
+
+
+Most people working with high-level programming languages actually only really know the states CLOSED, LISTEN and ESTABLISHED. Using netstat the chances are that you will not see connections in the SYN_SENT, SYN_RECV, FIN_WAIT_1, LAST_ACK or CLOSING states. A TCP end-point usually stays in these states for only a very short period of time and if many connections get stuck for a longer time in these states, something really bad happened.
+FIN_WAIT_2, TIME_WAIT and CLOSE_WAIT are more common. They are all related to the connection termination four-way handshake. Here is a short overview of the states involved:
+
+-------------------------------------------------------------------------------------------------------------------
+So the initiating end-point (i.e. the client) sends a termination request to the server and waits for an acknowledgement in state FIN-WAIT-1. The server sends an acknowledgement and goes in state CLOSE_WAIT. The client goes into FIN-WAIT-2 when the acknowledgement is received and waits for an active close. When the server actively sends its own termination request, it goes into LAST-ACK and waits for an acknowledgement from the client. When the client receives the termination request from the server, it sends an acknowledgement and goes into TIME_WAIT and after some time into CLOSED. The server goes into CLOSED state once it receives the acknowledgement from the client.
+
+FIN_WAIT_2
+If many sockets which were connected to a specific remote application end up stuck in this state, it usually indicates that the remote application either always dies unexpectedly when in the CLOSE_WAIT state or just fails to perform an active close after the passive close.
+The timeout for sockets in the FIN-WAIT-2 state is defined with the parameter tcp_fin_timeout. You should set it to value high enough so that if the remote end-point is going to perform an active close, it will have time to do it. On the other hand sockets in this state do use some memory (even though not much) and this could lead to a memory overflow if too many sockets are stuck in this state for too long.
+TIME_WAIT
+The TIME-WAIT state means that from the local end-point point of view, the connection is closed but we’re still waiting before accepting a new connection in order to prevent delayed duplicate packets from the previous connection from being accepted by the new connection.
+In this state, TCP blocks any second connection between these address/port pairs until the TIME_WAIT state is exited after waiting for twice the maximum segment lifetime (MSL).
+
+In most cases, seeing many TIME_WAIT connection doesn’t show any issue. You only have to start worrying when the number of TIME_WAIT connections cause performance problems or a memory overflow.
+CLOSE_WAIT
+If you see that connections related to a given process tend to always end up in the CLOSE_WAIT state, it means that this process does not perform an active close after the passive close. When you write a program communicating over TCP, you should detect when the connection was closed by the remote host and close the socket appropriately. If you fail to do this the socket will stay in the CLOSE_WAIT until the process itself disappears.
+So basically, CLOSE_WAIT means the operating system knows that the remote application has closed the connection and waits for the local application to also do so. So you shouldn’t try and tune the TCP parameters to solve this but check the application owning the connection on the local host. Since there is no CLOSE_WAIT timeout, a connection can stay in this state forever (or at least until the program does eventually close the connection or the process exists or is killed).
+If you cannot fix the application or have it fixed, the solution is to kill the process holding the connection open. Of course, there is still a risk of losing data since the local end-point may still send data it has in a buffer. Also, if many applications run in the same process (as it is the case for Java Enterprise applications), killing the owning process is not always an option.
+I haven’t ever tried to force closing of a CLOSE_WAIT connection using tcpkill, killcx or cutter but if you can’t kill or restart the process holding the connection, it might be an option.
+
+
+
 
 
 
