@@ -74,7 +74,203 @@ and then type exit. Try running free or free -m again to see if that’s helped 
 #############################################################################################################################
 
 
+A tool that can let you listen in to what a computer is saying on a network is TCPdump.  
 
+I know the word packet sniffer can be intimidating to some, but once you’ve seen TCPdump in action you’ll understand that its simple and easy to read. You’ll wonder how you ever survived without it.
+
+In this tutorial we’ll look at the very first step needed to get online in most networks, DHCP. Without properly setup IP information a computer will never get online. 
+
+
+
+DHCP traffic operates on port 67 (Server) and port 68 (Client). So we can capture the appropriate traffic with the following expression.
+
+port 67 or port 68
+
+The tcpdump statement would look like this.
+
+tcpdump -vnes0 -i eth0 port 67 or port 68
+
+A successful DHCP should contain 4 packets.
+
+The DISCOVER packet
+
+The first packet should be the client trying to discover its DHCP information.
+
+16:42:18.79906400:1f:3c:9d:68:f2 > ff:ff:ff:ff:ff:ff, ethertype IPv4 (0x0800), length 342: (tos 0x0, ttl 128, id 44982, offset 0, flags [none], proto UDP (17), length 328) 0.0.0.0.68 > 255.255.255.255.67: BOOTP/DHCP, Request from 00:1f:3c:9d:68:f2, length 300, xid 0xbbe4078f, Flags [none]
+          Client-Ethernet-Address 00:1f:3c:9d:68:f2
+          Vendor-rfc1048 Extensions
+            Magic Cookie 0x63825363
+            DHCP-Message Option 53, length 1: Discover
+            NOAUTO Option 116, length 1: Y
+            Client-ID Option 61, length 7: ether 00:1f:3c:9d:68:f2
+            Hostname Option 12, length 11: “FA-MCKENZIE”
+            Vendor-Class Option 60, length 8: “MSFT 5.0”
+            Parameter-Request Option 55, length 11:
+              Subnet-Mask, Domain-Name, Default-Gateway, Domain-Name-Server
+              Netbios-Name-Server, Netbios-Node, Netbios-Scope, Router-Discovery
+              Static-Route, Option 249, Vendor-Option
+            Vendor-Option Option 43, length 2: 220.0
+
+
+ 
+ 
+
+The packet begins with a timestamp. Since we are displaying link layer information, the next bit is the sender and destination MAC addresses. You can see that the destination MAC address is all F’s. This means it’s a broadcast packet. Because the sender doesn’t know specifically who to ask for its DHCP information, it yells to everyone that can hear.
+
+The next bit of information is about the protocol that was used in this packet. We can see 
+that its an IPv4 packet and its UDP (protocol 17). The next part contains the senders IP address. At this time they don’t have one so its all 0’s. And since the sender is broadcasting the packet, the destination ip is 255.255.255.255. We can also see in this section the sender is using port 67 trying to reach a server on port 68, this is as expected.
+
+
+ 
+Below the packets header information we have all the options they are using. We know its a
+ DISCOVER from Option 53. We can see all the standard DHCP information that may be required
+ (Option 55), the Hostname (option 12) and lots of other useful information for diagnosing
+ a problem.
+
+The OFFER packet
+
+The second packet should be obvious. We should expect to see the server offering the DHCP information to the client.
+
+16:42:18.800018 00:30:18:a8:c6:13 > 00:1f:3c:9d:68:f2, ethertype IPv4 (0x0800), length 342: (tos 0x10, ttl 16, id 0, offset 0, flags [none], proto UDP (17), length 328) 10.5.0.1.67 > 10.5.0.198.68: BOOTP/DHCP, Reply, length 300, xid 0xbbe4078f, Flags [none]
+          Your-IP 10.5.0.198
+          Client-Ethernet-Address 00:1f:3c:9d:68:f2
+          Vendor-rfc1048 Extensions
+            Magic Cookie 0x63825363
+            DHCP-Message Option 53, length 1: Offer
+            Server-ID Option 54, length 4: 10.5.0.1
+            Lease-Time Option 51, length 4: 60
+            Subnet-Mask Option 1, length 4: 255.255.0.0
+            Domain-Name Option 15, length 10: “sandara.ca”
+            Default-Gateway Option 3, length 4: 10.5.0.1
+            Domain-Name-Server Option 6, length 4: 10.5.0.1
+
+
+			
+Starts off with a timestamp then the senders MAC address, this time its the server’s MAC address. Since the server knows who to send this packet to, it makes it unicast and sets the destination to the client. Still an IPv4 UDP packet. The packet originated from the server and it uses the IP address that it’s offering as its destination.
+
+Option 53 indicates that this is the OFFER packet. The options offered in the packet contain some very useful information like lease time in seconds (Option 51) DNS Server (Option 6), Subnet Mask (Option 1), Default Gateway (Option 3) and the IP address the client can use, conviently labeled Your-IP.
+
+
+
+The REQUEST packet.
+
+The next two packets are for confirmation. The client will start off by requesting confirmation from the server that the DHCP information it was offered is correct.
+
+16:42:18.802420 00:1f:3c:9d:68:f2 > ff:ff:ff:ff:ff:ff, ethertype IPv4 (0x0800), length 377: (tos 0x0, ttl 128, id 44983, offset 0, flags [none], proto UDP (17), length 363) 0.0.0.0.68 > 255.255.255.255.67: BOOTP/DHCP, Request from 00:1f:3c:9d:68:f2, length 335, xid 0xbbe4078f, Flags [none]
+          Client-Ethernet-Address 00:1f:3c:9d:68:f2
+          Vendor-rfc1048 Extensions
+            Magic Cookie 0x63825363
+            DHCP-Message Option 53, length 1: Request
+            Client-ID Option 61, length 7: ether 00:1f:3c:9d:68:f2
+            Requested-IP Option 50, length 4: 10.5.0.198
+            Server-ID Option 54, length 4: 10.5.0.1
+            Hostname Option 12, length 11: “FA-MCKENZIE”
+            FQDN Option 81, length 27: “FA-MCKENZIE.sfaftusa.lan”
+            Vendor-Class Option 60, length 8: “MSFT 5.0”
+            Parameter-Request Option 55, length 11:
+              Subnet-Mask, Domain-Name, Default-Gateway, Domain-Name-Server
+              Netbios-Name-Server, Netbios-Node, Netbios-Scope, Router-Discovery
+              Static-Route, Option 249, Vendor-Option
+            Vendor-Option Option 43, length 3: 220.1.0
+
+
+ 
+Option 53 indicates this to be the REQUEST packet. This packet is still a broadcast. The client still doesn’t have an IP address without confirmation first. And all the options to confirm show up like verifying the DHCP server (Option 54), verifying the IP address to use (Option 50) and so on,
+
+
+
+The ACK packet
+
+The fourth and final packet should be a confirmation by the DHCP server.
+
+16:42:18.803152 00:30:18:a8:c6:13 > 00:1f:3c:9d:68:f2, ethertype IPv4 (0x0800), length 342: (tos 0x10, ttl 16, id 0, offset 0, flags [none], proto UDP (17), length 328) 10.5.0.1.67 > 10.5.0.198.68: BOOTP/DHCP, Reply, length 300, xid 0xbbe4078f, Flags [none]
+          Your-IP 10.5.0.198
+          Client-Ethernet-Address 00:1f:3c:9d:68:f2
+          Vendor-rfc1048 Extensions
+            Magic Cookie 0x63825363
+            DHCP-Message Option 53, length 1: ACK
+            Server-ID Option 54, length 4: 10.5.0.1
+            Lease-Time Option 51, length 4: 60
+            Subnet-Mask Option 1, length 4: 255.255.0.0
+            Domain-Name Option 15, length 10: “sandara.ca”
+            Default-Gateway Option 3, length 4: 10.5.0.1
+            Domain-Name-Server Option 6, length 4: 10.5.0.1
+
+This final packet has everything filled out as you would expect in the header. And in the options section contains the acknowledgement (Option 53)
+
+Recap
+
+The 4 packets to a successful DHCP
+
+DISCOVER: Client connects to the network and sends out a broadcast discovery looking for its DHCP information.
+OFFER: The server offers the DHCP information to the client
+REQUEST: The client requests verification of the DHCP information
+ACK: The server acknowledges the DHCP request
+
+Aditional Notes.
+
+Sometimes you will not see the DISCOVER / OFFER and just see the REQUEST / ACK. This heppens when the client has already obtained a valid DHCP lease earlier and is just requesting to have it again before its lease time expires. Typically this is performed when half the lease has lapsed.
+
+If the REQUEST is not valid anymore the server will send a NACK indicating to the client that it can no longer use this DHCP information. This should cause the client to start over with a DISCOVER.
+
+
+
+
+How DHCP server assigns IP address to a host?
+
+DHCPDISCOVER: When a new node is connected to the network, it broadcasts the DHCPDISCOVER message which contains the source address as 0.0.0.0 to every node on the network including server. DHCP server on receiving the message, returns the DHCPOFFER message to the requested host which contains the server address and new IP address to the node.
+DHCPOFFER: If there are multiple servers on the network, host receives multiple DHCPOFFER messages. It is up to the host to select a particular message.
+DHCPREQUEST:  The requested host on receiving the offer message, it again broadcasts the DHCPREQUEST message on the network with the address of the server whose offer message is accepted by the host. The server which pertains to that server address sent by the host checks whether the address to be assigned to the node is available in the data storage.
+DHCPACK : If the address is assigned , it marks the IP address in the storage as unavailable to ensure consistency. Now, the server sends DHCPACK packet to the requested host which contains network information(IP address, subnet mask, gateway address). In case, if the address is assigned to other machine meanwhile, then the server sends the packet DHCPNAK to the requested host indicating that the IP address is assigned to some other machine.
+DHCPRELEASE : And finally, If the host wants to move to other network or if it has finished  its work, it sends the DHCPRELEASE packet to the server indicating that it wants to disconnect. Then the server marks the IP address as available in the storage so that it can be assigned to other machine.
+
+
+Each network host configured to obtain an IP address dynamically via DHCP will upon boot send a DHCP request over the network ( by definition this is a broadcast of all 1's ) to discover whether there is a DHCP server available somewhere on the network and consequently ask for a network configuration. DHCP client is then obligated to maintain communication with DHCP server and renew its IP address regularly as dictated by IP address's lease time expiry. In case that DHCP client fails to renew its IP address ( disconnection, a host is turned off, etc. ) its IP address expires and DHCP server is free to lease this IP address to another DHCP client.
+
+DHCP server keeps a record of all leased IP addresses and stores them in a file called dhcpd.leases within /var/lib/dhcp directory ( location of this file may vary depending on Linux system in use ). Having such a file allows DHCP server to keep track of all IP address leases even after the reboot or power failure.
+
+
+TCPDUMP COMMAND EXAMPLES:
+ 
+1.  To capture all the interfaces network traffic using tcpdump,just run command “tcpdump”
+ 
+    [root@gagan ~]# tcpdump
+ 
+       2. To capture the network traffic on the particular interface,
+    [root@gagan ~]# tcpdump -i eth0
+  
+   3.To capture the “N” no of network packets , use “-c” option (To    specify“N”  value.)
+
+[root@gagan ~]# tcpdump -c 8 -i eth0
+    4. To capture the network traffic between two IP address.
+           Source IP address: Local system IP
+            Destination IP address:Remote system IP
+  [root@gagan ~]# tcpdump src 10.0.0.2 and dst host 10.0.04 -c 10
+ 
+       5. To capture the specific local port traffic using tcpdump,
+  [root@gagan ~]# tcpdump src port 21 -c 9
+ 
+       6. To capture network traffic of destination port ,
+  [root@gagan ~]# tcpdump dst port 21 -c 8
+  
+       7. To filter the network traffic using destination IP address and local port number,
+  [root@gagan ~]# tcpdump dst 10.0.0.4  and src port 21 -c 9
+ 
+      8. To filter the specific network traffic,use the below command.
+  [root@gagan ~]# tcpdump net 10.0.0.0/24 -c 8
+ 
+     9. To filter the traffic using the protocal, Ex:ICMP
+  [root@gagan ~]# tcpdump icmp
+ 
+    10. To filter the traffic using port range,
+  [root@gagan ~]# tcpdump portrange 21-25 -c 9
+ 
+   11. To capture the network packets to the file, use “-w” option.File should have extension with the name “pcap”.
+   [root@gagan ~]# tcpdump portrange 21-25 -w saveme.pcap
+ 
+
+
+#############################################################################################################
 When you use apt to install a package, under the hood it uses dpkg. When you install a package using apt, it first creates
 a list of all the dependencies and downloads it from the repository.
 
