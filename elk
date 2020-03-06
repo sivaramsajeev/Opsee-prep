@@ -1,3 +1,267 @@
+Elasticsearch is a real-time distributed and open source full-text search and analytics engine. It is used in Single Page
+Application (SPA) projects. Elasticsearch is an open source developed in Java and used by many big organizations around the world.
+It is licensed under the Apache license version 2.0.
+
+Elasticsearch is a real-time distributed and open source full-text search and analytics engine. It is accessible from RESTful 
+web service interface and uses schema less JSON (JavaScript Object Notation) documents to store data. It is built on Java programming
+language and hence Elasticsearch can run on different platforms. It enables users to explore very large amount of data at very 
+high speed.
+
+General Features
+The general features of Elasticsearch are as follows −
+
+Elasticsearch is scalable up to petabytes of structured and unstructured data.
+
+Elasticsearch can be used as a replacement of document stores like MongoDB and RavenDB.
+
+Elasticsearch uses denormalization to improve the search performance.
+
+Elasticsearch is one of the popular enterprise search engines, and is currently being used by many big organizations like Wikipedia, The Guardian, StackOverflow, GitHub etc.
+
+Elasticsearch is an open source and available under the Apache license version 2.0
+
+Node
+It refers to a single running instance of Elasticsearch. Single physical and virtual server accommodates multiple nodes depending upon the capabilities of their physical resources like RAM, storage and processing power.
+
+Cluster
+It is a collection of one or more nodes. Cluster provides collective indexing and search capabilities across all the nodes for entire data.
+
+Index
+It is a collection of different type of documents and their properties. Index also uses the concept of shards to improve the performance. For example, a set of document contains data of a social networking application.
+
+Document
+It is a collection of fields in a specific manner defined in JSON format. Every document belongs to a type and resides inside an index. Every document is associated with a unique identifier called the UID.
+
+Shard
+Indexes are horizontally subdivided into shards. This means each shard contains all the properties of document but contains less number of JSON objects than index. The horizontal separation makes shard an independent node, which can be store in any node. Primary shard is the original horizontal part of an index and then these primary shards are replicated into replica shards.
+
+Replicas
+Elasticsearch allows a user to create replicas of their indexes and shards. Replication not only helps in increasing the availability of data in case of failure, but also improves the performance of searching by carrying out a parallel search operation in these replicas.
+
+
+Comparison between Elasticsearch and RDBMS
+In Elasticsearch, index is similar to tables in RDBMS (Relation Database Management System). Every table is a collection of rows just as every index is a collection of documents in Elasticsearch.
+
+The following table gives a direct comparison between these terms−
+
+Elasticsearch	      RDBMS
+Cluster	            Database
+Shard	               Shard
+Index	               Table
+Field	               Column
+Document	            Row
+
+
+
+
+Create Index
+You can use the following command to create an index −
+
+PUT school
+Response
+If the index is created, you can see the following output −
+
+{"acknowledged": true}
+
+
+
+Add data
+Elasticsearch will store the documents we add to the index as shown in the following code. The documents are given some IDs which are used in identifying the document.
+
+Request Body
+POST school/_doc/10
+{
+   "name":"Saint Paul School", "description":"ICSE Afiliation",
+   "street":"Dawarka", "city":"Delhi", "state":"Delhi", "zip":"110075",
+   "location":[28.5733056, 77.0122136], "fees":5000,
+   "tags":["Good Faculty", "Great Sports"], "rating":"4.5"
+}
+
+
+
+Application Programming Interface (API) in web is a group of function calls or other programming instructions to access the software component in that particular web application. For example, Facebook API helps a developer to create applications by accessing data or other functionalities from Facebook; it can be date of birth or status update.
+
+Elasticsearch provides a REST API, which is accessed by JSON over HTTP.
+
+
+Index API
+It helps to add or update the JSON document in an index when a request is made to that respective index with specific mapping. For example, the following request will add the JSON object to index schools and under school mapping −
+
+PUT schools/_doc/5
+{
+   name":"City School", "description":"ICSE", "street":"West End",
+   "city":"Meerut",
+   "state":"UP", "zip":"250002", "location":[28.9926174, 77.692485],
+   "fees":3500,
+   "tags":["fully computerized"], "rating":"4.5"
+}
+On running the above code, we get the following result −
+
+{
+   "_index" : "schools",
+   "_type" : "_doc",
+   "_id" : "5",
+   "_version" : 1,
+   "result" : "created",
+   "_shards" : {
+      "total" : 2,
+      "successful" : 1,
+      "failed" : 0
+   },
+   "_seq_no" : 2,
+   "_primary_term" : 1
+}
+
+
+Multi-Index
+Elasticsearch allows us to search for the documents present in all the indices or in some specific indices. For example, if we need to search all the documents with a name that contains central, we can do as shown here −
+
+GET /_all/_search?q=city:paprola 
+On running the above code, we get the following response −
+
+{
+   "took" : 33,
+   "timed_out" : false,
+   "_shards" : {
+      "total" : 7,
+      "successful" : 7,
+      "skipped" : 0,
+      "failed" : 0
+   },
+   "hits" : {
+      "total" : {
+         "value" : 1,
+         "relation" : "eq"
+      },
+      "max_score" : 0.9808292,
+      "hits" : [
+         {
+            "_index" : "schools",
+            "_type" : "school",
+            "_id" : "5",
+            "_score" : 0.9808292,
+            "_source" : {
+               "name" : "Central School",
+               "description" : "CBSE Affiliation",
+               "street" : "Nagan",
+               "city" : "paprola",
+               "state" : "HP",
+               "zip" : "176115",
+               "location" : [
+                  31.8955385,
+                  76.8380405
+               ],
+               "fees" : 2200,
+               "tags" : [
+                  "Senior Secondary",
+                  "beautiful campus"
+               ],
+               "rating" : "3.3"
+            }
+         }
+      ]
+   }
+}
+
+
+
+The cluster API is used for getting information about cluster and its nodes and to make changes in them. To call this API, we need to specify the node name, address or _local.
+
+GET /_nodes/_local
+
+Cluster Health
+This API is used to get the status on the health of the cluster by appending the ‘health’ keyword.
+
+GET /_cluster/health
+
+
+Term Level Queries
+These queries mainly deal with structured data like numbers, dates and enums.
+
+POST /schools*/_search
+{
+   "query":{
+      "term":{"zip":"176115"}
+   }
+}
+
+
+
+Mapping is the outline of the documents stored in an index. It defines the data type like geo_point or string and format of the fields present in the documents and rules to control the mapping of dynamically added fields.
+
+PUT bankaccountdetails
+{
+   "mappings":{
+      "properties":{
+         "name": { "type":"text"}, "date":{ "type":"date"},
+         "balance":{ "type":"double"}, "liability":{ "type":"double"}
+      }
+   }
+ }
+ 
+ Discovery
+This module helps a cluster to discover and maintain the state of all the nodes in it. The state of cluster changes when a node is added or deleted from it. The cluster name setting is used to create logical difference between different clusters. There are some modules which help you to use the APIs provided by cloud vendors and those are as given below −
+
+Azure discovery
+EC2 discovery
+Google compute engine discovery
+Zen discovery
+
+HTTP
+This module manages the communication between HTTP client and Elasticsearch APIs. This module can be disabled by changing the value
+of http.enabled to false.
+
+
+It is a component that allows SQL-like queries to be executed in real-time against Elasticsearch. You can think of Elasticsearch SQL
+as a translator, one that understands both SQL and Elasticsearch and makes it easy to read and process data in real-time, at scale
+by leveraging Elasticsearch capabilities
+
+SQL Query
+The following example shows how we frame the SQL query −
+
+POST /_sql?format=txt
+{
+   "query": "SELECT * FROM schoollist WHERE start_date < '2000-01-01'"
+}
+On running the above code, we get the response as shown below −
+
+Address             | name          | start_date             | student_count
+--------------------+---------------+------------------------+---------------
+Gachibowli Main Road|Top-Notch      |1989-05-26T00:00:00.000Z|482
+Main Street         |Sunshine       |1965-06-01T00:00:00.000Z|604
+
+
+Collectors
+Collector runs once per each collection interval to obtain data from the public APIs in Elasticsearch that it chooses to monitor. When the data collection is finished, the data is handed in bulk to the exporters to be sent to the monitoring cluster.
+
+There is only one collector per data type gathered. Each collector can create zero or more monitoring documents.
+
+Exporters
+Exporters take data collected from any Elastic Stack source and route it to the monitoring cluster. It is possible to configure more than one exporter, but the general and default setup is to use a single exporter. Exporters are configurable at both the node and cluster level.
+
+There are two types of exporters in Elasticsearch −
+
+local − This exporter routes data back into the same cluster
+
+http − The preferred exporter, which you can use to route data into any supported Elasticsearch cluster accessible via HTTP.
+
+
+
+The indices that are searched frequently are held in memory because it takes time to rebuild them and help in an efficient search. 
+On the other hand, there may be indices which we rarely access. Those indices need not occupy the memory and can be re-build when 
+they are needed. Such indices are known as frozen indices.
+
+Elasticsearch builds the transient data structures of each shard of a frozen index each time that shard is searched and discards 
+these data structures as soon as the search is complete. Because Elasticsearch does not maintain these transient data structures 
+in memory, frozen indices consume much less heap than the normal indices. This allows for a much higher disk-to-heap ratio than
+would otherwise be possible.
+
+
+
+
+
+
+###############################################################################################################################
 This is just the sample data visualization we uploaded, but in real world it becomes very easy to track the details of your business 
 like for example you have a website which gets millions of hits monthly or daily, you want to keep a track on the sales done every
 day, hour, minute, seconds and if you have your ELK stack in place Kibana can show you your sales visualization right in front of
