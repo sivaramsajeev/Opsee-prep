@@ -1,0 +1,937 @@
+
+Kibana does not interact with Logstash directly but through a data source, which is Elasticsearch in the ELK stack. Logstash collects
+the data from every source and Elasticsearch analyzes it at a very fast speed, then Kibana provides the actionable insights on that data.
+
+Kibana is a web based visualization tool, which helps developers and others to analyze the variations in large amounts of events
+collected by Logstash in Elasticsearch engine. This visualization makes it easy to predict or to see the changes in trends of errors
+or other significant events of the input source.
+
+
+$ sudo yum install logstash
+Step 4 − Go to the Logstash home directory. Inside the bin folder, run the elasticsearch.bat file in case of windows or you can do the same using the command prompt and through the terminal. In UNIX, run the Logstash file.
+
+We need to specify the input source, output source and optional filters. For verifying the installation, you can run it with the basic configuration by using a standard input stream (stdin) as the input source and a standard output stream (stdout) as the output source. You can specify the configuration in the command line also by using –e option.
+
+In Windows −
+
+> cd logstash-5.0.1/bin
+> Logstash -e 'input { stdin { } } output { stdout {} }'
+In Linux −
+
+$ cd logstash-5.0.1/bin
+$ ./logstash -e 'input { stdin { } } output { stdout {} }'
+
+
+Default ports for Logstash web interface are 9600 to 9700 are defined in the logstash-5.0.1\config\logstash.yml as the http.port and it will pick up the first available port in the given range.
+
+We can check if the Logstash server is up and running by browsing http://localhost:9600 or if the port is different and then please check the command prompt or terminal. We can see the assigned port as “Successfully started Logstash API endpoint {:port ⇒ 9600}. It will return a JSON object, which contains the information about the installed Logstash in the following way −
+
+{
+   "host":"manu-PC", 
+   "version":"5.0.1",
+   "http_address":"127.0.0.1:9600",
+   "build_date":"2016-11-11T22:28:04+00:00",
+   "build_sha":"2d8d6263dd09417793f2a0c6d5ee702063b5fada",
+   "build_snapshot":false
+}
+
+
+Logstash Service Architecture
+Logstash processes logs from different servers and data sources and it behaves as the shipper. The shippers are used to collect the
+logs and these are installed in every input source. Brokers like Redis, Kafka or RabbitMQ are buffers to hold the data for indexers
+there may be more than one brokers as failed over instances
+
+Indexers like Lucene are used to index the logs for better search performance and then the output is stored in Elasticsearch or 
+other output destination. The data in output storage is available for Kibana and other visualization software.
+
+Logstash Internal Architecture
+The Logstash pipeline consists of three components Input, Filters and Output. The input part is responsible to specify and access 
+the input data source such as the log folder of the Apache Tomcat Server.
+
+
+Example to Explain the Logstash Pipeline
+The Logstash configuration file contains the details about the three components of Logstash. In this case, we are creating a file name called Logstash.conf.
+
+The following configuration captures data from an input log “inlog.log” and writes it to an output log “outlog.log” without any filters.
+
+Logstash.conf
+The Logstash configuration file just copies the data from the inlog.log file using the input plugin and flushes the log data to outlog.log file using the output plugin.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/inlog.log"
+   }
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/outlog.log"
+   }
+}
+Run Logstash
+Logstash uses –f option to specify the config file.
+
+C:\logstash\bin> logstash –f logstash.conf
+inlog.log
+The following code block shows the input log data.
+
+Hello tutorialspoint.com
+outlog.log
+The Logstash output contains the input data in message field. Logstash also adds other fields to the output like Timestamp, Path of the Input Source, Version, Host and Tags.
+
+{
+   "path":"C:/tpwork/logstash/bin/log/inlog1.log",
+   "@timestamp":"2016-12-13T02:28:38.763Z",
+   "@version":"1", "host":"Dell-PC",
+   "message":" Hello tutorialspoint.com", "tags":[]
+}
+As you can, the output of Logstash contains more than the data supplied through the input log. The output contains the Source Path,
+Timestamp, Version, Hostname and Tag, which are used to represent the extra messages like errors.
+
+We can use filters to process the data and make its useful for our needs. In the next example, we are using filter to get the data,
+which restricts the output to only data with a verb like GET or POST followed by a Unique Resource Identifier.
+
+
+Example to Explain the Logstash Pipeline
+The Logstash configuration file contains the details about the three components of Logstash. In this case, we are creating a file name called Logstash.conf.
+
+The following configuration captures data from an input log “inlog.log” and writes it to an output log “outlog.log” without any filters.
+
+Logstash.conf
+The Logstash configuration file just copies the data from the inlog.log file using the input plugin and flushes the log data to outlog.log file using the output plugin.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/inlog.log"
+   }
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/outlog.log"
+   }
+}
+Run Logstash
+Logstash uses –f option to specify the config file.
+
+C:\logstash\bin> logstash –f logstash.conf
+inlog.log
+The following code block shows the input log data.
+
+Hello tutorialspoint.com
+outlog.log
+The Logstash output contains the input data in message field. Logstash also adds other fields to the output like Timestamp, Path of the Input Source, Version, Host and Tags.
+
+{
+   "path":"C:/tpwork/logstash/bin/log/inlog1.log",
+   "@timestamp":"2016-12-13T02:28:38.763Z",
+   "@version":"1", "host":"Dell-PC",
+   "message":" Hello tutorialspoint.com", "tags":[]
+}
+As you can, the output of Logstash contains more than the data supplied through the input log. The output contains the Source Path, 
+Timestamp, Version, Hostname and Tag, which are used to represent the extra messages like errors.
+
+We can use filters to process the data and make its useful for our needs. In the next example, we are using filter to get the data, 
+which restricts the output to only data with a verb like GET or POST followed by a Unique Resource Identifier.
+
+
+
+
+inlog2.log
+Our input file contains two events separated by default delimiter, i.e., new line delimiter. The first event matches the pattern 
+specified in GROk and the second one does not.
+
+GET /tutorialspoint/Logstash
+Input 1234
+outlog2.log
+We can see that the second output event contains "_grokparsefailure" tag, because it does not match the grok filter pattern. 
+The user can also remove these unmatched events in output by using the ‘if’ condition in the output plugin.
+
+{
+   "path":"C:/tpwork/logstash/bin/log/inlog2.log",
+   "@timestamp":"2016-12-13T02:47:10.352Z","@version":"1","host":"Dell-PC","verb":"GET",
+   "message":"GET /tutorialspoint/logstash", "uri":"/tutorialspoint/logstash", "tags":[]
+}
+{
+   "path":"C:/tpwork/logstash/bin/log/inlog2.log",
+   "@timestamp":"2016-12-13T02:48:12.418Z", "@version":"1", "host":"Dell-PC",
+   "message":"t 1234\r", "tags":["_grokparsefailure"]
+}
+
+
+
+Logs from different servers or data sources are collected using shippers. A shipper is an instance of Logstash installed in 
+the server, which accesses the server logs and sends to specific output location.
+
+It mainly sends the output to the Elasticsearch for storage. Logstash takes input from the following sources −
+
+STDIN
+Syslog
+Files
+TCP/UDP
+Microsoft windows Eventlogs
+Websocket
+Zeromq
+Customized extensions
+
+
+
+######################################################################################################################################
+
+
+Collecting Logs Using Apache Tomcat 7 Server
+In this example, we are collecting logs of Apache Tomcat 7 Server installed in windows using the file input plugin and sending them to the other log.
+
+logstash.conf
+Here, Logstash is configured to access the access log of Apache Tomcat 7 installed locally. A regex pattern is used in path setting of the file plugin to get the data from the log file. This contains “access” in its name and it adds an apache type, which helps in differentiating the apache events from the other in a centralized destination source. Finally, the output events will be shown in the output.log.
+
+input {
+   file {
+      path => "C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/*access*"
+      type => "apache"
+   }
+} 
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"
+   }
+}
+Run Logstash
+We can run Logstash by using the following command.
+
+C:\logstash\bin> logstash –f  Logstash.conf
+
+
+
+
+Apache Tomcat Log
+Access the Apache Tomcat Server and its web apps (http://localhost:8080) to generate logs. The updated data in the logs are read by Logstash in real time and stashed in output.log as specified in configuration file.
+
+Apache Tomcat generates a new access log file according to date and logs the access events there. In our case, it was localhost_access_log.2016-12-24.txt in the logs directory of Apache Tomcat.
+
+0:0:0:0:0:0:0:1 - - [
+   25/Dec/2016:18:37:00 +0800] "GET / HTTP/1.1" 200 11418
+0:0:0:0:0:0:0:1 - munish [
+   25/Dec/2016:18:37:02 +0800] "GET /manager/html HTTP/1.1" 200 17472
+0:0:0:0:0:0:0:1 - - [
+   25/Dec/2016:18:37:08 +0800] "GET /docs/ HTTP/1.1" 200 19373
+0:0:0:0:0:0:0:1 - - [
+   25/Dec/2016:18:37:10 +0800] "GET /docs/introduction.html HTTP/1.1" 200 15399
+output.log
+You can see in the output events, a type field is added and the event is present in the message field.
+
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   localhost_access_log.2016-12-25.txt",
+   "@timestamp":"2016-12-25T10:37:00.363Z","@version":"1","host":"Dell-PC",
+   "message":"0:0:0:0:0:0:0:1 - - [25/Dec/2016:18:37:00 +0800] \"GET /
+   HTTP/1.1\" 200 11418\r","type":"apache","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   localhost_access_log.2016-12-25.txt","@timestamp":"2016-12-25T10:37:10.407Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"0:0:0:0:0:0:0:1 - munish [25/Dec/2016:18:37:02 +0800] \"GET /
+   manager/html HTTP/1.1\" 200 17472\r","type":"apache","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   localhost_access_log.2016-12-25.txt","@timestamp":"2016-12-25T10:37:10.407Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"0:0:0:0:0:0:0:1 - - [25/Dec/2016:18:37:08 +0800] \"GET /docs/
+   HTTP/1.1\" 200 19373\r","type":"apache","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   localhost_access_log.2016-12-25.txt","@timestamp":"2016-12-25T10:37:20.436Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"0:0:0:0:0:0:0:1 - - [25/Dec/2016:18:37:10 +0800] \"GET /docs/
+   introduction.html HTTP/1.1\" 200 15399\r","type":"apache","tags":[]
+}
+
+###########################################################################################################################
+
+Collecting Logs Using STDIN Plugin
+In this section, we will discuss another example of collecting logs using the STDIN Plugin.
+
+logstash.conf
+It is a very simple example, where Logstash is reading the events entered by the user in a standard input. In our case, it is the command prompt, which stores the events in the output.log file.
+
+input {
+   stdin{}
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"
+   }
+}
+Run Logstash
+We can run Logstash by using the following command.
+
+C:\logstash\bin> logstash –f  Logstash.conf
+Write the following text in the command prompt −
+
+The user entered the following two lines. Logstash separates the events by the delimiter setting and its value by default is ‘\n’.
+The user can change by changing the value of the delimiter in the file plugin.
+
+Tutorialspoint.com welcomes you
+Simply easy learning
+output.log
+The following code block shows the output log data.
+
+{
+   "@timestamp":"2016-12-25T11:41:16.518Z","@version":"1","host":"Dell-PC",
+   "message":"tutrialspoint.com welcomes you\r","tags":[]
+}
+{
+   "@timestamp":"2016-12-25T11:41:53.396Z","@version":"1","host":"Dell-PC",
+   "message":"simply easy learning\r","tags":[]
+}
+
+#############################################################################################################################
+
+logstash.conf
+This configuration contains a generator plugin, which is offered by Logstash for test metrics and set the type setting to “generated” for parsing. In the filtering phase, we are only processing the lines with a generated type by using the ‘if’ statement. Then, the metrics plugin counts the field specified in meter settings. The metrics plugin flushes the count after every 5 seconds specified in the flush_interval.
+
+Lastly, output the filter events to a standard output like command prompt using the codec plugin for formatting. The Codec plugin is using [events][rate_1m] value to output the per second events in a 1-minute sliding window.
+
+input {
+   generator {
+     	type => "generated"
+   }
+}
+filter {
+   if [type] == "generated" {
+      metrics {
+         meter => "events"
+         add_tag => "metric"
+      }
+   }
+}
+output {
+   # only emit events with the 'metric' tag
+   if "metric" in [tags] {
+      stdout {
+         codec => line { format => "rate: %{[events][rate_1m]}"
+      }
+   }
+}
+
+
+Run Logstash
+We can run Logstash by using the following command.
+
+>logsaths –f logstash.conf
+stdout (command prompt)
+rate: 1308.4
+rate: 1308.4
+rate: 1368.654529135342
+rate: 1416.4796003951449
+
+
+###############################################################################################################################
+
+Collect Logs from the Web Server
+Web servers generate a large number of logs regarding user access and errors. Logstash helps to extract the logs from different servers using input plugins and stash them in a centralized location.
+
+We are extracting the data from the stderr logs of the local Apache Tomcat Server and stashing it in the output.log.
+
+logstash.conf
+This Logstash configuration file directs Logstash to read apache error logs and add a tag named “apache-error”. We can simply send it to the output.log using the file output plugin.
+
+input {
+   file {
+      path => "C:/Program Files/Apache Software Foundation/Tomcat 7.0 /logs/*stderr*"
+      type => "apache-error"  
+   }
+} 
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"
+   }
+}
+Run Logstash
+We can run Logstash by using the following command.
+
+>Logstash –f Logstash.conf
+Sample of Input log
+This is the sample stderr log, which generates when the server events occur in Apache Tomcat.
+
+C:\Program Files\Apache Software Foundation\Tomcat 7.0\logs\ tomcat7-stderr.2016-12-25.log
+
+Dec 25, 2016 7:05:14 PM org.apache.coyote.AbstractProtocol start
+INFO: Starting ProtocolHandler ["http-bio-9999"]
+Dec 25, 2016 7:05:14 PM org.apache.coyote.AbstractProtocol start
+INFO: Starting ProtocolHandler ["ajp-bio-8009"]
+Dec 25, 2016 7:05:14 PM org.apache.catalina.startup.Catalina start
+INFO: Server startup in 823 ms
+output.log
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   tomcat7-stderr.2016-12-25.log","@timestamp":"2016-12-25T11:05:27.045Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"Dec 25, 2016 7:05:14 PM org.apache.coyote.AbstractProtocol start\r",
+   "type":"apache-error","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   tomcat7-stderr.2016-12-25.log","@timestamp":"2016-12-25T11:05:27.045Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"INFO: Starting ProtocolHandler [
+      \"ajp-bio-8009\"]\r","type":"apache-error","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   tomcat7-stderr.2016-12-25.log","@timestamp":"2016-12-25T11:05:27.045Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"Dec 25, 2016 7:05:14 PM org.apache.catalina.startup.Catalina start\r",
+   "type":"apache-error","tags":[]
+}
+{
+   "path":"C:/Program Files/Apache Software Foundation/Tomcat 7.0/logs/
+   tomcat7-stderr.2016-12-25.log","@timestamp":"2016-12-25T11:05:27.045Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"INFO: Server startup in 823 ms\r","type":"apache-error","tags":[]
+}
+
+
+#####################################################################################################################################
+
+Collect Logs from Data sources
+To start with, let us understand how to Configure MySQL for logging. Add the following lines in my.ini file of the MySQL database server under [mysqld].
+
+In windows, it is present inside the installation directory of MySQL, which is in −
+
+C:\wamp\bin\mysql\mysql5.7.11
+In UNIX, you can find it in – /etc/mysql/my.cnf
+
+general_log_file   = "C:/wamp/logs/queries.log"
+general_log = 1
+logstash.conf
+In this config file, file plugin is used to read the MySQL log and write it to the ouput.log.
+
+input {
+   file {
+      path => "C:/wamp/logs/queries.log"
+   }
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"
+   }
+}
+queries.log
+This is the log generated by queries executed in the MySQL database.
+
+2016-12-25T13:05:36.854619Z   2 Query		select * from test1_users
+2016-12-25T13:05:51.822475Z    2 Query	select count(*) from users
+2016-12-25T13:05:59.998942Z    2 Query         select count(*) from test1_users
+output.log
+{
+   "path":"C:/wamp/logs/queries.log","@timestamp":"2016-12-25T13:05:37.905Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"2016-12-25T13:05:36.854619Z    2 Query\tselect * from test1_users",
+   "tags":[]
+}
+{
+   "path":"C:/wamp/logs/queries.log","@timestamp":"2016-12-25T13:05:51.938Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"2016-12-25T13:05:51.822475Z    2 Query\tselect count(*) from users",
+   "tags":[]
+}
+{
+   "path":"C:/wamp/logs/queries.log","@timestamp":"2016-12-25T13:06:00.950Z",
+   "@version":"1","host":"Dell-PC",
+   "message":"2016-12-25T13:05:59.998942Z    2 Query\tselect count(*) from test1_users",
+   "tags":[]
+}
+
+
+
+###############################################################################################################################
+
+Logstash receives the logs using input plugins and then uses the filter plugins to parse and transform the data. The parsing and transformation of logs are performed according to the systems present in the output destination. Logstash parses the logging data and forwards only the required fields. Later, these fields are transformed into the destination system’s compatible and understandable form.
+
+How to Parse the Logs?
+Parsing of the logs is performed my using the GROK (Graphical Representation of Knowledge) patterns and you can find them in Github −
+
+https://github.com/elastic/logstash/tree/v1.4.2/patterns.
+
+Logstash matches the data of logs with a specified GROK Pattern or a pattern sequence for parsing the logs like "%{COMBINEDAPACHELOG}", which is commonly used for apache logs.
+
+The parsed data is more structured and easy to search and for performing queries. Logstash searches for the specified GROK patterns in the input logs and extracts the matching lines from the logs. You can use GROK debugger to test your GROK patterns.
+
+The syntax for a GROK pattern is %{SYNTAX:SEMANTIC}. Logstash GROK filter is written in the following form −
+
+%{PATTERN:FieldName}
+
+Here, PATTERN represents the GROK pattern and the fieldname is the name of the field, which represents the parsed data in the output.
+
+For example, using online GROK debugger https://grokdebug.herokuapp.com/
+
+Input
+A sample error line in a log −
+
+[Wed Dec 07 21:54:54.048805 2016] [:error] [pid 1234:tid 3456829102]
+   [client 192.168.1.1:25007] JSP Notice:  Undefined index: abc in
+   /home/manu/tpworks/tutorialspoint.com/index.jsp on line 11
+GROK Pattern Sequence
+This GROK pattern sequence matches to the log event, which comprises of a timestamp followed by Log Level, Process Id, Transaction Id and an Error Message.
+
+\[(%{DAY:day} %{MONTH:month} %{MONTHDAY} %{TIME} %{YEAR})\] \[.*:%{LOGLEVEL:loglevel}\]
+   \[pid %{NUMBER:pid}:tid %{NUMBER:tid}\] \[client %{IP:clientip}:.*\]
+   %{GREEDYDATA:errormsg}
+output
+The output is in JSON format.
+
+{
+   "day": [
+      "Wed"
+   ],
+   "month": [
+      "Dec"
+   ],
+   "loglevel": [
+      "error"
+   ],
+   "pid": [
+      "1234"
+   ],
+   "tid": [
+      "3456829102"
+   ],
+   "clientip": [
+      "192.168.1.1"
+   ],
+   "errormsg": [
+      "JSP Notice:  Undefined index: abc in
+      /home/manu/tpworks/tutorialspoint.com/index.jsp on line 11"
+   ]
+}
+
+
+
+###########################################################################################################################
+
+logstash.conf
+In this configuration, you can see three ‘if’ statements for Initializing, Incrementing, and generating the total duration of transaction, i.e., the sql_duration. The aggregate plugin is used to add the sql_duration, present in every event of the input log.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/input.log"
+   }
+} 
+filter {
+   grok {
+      match => [
+         "message", "%{LOGLEVEL:loglevel} - 
+            %{NOTSPACE:taskid} - %{NOTSPACE:logger} - 
+            %{WORD:label}( - %{INT:duration:int})?" 
+      ]
+   }
+   if [logger] == "TRANSACTION_START" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] = 0"
+         map_action => "create"
+      }
+   }
+   if [logger] == "SQL" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] ||= 0 ;
+            map['sql_duration'] += event.get('duration')"
+      }
+   }
+   if [logger] == "TRANSACTION_END" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "event.set('sql_duration', map['sql_duration'])"
+         end_of_task => true
+         timeout => 120
+      }
+   }
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"    
+   }
+}
+Run Logstash
+We can run Logstash by using the following command.
+
+>logstash –f logstash.conf
+
+###########################################################################################################################
+
+input.log
+The following code block shows the input log data.
+
+INFO - 48566 - TRANSACTION_START - start
+INFO - 48566 - SQL - transaction1 - 320
+INFO - 48566 - SQL - transaction1 - 200
+INFO - 48566 - TRANSACTION_END - end
+output.log
+As specified in the configuration file, the last ‘if’ statement where the logger is – TRANSACTION_END, which prints the total transaction time or sql_duration. This has been highlighted in yellow color in the output.log.
+
+{
+   "path":"C:/tpwork/logstash/bin/log/input.log","@timestamp": "2016-12-22T19:04:37.214Z",
+   "loglevel":"INFO","logger":"TRANSACTION_START","@version": "1","host":"wcnlab-PC",
+   "message":"8566 - TRANSACTION_START - start\r","tags":[]
+}
+{
+   "duration":320,"path":"C:/tpwork/logstash/bin/log/input.log",
+   "@timestamp":"2016-12-22T19:04:38.366Z","loglevel":"INFO","logger":"SQL",
+   "@version":"1","host":"wcnlab-PC","label":"transaction1",
+   "message":" INFO - 48566 - SQL - transaction1 - 320\r","taskid":"48566","tags":[]
+}
+
+
+##################################################################################################################################
+
+o install the mutate filter plugin; we can use the following command.
+
+>Logstash-plugin install Logstash-filter-mutate
+logstash.conf
+In this config file, the Mutate Plugin is added after the Aggregate Plugin to add a new field.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/input.log"
+   }
+} 
+filter {
+   grok {
+      match => [ "message", "%{LOGLEVEL:loglevel} -
+         %{NOTSPACE:taskid} - %{NOTSPACE:logger} -
+         %{WORD:label}( - %{INT:duration:int})?" ]
+   }
+   if [logger] == "TRANSACTION_START" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] = 0"
+         map_action => "create"
+      }
+   }
+   if [logger] == "SQL" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] ||= 0 ; 
+            map['sql_duration'] += event.get('duration')"
+      }
+   }
+   if [logger] == "TRANSACTION_END" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "event.set('sql_duration', map['sql_duration'])"
+         end_of_task => true
+         timeout => 120
+      }
+   }
+   mutate {
+      add_field => {"user" => "tutorialspoint.com"}
+   }
+}
+output {
+   file {
+      path => "C:/tpwork/logstash/bin/log/output.log"
+   }
+}
+
+input.log
+The following code block shows the input log data.
+
+INFO - 48566 - TRANSACTION_START - start
+INFO - 48566 - SQL - transaction1 - 320
+INFO - 48566 - SQL - transaction1 - 200
+INFO - 48566 - TRANSACTION_END - end
+output.log
+You can see that there is a new field named “user” in the output events.
+
+{
+   "path":"C:/tpwork/logstash/bin/log/input.log",
+   "@timestamp":"2016-12-25T19:55:37.383Z",
+   "@version":"1",
+   "host":"wcnlab-PC",
+   "message":"NFO - 48566 - TRANSACTION_START - start\r",
+   "user":"tutorialspoint.com","tags":["_grokparsefailure"]
+}
+{
+   "duration":320,"path":"C:/tpwork/logstash/bin/log/input.log",
+   "@timestamp":"2016-12-25T19:55:37.383Z","loglevel":"INFO","logger":"SQL",
+   "@version":"1","host":"wcnlab-PC","label":"transaction1",
+   "message":" INFO - 48566 - SQL - transaction1 - 320\r",
+   "user":"tutorialspoint.com","taskid":"48566","tags":[]
+}
+
+
+
+##################################################################################################################
+
+Storing Logs
+Logstash can store the filtered logs in a File, Elasticsearch Engine, stdout, AWS CloudWatch, etc. Network protocols like TCP, UDP, Websocket can also be used in Logstash for transferring the log events to remote storage systems.
+
+In ELK stack, users use the Elasticsearch engine to store the log events. Here, in the following example, we will generate log events for a local Elasticsearch engine.
+
+Installing the Elasticsearch Output Plugin
+We can install the Elasticsearch output plugin with the following command.
+
+>logstash-plugin install Logstash-output-elasticsearch
+logstash.conf
+This config file contains an Elasticsearch plugin, which stores the output event in Elasticsearch installed locally.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/input.log"
+   }
+} 
+filter {
+   grok {
+      match => [ "message", "%{LOGLEVEL:loglevel} -
+      %{NOTSPACE:taskid} - %{NOTSPACE:logger} -  
+      %{WORD:label}( - %{INT:duration:int})?" ]
+   }
+   if [logger] == "TRANSACTION_START" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] = 0"
+         map_action => "create"
+      }
+   }
+   if [logger] == "SQL" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] ||= 0 ;
+            map['sql_duration'] += event.get('duration')"
+      }
+   }
+   if [logger] == "TRANSACTION_END" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "event.set('sql_duration', map['sql_duration'])"
+         end_of_task => true
+         timeout => 120
+      }
+   }
+   mutate {
+      add_field => {"user" => "tutorialspoint.com"}
+   }
+}
+output {
+   elasticsearch {
+      hosts => ["127.0.0.1:9200"]
+   }
+}
+
+###############################################################################################################################
+
+Start Elasticsearch at Localhost
+To start Elasticsearch at the localhost, you should use the following command.
+
+C:\elasticsearch\bin> elasticsearch
+Once Elasticsearch is ready, you can check it by typing the following URL in your browser.
+
+http://localhost:9200/
+
+Response
+The following code block shows the response of Elasticsearch at localhost.
+
+{
+   "name" : "Doctor Dorcas",
+   "cluster_name" : "elasticsearch",
+   "version" : {
+      "number" : "2.1.1",
+      "build_hash" : "40e2c53a6b6c2972b3d13846e450e66f4375bd71",
+      "build_timestamp" : "2015-12-15T13:05:55Z",
+      "build_snapshot" : false,
+      "lucene_version" : "5.3.1"
+   },
+   "tagline" : "You Know, for Search"
+}
+
+######################################################################################################################
+
+After pasting the above-mentioned text in the output log, that text will be stored in Elasticsearch by Logstash. You can check the stored data by typing the following URL in the browser.
+
+http://localhost:9200/logstash-2017.01.01/_search?pretty
+
+Response
+It is the data in JSON format stored in index Logstash-2017.01.01.
+
+{
+   "took" : 20,
+   "timed_out" : false,
+   "_shards" : {
+      "total" : 5,
+      "successful" : 5,
+      "failed" : 0
+   },
+   "hits" : {
+      "total" : 10,
+      "max_score" : 1.0,
+      "hits" : [ {
+         "_index" : "logstash-2017.01.01",
+         "_type" : "logs",
+         "_id" : "AVlZ9vF8hshdrGm02KOs",
+         "_score" : 1.0,
+         "_source":{
+            "duration":200,"path":"C:/tpwork/logstash/bin/log/input.log", 
+            "@timestamp":"2017-01-01T12:17:49.140Z","loglevel":"INFO",
+            "logger":"SQL","@version":"1","host":"wcnlab-PC",
+            "label":"transaction1",
+            "message":" INFO - 48566 - SQL - transaction1 - 200\r",
+            "user":"tutorialspoint.com","taskid":"48566","tags":[]
+         }
+      },
+      
+      
+      #######################################################################################################
+      
+ 
+ 
+ The output events of logs can be sent to an output file, standard output or a search engine like Elasticsearch. There are three types of supported outputs in Logstash, which are −
+
+Standard Output
+File Output
+Null Output
+Let us now discuss each of these in detail.
+
+Standard Output (stdout)
+It is used for generating the filtered log events as a data stream to the command line interface. Here is an example of generating the total duration of a database transaction to stdout.
+
+logstash.conf
+This config file contains a stdout output plugin to write the total sql_duration to a standard output.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/input.log"
+   }
+} 
+filter {
+   grok {
+      match => [
+         "message", "%{LOGLEVEL:loglevel} - %{NOTSPACE:taskid}
+            - %{NOTSPACE:logger} - %{WORD:label}( - %{INT:duration:int})?" 
+      ]
+   }
+   if [logger] == "TRANSACTION_START" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] = 0"
+         map_action => "create"
+      }
+   }
+   if [logger] == "SQL" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] ||= 0 ;
+            map['sql_duration'] += event.get('duration')"
+      }
+   }
+   if [logger] == "TRANSACTION_END" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "event.set('sql_duration', map['sql_duration'])"
+         end_of_task => true
+         timeout => 120
+      }
+   }
+}
+output {
+   if [logger] == "TRANSACTION_END" {
+      stdout {
+         codec => line{format => "%{sql_duration}"}
+      }
+   }
+}
+Note − Please install the aggregate filter, if not installed already.
+
+>logstash-plugin install Logstash-filter-aggregate
+Run Logstash
+We can run Logstash by using the following command.
+
+>logstash –f logsatsh.conf
+Input.log
+The following code block shows the input log data.
+
+INFO - 48566 - TRANSACTION_START - start
+INFO - 48566 - SQL - transaction1 - 320
+INFO - 48566 - SQL - transaction1 - 200
+INFO - 48566 - TRANSACTION_END – end
+stdout (it will be command prompt in windows or terminal in UNIX)
+
+This is the total sql_duration 320 + 200 = 520.
+
+520
+
+
+#################################################################################################################
+
+File Output
+Logstash can also store the filter log events to an output file. We will use the above-mentioned example and store the output in a file instead of STDOUT.
+
+logstash.conf
+This Logstash config file direct Logstash to store the total sql_duration to an output log file.
+
+input {
+   file {
+      path => "C:/tpwork/logstash/bin/log/input1.log"
+   }
+} 
+filter {
+   grok {
+      match => [
+         "message", "%{LOGLEVEL:loglevel} - %{NOTSPACE:taskid} -
+            %{NOTSPACE:logger} - %{WORD:label}( - %{INT:duration:int})?" 
+      ]
+   }
+   if [logger] == "TRANSACTION_START" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] = 0"
+         map_action => "create"
+      }
+   }
+   if [logger] == "SQL" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "map['sql_duration'] ||= 0 ;
+            map['sql_duration'] += event.get('duration')"
+      }
+   }
+   if [logger] == "TRANSACTION_END" {
+      aggregate {
+         task_id => "%{taskid}"
+         code => "event.set('sql_duration', map['sql_duration'])"
+         end_of_task => true
+         timeout => 120
+      }
+   }
+}
+output {
+   if [logger] == "TRANSACTION_END" {
+      file {
+         path => "C:/tpwork/logstash/bin/log/output.log"
+         codec => line{format => "%{sql_duration}"}
+      }
+   }
+}
+
+
+#####################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
