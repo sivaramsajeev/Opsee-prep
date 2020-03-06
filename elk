@@ -7,6 +7,23 @@ web service interface and uses schema less JSON (JavaScript Object Notation) doc
 language and hence Elasticsearch can run on different platforms. It enables users to explore very large amount of data at very 
 high speed.
 
+
+
+ELK is a general-purpose no-sql stack that can be used for monitoring. We've successfully deployed one on production and used it for 
+some aspects of our monitoring system. You can ship metrics into it (if you wish) and use it to monitor them, but its not specifically 
+designed to do that. Nor does it come with an alerting system - you'll need to setup another component for that (like Sensu).
+
+Prometheus, on the other hand, is designed to be used for monitoring. And along with its metric-gathering clients (or other 3rd
+party clients like Telegraf and its service discovery options (like consul) and its alert-manager is just the right tool for this job.
+
+Ultimately, both solutions can work, but in my opinion Elasticsearch will require more work and more upkeep (we found that ES 
+clusters are a pain to maintain - but that depends on the amount of data you'll have).
+
+
+
+
+
+
 General Features
 The general features of Elasticsearch are as follows −
 
