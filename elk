@@ -1,3 +1,195 @@
+This is just the sample data visualization we uploaded, but in real world it becomes very easy to track the details of your business 
+like for example you have a website which gets millions of hits monthly or daily, you want to keep a track on the sales done every
+day, hour, minute, seconds and if you have your ELK stack in place Kibana can show you your sales visualization right in front of
+your eyes every hour, minute, seconds as you want to see. It displays the real time data as it is happening in the real world.
+
+Kibana, on the whole, plays a very important role in extracting the accurate details about your business transaction day wise,
+hourly or every minute, so the company knows how the progress is going on.
+
+Reports can be easily created by using the Share button available in Kibana UI.
+
+Reports in Kibana are available in the following two forms −
+
+Permalinks
+CSV Report
+
+
+The following is the conf file to be used with logstash −
+
+input {
+   file {
+      path => "C:/kibanaproject/home_visits.csv"
+      start_position => "beginning"
+      sincedb_path => "NUL"
+   }
+}
+filter {
+   csv {
+      separator => ","
+      columns =>
+      ["Visit_Status","Time_Delay","City","City_id","Patient_Age",
+      "Zipcode","Latitude","Longitude","Pathology","Visiting_Date",
+      "Id_type","Id_personal","Number_Home_Visits","Is_Patient_Minor","Geo_point"]
+   }
+   date {
+      match => ["Visiting_Date","dd-MM-YYYY HH:mm"]
+      target => "Visiting_Date"
+   }
+   mutate {convert => ["Number_Home_Visits", "integer"]}
+   mutate {convert => ["City_id", "integer"]}
+   mutate {convert => ["Id_personal", "integer"]}
+   mutate {convert => ["Id_type", "integer"]}
+   mutate {convert => ["Zipcode", "integer"]}
+   mutate {convert => ["Patient_Age", "integer"]}
+   mutate {
+      convert => { "Longitude" => "float" }
+      convert => { "Latitude" => "float" }
+   }
+   mutate {
+      rename => {
+         "Longitude" => "[location][lon]"
+         "Latitude" => "[location][lat]"
+      }
+   }
+}
+output {
+   elasticsearch {
+      hosts => ["localhost:9200"]
+      index => "medicalvisits-%{+dd.MM.YYYY}"
+   }
+   stdout {codec => json_lines }
+}
+By default, logstash considers everything to be uploaded in elasticsearch as string. Incase your CSV file has date field you need to do following to get the date format.
+
+For date field −
+
+date {
+   match => ["Visiting_Date","dd-MM-YYYY HH:mm"]
+   target => "Visiting_Date"
+}
+In-case of geo location, elasticsearch understands the same as −
+
+"location": {
+   "lat":41.565505000000044,
+   "lon": 2.2349995750000695
+}
+
+
+Using Dev Tools to Upload Bulk Data
+We are going to use Dev Tools from Kibana UI. Dev Tools is helpful to upload data in Elasticsearch, without using Logstash. We can post, put, delete, search the data we want in Kibana using Dev Tools.
+
+In this section, we will try to load sample data in Kibana itself. We can use it to practice with the sample data and play around with Kibana features to get a good understanding of Kibana.
+
+Let us take the json data from the following url and upload the same in Kibana. Similarly, you can try any sample json data to be loaded inside Kibana.
+
+Before we start to upload the sample data, we need to have the json data with indices to be used in elasticsearch. When we upload it using logstash, logstash takes care to add the indices and the user does not have to bother about the indices which are required by elasticsearch.
+
+Normal Json Data
+[
+   {"type":"act","line_id":1,"play_name":"Henry IV", 
+   
+   "speech_number":"","line_number":"","speaker":"","text_entry":"ACT I"},
+   {"type":"scene","line_id":2,"play_name":"Henry IV",
+   "speech_number":"","line_number":"","speaker":"","text_entry":"SCENE I.London. The palace."},
+   {"type":"line","line_id":3,"play_name":"Henry IV",
+   "speech_number":"","line_number":"","speaker":"","text_entry":
+   "Enter KING HENRY, LORD JOHN OF LANCASTER, the 
+   EARL of WESTMORELAND, SIR WALTER BLUNT, and others"}
+]
+The json code to used with Kibana has to be with indexed as follows −
+
+{"index":{"_index":"shakespeare","_id":0}}
+{"type":"act","line_id":1,"play_name":"Henry IV", 
+"speech_number":"","line_number":"","speaker":"","text_entry":"ACT I"}
+{"index":{"_index":"shakespeare","_id":1}}
+{"type":"scene","line_id":2,"play_name":"Henry IV",
+"speech_number":"","line_number":"","speaker":"",
+"text_entry":"SCENE I. London. The palace."}
+{"index":{"_index":"shakespeare","_id":2}}
+{"type":"line","line_id":3,"play_name":"Henry IV",
+"speech_number":"","line_number":"","speaker":"","text_entry":
+"Enter KING HENRY, LORD JOHN OF LANCASTER, the EARL 
+of WESTMORELAND, SIR WALTER BLUNT, and others"}
+Note that there is an additional data that goes in the jsonfile −{"index":{"_index":"nameofindex","_id":key}}.
+
+To convert any sample json file compatible with elasticsearch, here we have a small code in php which will output the json file given to the format which elasticsearch wants −
+
+PHP Code
+<?php
+   $myfile = fopen("todo.json", "r") or die("Unable to open file!"); // your json
+   file here
+   $alldata = fread($myfile,filesize("todo.json"));
+   fclose($myfile);
+   $farray = json_decode($alldata);
+   $afinalarray = [];
+   $index_name = "todo";
+   $i=0;
+   $myfile1 = fopen("todonewfile.json", "w") or die("Unable to open file!"); //
+   writes a new file to be used in kibana dev tool
+   foreach ($farray as $a => $value) {
+      $_index = json_decode('{"index": {"_index": "'.$index_name.'", "_id": "'.$i.'"}}');
+      fwrite($myfile1, json_encode($_index));
+      fwrite($myfile1, "\n");
+      fwrite($myfile1, json_encode($value));
+      fwrite($myfile1, "\n");
+      $i++;
+   }
+?>
+We have taken the todo json file from https://jsonplaceholder.typicode.com/todos and use php code to convert to the format we need to upload in Kibana.
+
+To load the sample data, open the dev tools tab as shown below −
+
+Dev tools
+We are now going to use the console as shown above. We will take the json data which we got after running it through php code.
+
+The command to be used in dev tools to upload the json data is −
+
+POST _bulk
+Note that the name of the index we are creating is todo.
+
+Upload json data
+Dev tools index
+Once you click the green button the data is uploaded, you can check if the index is created or not in elasticsearch as follows −
+
+Created index
+You can check the same in dev tools itself as follows −
+
+Command −
+
+GET /_cat/indices
+
+
+What is Kibana Aggregation?
+Aggregation refers to the collection of documents or a set of documents obtained from a particular search query or filter. Aggregation forms the main concept to build the desired visualization in Kibana.
+
+Whenever you perform any visualization, you need to decide the criteria, which means in which way you want to group the data to perform the metric on it.
+
+In this section, we will discuss two types of Aggregation −
+
+Bucket Aggregation
+Metric Aggregation
+Bucket Aggregation
+A bucket mainly consists of a key and a document. When the aggregation is executed, the documents are placed in the respective bucket. So at the end you should have a list of buckets, each with a list of documents. The list of Bucket Aggregation you will see while creating visualization in Kibana
+
+
+Let us explore and understand the most commonly used charts in visualization.
+
+Horizontal Bar Chart
+Vertical Bar Chart
+Pie Chart
+
+
+Canvas is yet another powerful feature in Kibana. Using canvas visualization, you can represent your data in different color combination, shapes, text, multipage setup etc.
+
+We need data to show in the canvas. Now, let us load some sample data already available in Kibana.
+
+
+we have seen how to create visualization in the form of vertical bar, horizontal bar, pie chart etc. In this chapter, let us learn how to combine them together in the form of Dashboard. A dashboard is collection of your visualizations created, so that you can take a look at it all together at a time.
+
+
+
+
+##################################################################################################################################
 
 Kibana does not interact with Logstash directly but through a data source, which is Elasticsearch in the ELK stack. Logstash collects
 the data from every source and Elasticsearch analyzes it at a very fast speed, then Kibana provides the actionable insights on that data.
