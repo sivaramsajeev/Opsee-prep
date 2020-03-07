@@ -20,6 +20,19 @@ Ultimately, both solutions can work, but in my opinion Elasticsearch will requir
 clusters are a pain to maintain - but that depends on the amount of data you'll have).
 
 
+###########################################################################################################################
+
+Service discovery” component. This is one of the best features of Prometheus in my personal opinion and a reason why it is a good
+fit for me. It is built for “Dynamic” environments. Although I will not be showing this component in the post, I would like to briefly
+talk about it because it will be key down the line when we try to get metrics from frameworks such as Kubernetes, Marathon, 
+etc and ec2 instances. It provides the point of truth for the environment.
+This feature will allow Prometheus to auto discover different targets since these targets will come and go so frequently in a
+distributed system or microservice orchestration style of architecture. We will not be responsible for continuously updating a
+static list of target addresses each time a service and/or a piece of infrastructure is removed or added. Prometheus will
+automatically discover and start/stop scraping for us.
+
+##############################################################################################################################
+
 
 
 
