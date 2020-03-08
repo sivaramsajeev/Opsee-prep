@@ -1,0 +1,99 @@
+
+
+
+42
+
+Try using a different method in your traceroute, for example TCP SYN or ICMP instead of the default UDP method.
+
+For example note the difference between ICMP and TCP:
+
+x@x:~$ ping -qc4 94.254.2.51
+PING 94.254.2.51 (94.254.2.51) 56(84) bytes of data.
+--- 94.254.3.90 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3009ms
+rtt min/avg/max/mdev = 7.781/7.807/7.836/0.067 ms
+
+x@x:~$ sudo traceroute -I 94.254.2.51
+traceroute to 94.254.2.51 (94.254.2.51), 30 hops max, 40 byte packets
+1  <REDACTED>
+2  <REDACTED>
+3  <REDACTED>
+4  <REDACTED>
+5  netnod-ix-ge-a-sth-1500.bahnhof.net (194.68.123.85)  1.307 ms  1.299 ms  1.432 ms
+6  sto-cr1.sto-cr3.bahnhof.net (85.24.151.165)  7.166 ms  7.364 ms  7.336 ms
+7  sto-cr3.gav-cr1.bahnhof.net (85.24.151.195)  7.251 ms  7.099 ms  7.220 ms
+8  zitius-a322-gw-c.bahnhof.net (85.24.153.249)  7.059 ms  7.074 ms  7.145 ms
+9  h-2-51.A322.priv.bahnhof.se (94.254.2.51)  7.619 ms  7.750 ms  8.070 ms
+
+x@x:~$ sudo traceroute -T 94.254.2.51
+traceroute to 94.254.2.51 (94.254.2.51), 30 hops max, 40 byte packets
+1  <REDACTED>
+2  <REDACTED>
+3  <REDACTED>
+4  <REDACTED>
+5  netnod-ix-ge-a-sth-1500.bahnhof.net (194.68.123.85)  1.621 ms  1.683 ms  1.817 ms
+6  sto-cr1.sto-cr3.bahnhof.net (85.24.151.165)  8.530 ms  7.861 ms  7.820 ms
+7  sto-cr3.gav-cr1.bahnhof.net (85.24.151.195)  7.724 ms  7.539 ms  7.486 ms
+8  zitius-a322-gw-c.bahnhof.net (85.24.153.249)  7.572 ms  7.537 ms  7.553 ms
+9  * * *
+10  * * *
+
+##########################################################################################
+
+Several ISPs are known to make their routers stealth to traceroute in two ways: they either don't decrement TTL in IP packets (making themselves IP wormholes) or they don't respond to expired TTL while still forwarding ICMP.
+
+The reason is to keep their internal network topology private. That's all.
+
+Issuing traceroutes from/to multiple sources/destination reveals information on network topology, which is something like not everyone appreciates.
+
+#!/bin/bash
+for TTL in 1 2 3 4 5 6 7 8 9 10 11 12
+do
+    ping -c 1 -n -t $TTL a.b.c.d
+done
+By calling ping with a -t $TTL argument, you can sometimes elude the firewall, and find out IP addresses and so forth of routers behind firewalls.
+
+
+
+0
+
+Either all noded from 6 onwards doesn't respond to UDP packets or node 6 itself block udp packets. You can try the fllowing methods, which I hope will work based on which node in the path to detination blocks ICMP/TCP SYN :
+
+Use ICMP to traceroute : $ sudo traceroute -I
+
+Use TCP syn to traceroute : $ sudo traceroute -T
+
+If it's the hops which it is exceeding, then use either of the following : $ sudo traceroute -I -m 60
+
+OR
+
+$ sudo traceroute -T -m 60
+
+The latter worked for me while tracerouting to an ftp across the continent
+
+
+
+Finally let's try traceroute over TCP protocol port 80:
+
+# traceroute -T -p 80 www.microsoft.com
+traceroute to www.microsoft.com (65.55.57.27), 30 hops max, 60 byte packets
+ 1  50.57.125.2 (50.57.125.2)  0.540 ms  0.629 ms  0.709 ms
+ 2  core1-aggr701a-3.ord1.rackspace.net (184.106.126.50)  0.486 ms  0.604 ms  0.691 ms
+ 3  corea.ord1.rackspace.net (184.106.126.128)  0.511 ms corea.ord1.rackspace.net (184.106.126.124)  0.564 ms  0.810 ms
+ 4  bbr1.ord1.rackspace.net (184.106.126.147)  1.339 ms  1.310 ms bbr1.ord1.rackspace.net (184.106.126.145)  1.307 ms
+ 5  chi-8075.msn.net (206.223.119.27)  3.619 ms  2.560 ms  2.528 ms
+ 6  * 204.152.140.35 (204.152.140.35)  3.640 ms *
+ 7  ge-7-0-0-0.co1-64c-1a.ntwk.msn.net (207.46.40.94)  52.523 ms xe-0-2-0-0.ch1-96c-2b.ntwk.msn.net (207.46.46.49)  3.825 ms xe-1-2-0-0.ch1-96c-2b.ntwk.msn.net (207.46.46.53)  3.355 ms
+ 8  xe-0-1-0-0.co1-96c-1a.ntwk.msn.net (207.46.33.177)  61.042 ms  61.032 ms  60.457 ms
+ 9  * * xe-5-2-0-0.co1-96c-1b.ntwk.msn.net (207.46.40.165)  100.069 ms
+10  65.55.57.27 (65.55.57.27)  53.868 ms  53.038 ms  52.097 ms
+A full network path to www.microsoft.com!
+
+####################################################################################################################################
+
+
+
+
+
+
+
