@@ -1,6 +1,8 @@
 
 
 
+
+#############################################################################################################################
 42
 
 Try using a different method in your traceroute, for example TCP SYN or ICMP instead of the default UDP method.
@@ -90,6 +92,301 @@ traceroute to www.microsoft.com (65.55.57.27), 30 hops max, 60 byte packets
 A full network path to www.microsoft.com!
 
 ####################################################################################################################################
+
+
+
+Using ip
+If you find you don't have the arp or fing commands available, you could use iproute2's command ip neigh to see your system's ARP table instead:
+
+$ ip neigh
+192.168.1.61 dev eth0 lladdr b8:27:eb:87:74:11 REACHABLE
+192.168.1.70 dev eth0 lladdr 30:b5:c2:3d:6c:37 STALE
+192.168.1.95 dev eth0 lladdr f0:18:98:1d:26:e2 REACHABLE
+192.168.1.2 dev eth0 lladdr 14:cc:20:d4:56:2a STALE
+192.168.1.10 dev eth0 lladdr 00:22:15:91:c1:2d REACHABLE
+
+
+update cache with all node details 
+nmap -sP 192.168.1.0/24 >/dev/null && arp -an | grep <mac address here> | awk '{print $2}' | sed 's/[()]//g'
+
+
+The local computer sends an ARP REQUEST message to find the owner of the IP address in question.
+
+This message is sent to all devices within the same segment or LAN through a broadcast MAC (FF:FF:FF:FF:FF:FF) as the destination.
+
+Because the remote computer is part of the same network segment, it receives the broadcast message sent by the local computer. All other computers in the LAN also receive the broadcast but they know that the destination IP is not theirs, so they discard the packet. Only the remote computer with destination IP, responds to the ARP REQUEST with an ARP REPLY, which contains the target MAC address.
+The local computer receives the ARP REPLY with the MAC address. It then resumes the ICMP echo request, and finally, the remote computer responds with an ICMP echo reply.
+
+To ping the entire LAN, you can send a broadcast to your network.
+
+Open the Command Prompt in Windows or terminal in macOS and type.
+
+ping 192.168.0.255
+
+
+For home networks or LANs, the DHCP Server is typically a router or gateway.
+
+If you have access to the DHCP Server, you can view all relationships with IPs, MACs, interfaces, name of the device, and lease time in your LAN.
+
+Step 1.
+Log into the DHCP Server. In this example, the DHCP server is the home gateway.
+If you don’t know the IP address of your DHCP Server/ Gateway, you can run an ipconfig (in Windows) or ifconfig (in macOS/Linux).
+
+
+Your network segment or LAN might be full of different devices, from computers, firewalls, routers, mobiles, printers, TVs, etc.
+
+And MAC addresses contain key information for knowing more details about each network device.
+
+First, it is essential to understand the format of the MAC address.  
+
+Traditional MAC addresses are 48 bits represented in 12-digit hexadecimal numbers (or six octets).
+
+The first half of the six octets represent the Organizational Unique Identifier (OUI) and the other half is the Network Interface Controller (NIC) which is unique for every device in the world.
+
+
+
+There is not much we can do about the NIC, other than communicating with it.
+
+But the OUI can give us useful information about the vendor if you didn’t use Nmap, which can also give you the hardware vendor.
+
+A free online OUI lookup tool like Wireshark OUI Lookup can help you with this
+
+
+Although the RARP (the counterpart of ARP) was specifically designed to find IPs from MAC addresses, it was quickly discontinued because it had many drawbacks.
+
+RARP was quickly replaced by DHCP and BOOTP.
+
+But ARP is still one of the core functions of the IP layer in the TCP/IP protocol stack.
+
+It finds MAC addresses from known IPs, which is most common in today’s communications.
+
+ARP works under the hood to keep a frequently used list of MACs and IPs.
+
+
+
+As networks evolved, network devices got smarter and we saw the advent of switches.
+
+Each port on a switch was in its own collision domain which means that multiple devices connected to a switch can send packets at the same time. Also, switches could keep track of the port to which devices were connected to.
+
+This means that switches do not need to flood packets out all ports except to the port on which a device is connected
+
+
+
+
+Note: Flooding still occurs for broadcast packets and also for unicast packets for which the switch does not know about the destination MAC address.
+
+However, switches were still limited to a single broadcast domain which means that broadcast packets are sent to all ports on that switch.
+
+It also meant that segmentation was on a per-device basis: if you wanted to differentiate between sets of users on the network, you need to connect them to different switches.
+
+While this is not a big deal on smaller networks, it is clearly inefficient on larger networks. Enter the world of VLANs.
+
+
+A VLAN is a logical grouping of devices on a network with each VLAN being in its own broadcast domain.
+
+Being logical, VLANs are not restricted to the physical location of devices and can even span multiple switches.
+
+This means that devices within a certain group do not have to be connected to the same switch for local (layer 2) communication to occur between them.
+
+
+
+Note: Communication between VLANs requires a Layer 3 device such as a router or multi-layer switch. We will not be discussing interVLAN communication in this article.
+
+Apart from providing logical segmentation of devices, VLANs are also useful for addressing security, easing network management, and also improving the performance of a network (e.g. by reducing the size of the broadcast domain).
+
+It is worth mentioning that devices can be assigned to VLANs using two approaches:
+
+Static VLANs where ports are statically mapped/assigned to a particular VLAN
+Dynamic VLANs where devices are assigned to VLANs based on different characteristics such as MAC addresses, the username used to log on to the network, and so on.
+
+
+
+To support VLANs, a special “tag” needs to be applied to packets so that network devices can know how to forward those packets correctly.
+
+While different vendors have their own proprietary method for creating this tag (e.g. the now deprecated Cisco ISL protocol), a standard supported by most networking devices for supporting VLANs on Ethernet networks is the IEEE 802.1Q standard.
+
+802.1Q adds a 32-bit field (4 bytes) inside an Ethernet frame.
+
+The first 16 bits in this field (TPID) are used to identify the frame as an 802.1Q tagged frame while 12 out of the remaining 16 bits are used to carry the VLAN ID.
+
+The remaining 4 bits are mainly used for Quality of Service (QoS) operations.
+
+12 bits used for the VLAN ID means that 4096 VLANs can theoretically be supported i.e. 2^12 = 4096.
+
+However, all 0s (0x000 in hexadecimal) and all 1s (0xFFF in hexadecimal) are reserved bringing the total supported VLANs to 4094.
+
+Note that network vendors may also implement their own VLAN ID restrictions.
+
+How VLAN Works
+
+
+Before VLANs, the decision a switch had to make was easy:
+
+If the switch receives a broadcast packet or a unicast packet for which it does not know the destination MAC address, it will flood that packet to all its other ports except the one it was received on
+If the switch receives a unicast packet and it knows the destination MAC address, it will forward that packet only to the port on which the destination device is connected
+With VLANs, there are a couple of things to be considered:
+
+Is the packet destined for a device connected to the same switch or to a device on a different switch (in the same VLAN)?
+What should the switch do if it receives a packet without a VLAN tag i.e. untagged packet?
+What should the switch do if it receives a packet with a VLAN tag i.e. tagged packet?
+
+
+Most switches that support VLANs come pre-installed with a default VLAN. This means that all the ports on that switch will belong to the default VLAN by default (pun intended). This is the reason you can buy a new switch, connect multiple devices to this switch, assign these devices IP addresses, and they can immediately communicate with themselves. For most vendors, the default VLAN is VLAN 1.
+
+
+You will need to manually configure a port as part as another VLAN to remove it from the default VLAN.
+
+
+Untagged Packet/Port
+Most end devices that connect to a switch do not care about or understand VLAN tagging.
+
+They just want to be able to communicate on the network.
+
+This includes devices like workstations, IP cameras, and even some servers.
+
+When these devices send packets to the switch, they send plain Ethernet frames (i.e. untagged packets) and it is up to the switch to determine how to forward that packet.
+
+Note: Many network interface cards can be configured to understand VLAN information and even tag packets with VLAN IDs but this is not enabled by default since it is not a common requirement. See this article for how to enable VLAN tagging on Windows.
+
+In most cases, the switch ports that connect to such end devices will be configured with a specific VLAN ID and that’s how the switch will determine how to forward the packet.
+
+For example, if a switch receives an untagged packet from a device connected to its Fa0/1 port and that port is assigned to VLAN 10, then the switch will know that it needs to forward the packet to another device (or devices) in VLAN 10
+
+
+Note: If that port is in its default state, then it will belong to the default VLAN and untagged packets will be treated as belonging to that default VLAN.
+
+These ports that connect to end devices are called “untagged ports” and can only be configured for a single VLAN.
+
+Hint: Cisco calls this type of ports “access ports“.
+
+Before the switch forwards packets out of an untagged port, it strips away any VLAN information from that packet since the receiving device won’t understand them anyway.
+
+Tagged Packet/Port
+On the other hand, some devices understand and participate in VLAN tagging.
+
+It means these devices tag the packets they send and can also understand when they received a tagged packet.
+
+A switch is a typical example of such a device.
+
+Since VLANs can span multiple switches, it means there needs to be a way for tagged packets to travel from one switch to another.
+
+To do this, a single port on the same VLAN can be used on both the switches to carry traffic for that VLAN:
+
+
+If you are starting out a new organization or a new product – you definitely might want to use a managed service such as CloudWatch.
+Once you start embracing cloud-native technologies and also thinking of multi-cloud or cloud agnostic infrastructure then it is better to start thinking about Prometheus.
+If you are doing anything of non-trivial scale – there might be benefits to using Prometheus. The benefits can be economic as well as beyond economics such as feature richness.
+For some AWS managed services such as RDS – you will need to use CloudWatch for native monitoring and then use Prometheus exporters to get the data into Prometheus servers
+
+
+How do I set a virtual local area network (VLAN) tag with my network card in Windows?
+Virtual local area network (VLAN) tagging requires that the network interface card (NIC) and the router or switch that you use support protocol IEEE 802.1q.
+
+Depending on the NIC, you can set your VLAN ID in Device Manager.  Not all NICs that support VLAN tagging have this option.
+
+Setting your VLAN ID in Device Manager
+
+Note: Log in as the local administrator before continuing.
+
+To open Device Manager:
+
+Press Windows key + R
+Type devmgmt.msc
+Click OK.
+In Device Manager, open Network adapters.
+Right-click on the NIC and choose Properties.
+Click the Advanced tab.
+Scroll down to VLAN ID.
+Set the ID that you would like the NIC to have and click OK.
+Setting up your VLAN Tagging and Setting a VLAN ID
+
+How you perform this task depends on your router or switch.  Consult the manual or manufacturer of your router or switch for more details.
+
+In your router or switch, you can VLAN tag a device by the VLAN ID if you set one previously, or by the MAC address of the computer.  Your router or switch will list all IP devices by MAC address.
+
+
+These ports are known as “tagged ports” because the switch applies tags to the packets sent from such ports.
+
+Depending on the vendor, tagged ports are able to carry traffic for all VLANs by default but a filter can be applied on such ports to limit the allowed VLANs.
+
+Hint: Cisco calls this type of ports “trunk ports“.
+
+
+Native VLAN
+In the subsections above, we have considered the following scenarios:
+
+Untagged packet received on an untagged port: forward based on VLAN configured on the port
+Tagged packet received on an untagged port: drop packet except the tag is the same as the VLAN configured on the port
+Tagged packet received on a tagged port: forward based on the VLAN tag in the packet
+There is the last scenario we have not considered: what should a tagged port do if it receives an untagged packet?
+
+Since that port can carry multiple VLANs and is not assigned to a single VLAN, what VLAN tag should it apply to that untagged packet?
+
+This is where the Native VLAN comes in.
+
+The Native VLAN is the VLAN associated with all untagged packets on a tagged/trunk port
+
+
+
+Due to the fact that each ping represents a round-trip packet, and the situation where packets often use different pathways in either direction, it may indicate a problem in a completely different, possibly closer route.
+
+It also may be the case that the problem is with the hop directly after the last hop you see. It is difficult to diagnose the exact location of the problem unless you can get a return traceroute from that specific hop. This is usually not possible outside of your own network.
+
+
+By default, traceroute uses high UDP ports for tracing hosts. However, sometime firewalls block these UDP ports.
+
+Try to add the "-I" (uppercase i) parameter to the command line, eg:
+
+traceroute -I www.google.it
+This will use ICMP instead of UDP for tracing hosts.
+
+
+Memory Space Start-up arguments
+and tuning
+Monitoring strategies Description
+Java Heap -Xmx (maximum Heap
+space)
+-Xms (minimum Heap
+size)
+EX:
+-Xmx1024m
+-Xms1024m
+- verbose GC
+- JMX API
+- JConsole
+- Other monitoring tools
+The Java Heap is
+storing your primary
+Java program Class
+instances.
+
+
+
+###############################################################################################################################
+
+Java Heap Space - Overview & life cycle
+ Your Java program life cycle typically looks like this:
+• Java program coding (via Eclipse IDE etc.) e.g. HelloWorld.java
+• Java program compilation (Java compiler or third party build tools such as Apache Ant, Apache
+Maven..) e.g. HelloWord.class
+• Java program start-up and runtime execution e.g. via your HelloWorld.main() method
+Now let's dissect your HelloWorld.class program so you can better understand.
+• At start-up, your JVM will load and cache some of your static program and JDK libraries to the
+Native Heap, including native libraries, Mapped Files such as your program Jar file(s), Threads
+such as the main start-up Thread of your program etc.
+• Your JVM will then store the "static" data of your HelloWorld.class Java program to the
+PermGen space (Class metadata, descriptors, etc.).
+• Once your program is started, the JVM will then manage and dynamically allocate the memory
+of your Java program to the Java Heap (YoungGen & OldGen). This is why it is so important
+that you understand how much memory your Java program needs to you can properly finetuned the capacity of your Java Heap controlled via -Xms & -Xmx JVM parameters. Profiling,
+Heap Dump analysis allow you to determine your Java program memory footprint.
+• Finally, the JVM has to also dynamically release the memory from the Java Heap Space that
+your program no longer need; this is called the garbage collection process. This process can
+be easily monitored via the JVM verbose GC or a monitoring tool of your choice such as
+Jconsole
+
+
+#########################################################################################################################################
 
 
 
