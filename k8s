@@ -101,5 +101,508 @@ kubectl -n kube-system get secret clusterinfo -o yaml | grep token-map | awk '{p
 
 
 
+#######################################################################################################################
+
+Checking Pod Logs with kubectl logs
+The first thing I normally do if a Pod is having problems is check the logs for any errors. This is very similar to docker logs.
+
+kubectl logs [pod-name]
+If the Pod contains more than one container you can use the -c switch to define a specific container. Use the container name defined in the Pod or Deployment YAML.
+
+kubectl logs [pod-name] -c [container-name]
+Note: Run kubectl get pod [pod-name] -o yaml or kubectl get deployment [deployment-name] -o yaml if you’re not sure about the name of the container. The -o yaml switch is useful for getting additional information about the Pod by the way – more information on that technique will be provided a little later.
+
+To get logs for all containers in a Pod (if you have more than 1) you can run the following:
+
+kubectl logs [pod-name] --all-containers=true
+If you want to get logs for a previously running Pod add the -p flag:
+
+kubectl logs -p [pod-name]
+Finally, to stream the logs for a Pod use the -f flag:
+
+kubectl logs -f [pod-name]
+
+You can run the kubectl describe command to see information about the Pod as well as events that have run (look at the bottom of the output for the events). This is really helpful to see if the image for a container was pulled correctly, if the container started in the Pod, any Pod reschedule events, and much more.
+
+kubectl describe pod [pod-name]
+In some cases describe events may lead to the discovery that the troubled Pod has been rescheduled frequently by Kubernetes. It’s great that this happens (when setup properly with a Deployment for example), but it’s also good to get to the bottom of “why” a Pod is being rescheduled to determine if there’s a bug in the code that’s running, a memory leak, or another issue.
+
+
+Viewing the Pod YAML with -o yaml
+Finally, you can run kubectl get on a troubled Pod but display the YAML (or JSON) instead of just the basic Pod information. In many scenarios this may yield some useful information.
+
+kubectl get pods [pod-name] -o yaml
+You can do the same thing for a specific Deployment as well:
+
+kubectl get deployment [deployment-name] -o yaml
+kubectl get documentation
+
+Shelling into a Pod Container with kubectl exec
+In some cases you may need to get into a Pod’s container to discover what is wrong. With Docker you would use the docker exec command. Kubernetes is similar:
+
+kubectl exec [pod-name] -it sh
+
+
+Kubernetes OOM problems
+When any Unix based system runs out of memory, OOM safeguard kicks in and kills certain processes based on obscure rules only accessible to level 12 dark sysadmins (chaotic neutral). Kubernetes OOM management tries to avoid the system running behind trigger its own. When the node is low on memory, Kubernetes eviction policy enters the game and stops pods as failed. These pods are scheduled in a different node if they are managed by a ReplicaSet. This frees memory to relieve the memory pressure.
+
+
+
+OOM kill due to container limit reached
+This is by far the most simple memory error you can have in a pod. You set a memory limit, one container tries to allocate more memory than that allowed,and it gets an error. This usually ends up with a container dying, one pod unhealthy and Kubernetes restarting that pod.
+
+test          frontend        0/1     Terminating         0          9m21s
+Describe pods output would show something like this:
+
+   State:          Running
+      Started:      Thu, 10 Oct 2019 11:14:13 +0200
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    137
+      Started:      Thu, 10 Oct 2019 11:04:03 +0200
+      Finished:     Thu, 10 Oct 2019 11:14:11 +0200
+…
+
+Events:
+  Type    Reason          Age                    From                                                  Message
+  ----    ------          ----                   ----                                                  -------
+  Normal  Scheduled       6m39s                  default-scheduler                                     Successfully assigned test/frontend to gke-lab-kube-gke-default-pool-02126501-7nqc
+  Normal  SandboxChanged  2m57s                  kubelet, gke-lab-kube-gke-default-pool-02126501-7nqc  Pod sandbox changed, it will be killed and re-created.
+  Normal  Killing         2m56s                  kubelet, gke-lab-kube-gke-default-pool-02126501-7nqc  Killing container with id docker://db:Need to kill Pod
+The Exit code 137 is important because it means that the system terminated the container as it tried to use more memory than its limit.
+
+In order to monitor this, you always have to look at the use of memory compared to the limit. Percentage of the node memory used by a pod is usually a bad indicator as it gives no indication on how close to the limit the memory usage is. In Kubernetes, limits are applied to containers, not pods, so monitor the memory usage of a container vs. the limit of that container.
+
+
+
+Kubernetes OOM kill due to limit overcommit
+Memory requested is granted to the containers so they can always use that memory, right? Well, it’s complicated. Kubernetes will not allocate pods that sum to more memory requested than memory available in a node. But limits can be higher than requests, so the sum of all limits can be higher than node capacity. This is called overcommit and it is very common. In practice, if all containers use more memory than requested, it can exhaust the memory in the node. This usually causes the death of some pods in order to free some memory
+
+
+Memory management in Kubernetes is complex, as it has many facets. Many parameters enter the equation at the same time:
+
+Memory request of the container.
+Memory limit of the container.
+Lack of those settings.
+Free memory in the system.
+Memory used by the different containers.
+With these parameters, a blender and some maths, Kubernetes elaborates a score. Last in the table is killed or evicted. The pod can be restarted depending on the policy, so that doesn’t mean the pod will be removed entirely.
+
+Despite this mechanism, we can still finish up with system OOM kills as Kubernetes memory management runs only every several seconds. If the system memory fills too quickly, the system can kill Kubernetes control processes, making the node unstable.
+
+
+
+This scenario should be avoided as it will probably require a complicated troubleshooting, ending with an RCA based on hypothesis and a node restart.
+
+In day-to-day operation, this means that in case of overcommitting resources, pods without limits will likely be killed, containers using more resources than requested have some chances to die and guaranteed containers will most likely be fine
+
+
+CPU throttling due to CPU limit
+There are many differences on how CPU and memory requests and limits are treated in Kubernetes. A container using more memory than the limit will most likely die, but using CPU can never be the reason of Kubernetes killing a container. CPU management is delegated to the system scheduler, and it uses two different mechanisms for the requests and the limits enforcement.
+
+CPU requests are managed using the shares system. This means that the resources in the CPU are prioritized depending on the value of shares. Each CPU core is divided into 1,024 shares and the resources with more shares have more CPU time reserved. Be careful, in moments of CPU starvation, shares won’t ensure your app has enough resources, as it can be affected by bottlenecks and general collapse.
+
+
+
+Tip: If a container requests 100m, the container will have 102 shares. These values are only used for pod allocation. Monitoring the shares in a pod does not give any idea of a problem related to CPU throttling.
+
+On the other hand, limits are treated differently. Limits are managed with the CPU quota system. This works by dividing the CPU time in 100ms periods and assigning a limit on the containers with the same percentage that the limit represents to the total CPU in the node.
+
+If you want to know if your pod is suffering from CPU throttling, you have to look at the percentage of the quota assigned that is being used. Absolute CPU use can be treacherous, as you can see in the following graphs. CPU use of the pod is around 25%, but as that is the quota assigned, it is using 100% and consequently suffering CPU throttling.
+
+sts & containers → Container limits
+
+There is a great difference between CPU and memory quota management. Regarding memory, a pod without requests and limits is considered burstable and is the first of the list to OOM kill. With the CPU, this is not the case. A pod without CPU limits is free to use all the CPU resources in the node. Well, truth is, the CPU is there to be used, but if you can’t control which process is using your resources, you can end up with a lot of problems due to CPU starvation of key processes.
+
+
+First, there are two reasons why your Pods can fail.
+Errors in the configuration of your Kubernetes resources like deployment and services.
+Problems in your code.
+In the former case, containers do not start. In the latter instance, the application code fails after the container starts up. We’ll address each of these situations systematically
+
+
+Meanwhile, here are other error codes that occur when a container fails to start.
+ImagePullBackoff— Docker image registry not accessible, image name/version specified in deployment incorrect. Make sure the image name is correct, and the registry is accessible and authenticated (docker login…).
+RunContainerError— One possible cause: ConfigMap/Secrets missing.
+ContainerCreating— Something not available immediately, persistent volume?
+
+Next, here are a few errors that can occur after the container has started.
+CrashLoopBackOff — Pod liveness check has failed or the Docker image is faulty. E.g., The Docker CMD is exiting immediately. See tip number three to check logs. Note: The RESTARTS column in the screenshot shows the number of restarts. In this case, you should expect to see some restarts because K8S attempts to start Pods repeatedly when errors occur.
+If the Pod is in status Running and your app is still not working correctly, proceed to tips three and four
+
+
+Tip 2: Check Events Related to Pods
+If you see one of the error codes on the Pod status, you can get more information with the describe command. This is helpful in situations where the container itself did not start.
+kubectl describe frontend-65c58c957d-f4cqn
+
+
+Check Your Logs
+Now that the container has started, see if the application is functioning correctly by checking logs. E.g. for Pod frontend-65c58c957d-bzbg2:
+kubectl logs --tail=10 frontend-65c58c957d-bzbg2
+
+K8S fires events whenever the state of the resources it manages changes (Normal, Warning, etc). They help us understand what happened behind the scenes. The get events command provides an aggregate perspective of events.
+# all events sorted by time. 
+kubectl get events --sort-by=.metadata.creationTimestamp
+# warnings only
+kubectl get events --field-selector type=Warning
+# events related to Nodes 
+kubectl get events --field-selector involvedObject.kind=Node
+
+
+ext, try the command shown here to grep debug commands.
+kubectl | grep -i -A 10 debugging
+
+
+When you wish to deploy an application in Kubernetes, you usually define three components:
+
+a Deployment — which is a recipe for creating copies of your application called Pods
+a Service — an internal load balancer that routes the traffic to Pods
+an Ingress — a description of how the traffic should flow from outside the cluster to your Service.
+
+
+Assuming you wish to deploy a simple Hello World application, the YAML for such application should look similar to this:
+
+hello-world.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deployment
+  labels:
+    track: canary
+spec:
+  selector:
+    matchLabels:
+      any-name: my-app
+  template:
+    metadata:
+      labels:
+        any-name: my-app
+    spec:
+      containers:
+      - name: cont1
+        image: learnk8s/app:1.0.0
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-service
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    name: app
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: my-ingress
+spec:
+  rules:
+  - http:
+    paths:
+    - backend:
+        serviceName: app
+        servicePort: 80
+      path: /
+
+	  
+	  
+The surprising news is that Service and Deployment aren't connected at all.
+
+Instead, the Service points to the Pods directly and skips the Deployment altogether.
+
+So what you should pay attention to is how the Pods and the Service are related to each other.
+
+You should remember three things:
+
+The Service selector should match at least one label of the Pod
+The Service targetPort should match the containerPort of the container inside the Pod
+The Service port can be any number. Multiple Services can use the same port because they have different IP addresses assigned.
+
+
+
+What about the track: canary label at the top of the Deployment?
+
+Should that match too?
+
+That label belongs to the deployment, and it's not used by the Service's selector to route traffic.
+
+In other words, you can safely remove it or assign it a different value.
+
+And what about the matchLabels selector?
+
+It always has to match the Pod labels and it's used by the Deployment to track the Pods.
+
+Assuming that you made the correct change, how do you test it?
+
+You can check if the Pods have the right label with the following command:
+
+bash
+kubectl get pods --show-labels
+
+
+You can also connect to the Pod!
+
+You can use the port-forward command in kubectl to connect to the Service and test the connection.
+
+bash
+kubectl port-forward service/<service name> 3000:80
+Where:
+
+service/<service name> is the name of the service — in the current YAML is "my-service"
+3000 is the port that you wish to open on your computer
+80 is the port exposed by the Service in the port field
+If you can connect, the setup is correctly
+
+The Ingress retrieves the right Service by name and port exposed.
+
+Two things should match in the Ingress and Service:
+
+The servicePort of the Ingress should match the port of the Service
+The serviceName of the Ingress should match the name of the Service
+
+
+Since there are three components in every deployment, you should debug all of them in order, starting from the bottom.
+
+You should make sure that your Pods are running, then
+Focus on getting the Service to route traffic to the Pods and then
+Check that the Ingress is correctly configured
+
+How do you investigate on what went wrong?
+
+There are four useful commands to troubleshoot Pods:
+
+kubectl logs <pod name> is helpful to retrieve the logs of the containers of the Pod
+kubectl describe pod <pod name> is useful to retrieve a list of events associated with the Pod
+kubectl get pod <pod name> is useful to extract the YAML definition of the Pod as stored in Kubernetes
+kubectl exec -ti <pod name> bash is useful to run an interactive command within one of the containers of the Pod
+
+
+Common Pods errors
+Pods can have startup and runtime errors.
+
+Startup errors include:
+
+ImagePullBackoff
+ImageInspectError
+ErrImagePull
+ErrImageNeverPull
+RegistryUnavailable
+InvalidImageName
+Runtime errors include:
+
+CrashLoopBackOff
+RunContainerError
+KillContainerError
+VerifyNonRootError
+RunInitContainerError
+CreatePodSandboxError
+ConfigPodSandboxError
+KillPodSandboxError
+SetupNetworkError
+TeardownNetworkError
+Some errors are more common than others.
+
+The following is a list of the most common error and how you can fix them.
+
+ImagePullBackOff
+This error appears when Kubernetes isn't able to retrieve the image for one of the containers of the Pod.
+
+There are three common culprits:
+
+The image name is invalid — as an example, you misspelt the name, or the image does not exist
+You specified a non-existing tag for the image
+The image that you're trying to retrieve belongs to a private registry, and Kubernetes doesn't have credentials to access it
+The first two cases can be solved by correcting the image name and tag.
+
+For the last, you should add the credentials to your private registry in a Secret and reference it in your Pods.
+
+The official documentation has an example about how you could to that.
+
+CrashLoopBackOff
+If the container can't start, then Kubernetes shows the CrashLoopBackOff message as a status.
+
+Usually, a container can't start when:
+
+There's an error in the application that prevents it from starting
+You misconfigured the container
+The Liveness probe failed too many times
+You should try and retrieve the logs from that container to investigate why it failed.
+
+If you can't see the logs because your container is restarting too quickly, you can use the following command
+
+
+kubectl logs <pod-name> --previous
+Which prints the error messages from the previous container.
+
+
+RunContainerError
+The error appears when the container is unable to start.
+
+That's even before the application inside the container starts.
+
+The issue is usually due to misconfiguration such as:
+
+mounting a not-existent volume such as ConfigMap or Secrets
+mounting a read-only volume as read-write
+You should use kubectl describe pod <pod-name> to collect and analyse the error.
+
+Pods in a Pending state
+When you create a Pod, the Pod stays in the Pending state.
+
+Why?
+
+Assuming that your scheduler component is running fine, here are the causes:
+
+The cluster doesn't have enough resources such as CPU and memory to run the Pod
+The current Namespace has a ResourceQuota object and creating the Pod will make the Namespace go over the quota
+The Pod is bound to a Pending PersistentVolumeClaim
+Your best option is to inspect the Events section in the kubectl describe command:
+
+bash
+kubectl describe pod <pod name>
+For errors that are created as a result of ResourceQuotas, you can inspect the logs of the cluster with:
+
+bash
+kubectl get events --sort-by=.metadata.creationTimestamp
+Pods in a not Ready state
+If a Pod is Running but not Ready it means that the Readiness probe is failing.
+
+When the Readiness probe is failing, the Pod isn't attached to the Service, and no traffic is forwarded to that instance.
+
+A failing Readiness probe is an application-specific error, so you should inspect the Events section in kubectl describe to identify the error.
+
+2. Troubleshooting Services
+If your Pods are Running and Ready, but you're still unable to receive a response from your app, you should check if the Service is configured correctly.
+
+Services are designed to route the traffic to Pods based on their labels.
+
+So the first thing that you should check is how many Pods are targeted by the Service.
+
+You can do so by checking the Endpoints in the Service:
+
+bash
+kubectl describe service <service-name> | grep Endpoints
+An endpoint is a pair of <ip address:port>, and there should be at least one — when the Service targets (at least) a Pod.
+
+If the "Endpoints" section is empty, there are two explanations:
+
+you don't have any Pod running with the correct label (hint: you should check if you are in the right namespace)
+You have a typo in the selector labels of the Service
+If you see a list of endpoints, but still can't access your application, then the targetPort in your service is the likely culprit.
+
+How do you test the Service?
+
+Regardless of the type of Service, you can use kubectl port-forward to connect to it:
+
+bash
+kubectl port-forward service/<service-name> 3000:80
+Where:
+
+<service-name> is the name of the Service
+3000 is the port that you wish to open on your computer
+80 is the port exposed by the Service
+3. Troubleshooting Ingress
+If you've reached this section, then:
+
+the Pods are Running and Ready
+the Service distributes the traffic to the Pod
+But you still can't see a response from your app.
+
+It means that most likely, the Ingress is misconfigured.
+
+Since the Ingress controller being used is a third-party component in the cluster, there are different debugging techniques depending on the type of Ingress controller.
+
+But before diving into Ingress specific tools, there's something straightforward that you could check.
+
+The Ingress uses the serviceName and servicePort to connect to the Service.
+
+You should check that those are correctly configured.
+
+You can inspect that the Ingress is correctly configured with:
+
+bash
+kubectl describe ingress <ingress-name>
+If the Backend column is empty, then there must be an error in the configuration.
+
+If you can see the endpoints in the Backend column, but still can't access the application, the issue is likely to be:
+
+how you exposed your Ingress to the public internet
+how you exposed your cluster to the public internet
+You can isolate infrastructure issues from Ingress by connecting to the Ingress Pod directly.
+
+First, retrieve the Pod for your Ingress controller (which could be located in a different namespace):
+
+bash
+kubectl get pods --all-namespaces
+NAMESPACE   NAME                              READY STATUS
+kube-system coredns-5644d7b6d9-jn7cq          1/1   Running
+kube-system etcd-minikube                     1/1   Running
+kube-system kube-apiserver-minikube           1/1   Running
+kube-system kube-controller-manager-minikube  1/1   Running
+kube-system kube-proxy-zvf2h                  1/1   Running
+kube-system kube-scheduler-minikube           1/1   Running
+kube-system nginx-ingress-controller-6fc5bcc  1/1   Running
+Describe it to retrieve the port:
+
+bash
+kubectl describe pod nginx-ingress-controller-6fc5bcc
+ --namespace kube-system \
+ | grep Ports
+Finally, connect to the Pod:
+
+bash
+kubectl port-forward nginx-ingress-controller-6fc5bcc 3000:80 --namespace kube-system
+At this point, every time you visit port 3000 on your computer, the request is forwarded to port 80 on the Pod.
+
+Does it works now?
+
+If it works, the issue is in the infrastructure. You should investigate how the traffic is routed to your cluster.
+If it doesn't work, the problem is in the Ingress controller. You should debug the Ingress.
+If you still can't get the Ingress controller to work, you should start debugging it.
+
+There are many different versions of Ingress controllers.
+
+Popular options include Nginx, HAProxy, Traefik, etc.
+
+You should consult the documentation of your Ingress controller to find a troubleshooting guide.
+
+Since Ingress Nginx is the most popular Ingress controller, we included a few tips for it in the next section.
+
+Debugging Ingress Nginx
+The Ingress-nginx project has an official plugin for Kubectl.
+
+You can use kubectl ingress-nginx to:
+
+inspect logs, backends, certs, etc.
+connect to the Ingress
+examine the current configuration
+The three commands that you should try are:
+
+kubectl ingress-nginx lint, which checks the nginx.conf
+kubectl ingress-nginx backend, to inspect the backend (similar to kubectl describe ingress <ingress-name>)
+kubectl ingress-nginx logs, to check the logs
+Please notice that you might need to specify the correct namespace for your Ingress controller with --namespace <name>.
+
+Summary
+Troubleshooting in Kubernetes can be a daunting task if you don't know where to start.
+
+You should always remember to approach the problem bottom-up: start with the Pods and move up the stack with Service and Ingress.
+
+The same debugging techniques that you learnt in this article can be applied to other objects such as:
+
+failing Jobs and CronJobs
+StatefulSets and DaemonSets
+
+
+
+
+
+
+
+
 
 
