@@ -598,6 +598,34 @@ failing Jobs and CronJobs
 StatefulSets and DaemonSets
 
 
+#########################################################################################################################
+
+My pod is crashing or otherwise unhealthy
+First, take a look at the logs of the current container:
+
+kubectl logs ${POD_NAME} ${CONTAINER_NAME}
+If your container has previously crashed, you can access the previous container’s crash log with:
+
+kubectl logs --previous ${POD_NAME} ${CONTAINER_NAME}
+Alternately, you can run commands inside that container with exec:
+
+kubectl exec ${POD_NAME} -c ${CONTAINER_NAME} -- ${CMD} ${ARG1} ${ARG2} ... ${ARGN}
+Note: -c ${CONTAINER_NAME} is optional. You can omit it for Pods that only contain a single container.
+As an example, to look at the logs from a running Cassandra pod, you might run
+
+kubectl exec cassandra -- cat /var/log/cassandra/system.log
+
+
+
+
+The first thing to do is to delete your pod and try creating it again with the --validate option. For example, run kubectl apply --validate -f mypod.yaml. If you misspelled command as commnd then will give an error like this:
+
+I0805 10:43:25.129850   46757 schema.go:126] unknown field: commnd
+I0805 10:43:25.129973   46757 schema.go:129] this may be a false alarm, see https://github.com/kubernetes/kubernetes/issues/6842
+pods/mypod
+The next thing to check is whether the pod on the apiserver matches the pod you meant to create (e.g. in a yaml file on your local machine). For example, run kubectl get pods/mypod -o yaml > mypod-on-apiserver.yaml and then manually compare the original pod description, mypod.yaml with the one you got back from apiserver, mypod-on-apiserver.yaml. There will typically be some lines on the “apiserver” version that are not on the original version. This is expected
+
+
 
 
 
