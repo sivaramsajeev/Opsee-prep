@@ -1,0 +1,18 @@
+being able to gain access to a system that you are not supposed to have access to   black/white/grey
+
+connecting wireless adapter to kali ->  monitor mode & packet injection required hence built in adapter is not good anyways
+settings-ports-usb-enable-+ (listing shows chipset not brandname
+
+ifconfig wlan0 down - ifconfig wlan0 hw ether 00:11:22:33:44:55 - ifconfig wlan0 up - just changing in memory  sometimes networkmanager
+might reset 
+
+iwconfig to list only wireless      - currently mode is managed(capture packets destined for itself)  
+ifconfig wlan0 down - airmon-ng check kill (will loose internet connection as well) - iwconfig wlan0 mode monitor - ifconfig wlan0 up
+(or airmon-ng start wlan0 - to enable monitor mode)
+
+
+chipset is the brains of adapter that does all the processing & calculations not the brand - atheros AR9271  then alfa & realtek  recommended
+
+
+
+
