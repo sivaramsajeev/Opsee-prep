@@ -42,6 +42,15 @@ PyPDF2
 
 python-docx
 
+>>> df = pandas.read_csv('sample_data.csv')
+
+>>> df.shape
+
+>>> df.info
+
+>>>df.head()    and df.tail() #like unix
+
+
 
 
 
