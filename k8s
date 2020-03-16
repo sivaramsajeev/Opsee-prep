@@ -9,6 +9,150 @@ writes on existing layer
 Leverage NFS to mount same volume over multiple containers
 
 ################################################################################################################
+
+The fundamental behind Kubernetes is that we can enforce the desired state management, by which I mean that we can feed the cluster
+services of a specific configuration, and it will be up to the cluster services to go out and run that configuration in the
+infrastructur
+
+So, as you can see in the above diagram, the deployment file will have all the configurations required to be fed into the cluster
+services. Now, the deployment file will be fed to the API and then it will be up to the cluster services to figure out how to schedule 
+these pods in the environment and make sure that the right number of pods are running.
+
+So, the API which sits in front of services, the worker nodes & the Kubelet process that the nodes run, all together make up the 
+Kubernetes Cluster.
+
+What is Heapster?
+Heapster is a cluster-wide aggregator of data provided by Kubelet running on each node. This container management tool is supported
+natively on Kubernetes cluster and runs as a pod, just like any other pod in the cluster. So, it basically discovers all nodes in
+the cluster and queries usage information from the Kubernetes nodes in the cluster, via on-machine Kubernetes agent.
+
+What is Kubectl?
+Kubectl is the platform using which you can pass commands to the cluster. So, it basically provides the CLI to run commands
+against the Kubernetes cluster with various ways to create and manage the Kubernetes component.
+
+Q14.  What is Kubelet?
+This is an agent service which runs on each node and enables the slave to communicate with the master. So, Kubelet works on the
+description of containers provided to it in the PodSpec and makes sure that the containers described in the PodSpec are healthy and 
+running.
+
+The master node has the kube-controller-manager, kube-apiserver, kube-scheduler, etcd. Whereas the worker node has kubelet 
+and kube-proxy running on each node.
+
+Kube-proxy can run on each and every node and can do simple TCP/UDP packet forwarding across backend network service. So basically,
+it is a network proxy which reflects the services as configured in Kubernetes API on each node. So, the Docker-linkable compatible
+environment variables provide the cluster IPs and ports which are opened by proxy.
+
+Kubernetes master controls the nodes and inside the nodes the containers are present. Now, these individual containers are 
+contained inside pods and inside each pod, you can have a various number of containers based upon the configuration and
+requirements. So, if the pods have to be deployed, then they can either be deployed using user interface or command line
+interface. Then, these pods are scheduled on the nodes and based on the resource requirements, the pods are allocated to
+these nodes. The kube-apiserver makes sure that there is communication established between the Kubernetes node and the master 
+components.
+
+
+The kube – apiserver follows the scale-out architecture and, is the front-end of the master node control panel. This exposes 
+all the APIs of the Kubernetes Master node components and is responsible for establishing communication between Kubernetes
+Node and the Kubernetes master components.
+
+The kube-scheduler is responsible for distribution and management of workload on the worker nodes. So, it selects the most
+suitable node to run the unscheduled pod based on resource requirement and keeps a track of resource utilization. It makes
+sure that the workload is not scheduled on nodes which are already full
+
+Multiple controller processes run on the master node but are compiled together to run as a single process which is the
+Kubernetes Controller Manager. So, Controller Manager is a daemon that embeds controllers and does namespace creation and garbage
+collection. It owns the responsibility and communicates with the API server to manage the end-points.
+
+Etcd is written in Go programming language and is a distributed key-value store used for coordinating between distributed work.
+So, Etcd stores the configuration data of the Kubernetes cluster, representing the state of the cluster at any given point
+in time.
+
+services - cluster ip(internal for the cluster) , nodeport & loadbalancer
+
+A load balancer is one of the most common and standard ways of exposing service. There are two types of load balancer used based
+on the working environment i.e. either the Internal Load Balancer or the External Load Balancer. The Internal Load Balancer
+automatically balances load and allocates the pods with the required configuration whereas the External Load Balancer directs
+the traffic from the external load to the backend pods
+
+Ingress network is a collection of rules that acts as an entry point to the Kubernetes cluster. This allows inbound connections, which can be configured to give services externally through reachable URLs, load balance traffic, or by offering name-based virtual hosting. So, Ingress is an API object that manages external access to the services in a cluster, usually by HTTP and is the most powerful way of exposing service.
+
+Now, let me explain to you the working of Ingress network with an example.
+
+There are 2 nodes having the pod and root network namespaces with a Linux bridge. In addition to this, there is also a new virtual ethernet device called flannel0(network plugin) added to the root network.
+
+Now, suppose we want the packet to flow from pod1 to pod 4. Refer to the below diagram
+
+So, the packet leaves pod1’s network at eth0 and enters the root network at veth0.
+Then it is passed on to cbr0, which makes the ARP request to find the destination and it is found out that nobody on this node has the
+destination IP address.
+So, the bridge sends the packet to flannel0 as the node’s route table is configured with flannel0.
+Now, the flannel daemon talks to the API server of Kubernetes to know all the pod IPs and their respective nodes to create mappings
+for pods IPs to node IPs.
+The network plugin wraps this packet in a UDP packet with extra headers changing the source and destination IP’s to their respective
+nodes and sends this packet out via eth0.
+Now, since the route table already knows how to route traffic between nodes, it sends the packet to the destination node2.
+The packet arrives at eth0 of node2 and goes back to flannel0 to de-capsulate and emits it back in the root network namespace.
+Again, the packet is forwarded to the Linux bridge to make an ARP request to find out the IP that belongs to veth1.
+The packet finally crosses the root network and reaches the destination Pod4.
+
+
+The Cloud Controller Manager is responsible for persistent storage, network routing, abstracting the cloud-specific code from the 
+core Kubernetes specific code, and managing the communication with the underlying cloud services. It might be split out into several
+different containers depending on which cloud platform you are running on and then it enables the cloud vendors and Kubernetes code 
+to be developed without any inter-dependency. So, the cloud vendor develops their code and connects with the Kubernetes
+cloud-controller-manager while running the Kubernetes.
+
+As for users, it is really important to understand the performance of the application and resource utilization at all the different 
+abstraction layer, Kubernetes factored the management of the cluster by creating abstraction at different levels like container, pods, 
+services and whole cluster. Now, each level can be monitored and this is nothing but Container resource monitoring.
+
+tools - heapster, influxdb, prometheus,grafana
+
+Replica Set and Replication Controller do almost the same thing. Both of them ensure that a specified number of pod replicas are running at any given time. The difference comes with the usage of selectors to replicate pods. Replica Set use Set-Based selectors while replication controllers use Equity-Based selectors.
+
+Equity-Based Selectors: This type of selector allows filtering by label key and values. So, in layman terms, the equity-based selector
+will only look for the pods which will have the exact same phrase as that of the label.
+Example: Suppose your label key says app=nginx, then, with this selector, you can only look for those pods with label app equal to
+nginx.
+Selector-Based Selectors: This type of selector allows filtering keys according to a set of values. So, in other words, the selector 
+based selector will look for pods whose label has been mentioned in the set.
+Example: Say your label key says app in (nginx, NPS, Apache). Then, with this selector, if your app is equal to any of nginx, NPS, 
+or Apache, then the selector will take it as a true result.
+
+Multiple Kubernetes clusters can be managed as a single cluster with the help of federated clusters. So, you can create multiple
+Kubernetes clusters within a data center/cloud and use federation to control/manage them all at one place.
+
+The company can implement the DevOps methodology, by building a CI/CD pipeline, but one problem that may occur here is the 
+configurations may take time to go up and running. So, after implementing the CI/CD pipeline the company’s next step should
+be to work in the cloud environment. Once they start working on the cloud environment, they can schedule containers on a cluster
+and can orchestrate with the help of Kubernetes. This kind of approach will help the company reduce their deployment time, and
+also get faster across various environments.
+
+
+In order to give millions of clients the digital experience they would expect, the company needs a platform that is scalable,
+and responsive, so that they could quickly get data to the client website. Now, to do this the company should move from their
+private data centers (if they are using any) to any cloud environment such as AWS. Not only this, but they should also implement
+the microservice architecture so that they can start using Docker containers. Once they have the base framework ready, then they
+can start using the best orchestration platform available i.e. Kubernetes. This would enable the teams to be autonomous in building
+applications and delivering them very quickly.
+
+ to solve the problem, they can shift their monolithic code base to a microservice design and then each and every microservices
+ can be considered as a container. So, all these containers can be deployed and orchestrated with the help of Kubernetes.
+ 
+ Kubernetes Controller = Both ReplicaSet and Deployment
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+###################################################################################################################
 gcloud command line installation (req python 2) --> download the tarball & follow doc 
 
 APIs -> enable APIs & services for gce & k8s
