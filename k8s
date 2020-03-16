@@ -42,6 +42,116 @@ Docker CLI provides the mechanism for managing the life cycle of the containers.
 Both Kubernetes and Docker build a comprehensive standard for managing the containerized applications intelligently along with providing powerful capabilities.Docker provides a platform for building running and distributing Docker containers. Docker brings up its own clustering tool which can be used for orchestration. But Kubernetes is a orchestration platform for Docker containers which is more extensive than the Docker clustering tool, and has capacity to scale to the production level. Kubernetes is a container orchestration system for Docker containers that is more extensive than Docker Swarm and is meant to coordinate clusters of nodes at scale in production in an efficient manner.  Kubernetes is a plug and play architecture for the container orchestration which provides features like high availability among the distributed nodes
 
 ######################################################################################################################
+Config maps ideally stores application configuration in a plain text format whereas Secrets store sensitive data like password in an encrypted format. Both config maps and secrets can be used as volume and mounted inside a pod through a pod definition file.
+
+Config map:
+
+                 kubectl create configmap myconfigmap
+ --from-literal=env=dev
+Secret:
+
+echo -n ‘admin’ > ./username.txt
+echo -n ‘abcd1234’ ./password.txt
+kubectl create secret generic mysecret --from-file=./username.txt --from-file=./password.txt
+
+
+
+If a node is tainted, is there a way to still schedule the pods to that node?
+
+When a node is tainted, the pods don't get scheduled by default, however, if we have to still schedule a pod to a tainted node we can start applying tolerations to the pod spec.
+
+Apply a taint to a node:
+
+kubectl taint nodes node1 key=value:NoSchedule
+Apply toleration to a pod:
+
+spec:
+tolerations:
+- key: "key"
+operator: "Equal"
+value: "value"
+effect: "NoSchedule"
+
+
+
+The mapping between persistentVolume and persistentVolumeClaim is always one to one. Even When you delete the claim, PersistentVolume still remains as we set persistentVolumeReclaimPolicy is set to Retain and It will not be reused by any other claims. Below is the spec to create the Persistent Volume.
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+name: mypv
+spec:
+capacity:
+storage: 5Gi
+volumeMode: Filesystem
+accessModes:
+- ReadWriteOnce
+persistentVolumeReclaimPolicy: Retain
+
+
+By default Deployment in Kubernetes using RollingUpdate as a strategy. Let's say we have an example that creates a deployment in Kubernetes
+
+kubectl run nginx --image=nginx # creates a deployment
+○ → kubectl get deploy
+NAME    DESIRED  CURRENT UP-TO-DATE   AVAILABLE AGE
+nginx   1  1 1            0 7s
+Now let’s assume we are going to update the nginx image
+
+kubectl set image deployment nginx nginx=nginx:1.15 # updates the image 
+Now when we check the replica sets
+
+kubectl get replicasets # get replica sets
+NAME               DESIRED CURRENT READY   AGE
+nginx-65899c769f   0 0 0       7m
+nginx-6c9655f5bb   1 1 1       13s
+From the above, we can notice that one more replica set was added and then the other replica set was brought down
+
+kubectl rollout status deployment nginx 
+# check the status of a deployment rollout
+
+kubectl rollout history deployment nginx
+ # check the revisions in a deployment
+
+○ → kubectl rollout history deployment nginx
+deployment.extensions/nginx
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+
+
+How to monitor that a Pod is always running?
+
+We can introduce probes. A liveness probe with a Pod is ideal in this scenario.
+
+A liveness probe always checks if an application in a pod is running,  if this check fails the container gets restarted. This is ideal in many scenarios where the container is running but somehow the application inside a container crashes.
+
+spec:
+containers:
+- name: liveness
+image: k8s.gcr.io/liveness
+args:
+- /server
+livenessProbe:
+      httpGet:
+        path: /healthz
+	
+	
+	
+
+You can use following command to delete the POD forcefully.
+
+kubectl delete pod <PODNAME> --grace-period=0 --force --namespace <NAMESPACE>
+
+
+
+
+
+
+
+
+
+
+
 
 
 
