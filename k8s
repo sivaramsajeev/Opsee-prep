@@ -8,6 +8,379 @@ writes on existing layer
 
 Leverage NFS to mount same volume over multiple containers
 
+
+
+
+With the advent of microservice architecture, users to individually scale key functions of an application and handle millions of customers. On top of this, technologies like Docker containers emerged in the enterprise, creating a consistent, portable, and easy way for users to quickly build these microservices. While Docker continued to thrive, managing these microservices & containers became a paramount requirement. All you need is a robust orchestration platform which can manage those containers which host your entire application. Kubernetes comes to a rescue.
+
+Kubernetes is a robust orchestration platform which brings a number of features and which can be thought of as:
+
+As a container platform
+As a microservices platform
+As a portable cloud platform and a lot more.
+Kubernetes provides a container-centric management environment. It orchestrates computing, networking, and storage infrastructure on behalf of user workloads. This provides much of the simplicity of Platform as a Service (PaaS) with the flexibility of Infrastructure as a Service (IaaS), and enables portability across infrastructure providers. Below are the list of features which Kubernetes provides -
+
+Service Discovery and load balancing: Kubernetes has a feature which assigns the containers with their own IP addresses and a unique DNS name, which can used to balance the load on them.
+Planning: Placement of the containers on the node is a crucial feature on which makes the decision based on the resources it requires and other restrictions.
+Auto Scaling: Based on the CPU usage, vertical scaling of applications is automatically triggered using the command line.
+Self Repair: This is an unique feature in the Kubernetes which will restart the container automatically when it fails. If the Node dies, then containers are replaced or re-planned on the other Nodes. You can stop the containers, if they don't respond for the health checks.
+Storage Orchestration: This feature of Kubernetes enables the user to mount the network storage system as a local file system.
+Batch execution: Kubernetes manages both batch and CI workloads along with replacing containers that fail.
+Deployments and Automatic Rollbacks: During the configuration changes for the application hosted on the Kubernetes, progressively monitors the health to ensure that it does not terminate all the instances at once, it makes an automatic rollback only in the case of failure.
+Configuration Management and Secrets: All classifies information like keys and passwords are stored under module called Secrets in Kubernetes. These Secrets are used specially while configuring the application without having to reconstruct the image.
+
+
+
+Docker started as a GITHUB project back in 2013(which is almost 5+ years from now). Slowly it grew massively with HUGE contributors across the world. Today it is a platform which is shipped as both - an open source as well as a commercial product. The orchestration is just a mere feature of Docker Enterprise Edition.
+
+But if we really want to study how K8s is related to Docker, then the most preferred answer would be -
+
+Docker CLI provides the mechanism for managing the life cycle of the containers. Where as the docker image defines the build time framework of runtime containers. CLI commands are there to start, stop, restart and perform lifecycle operations on these containers. Containers can be orchestrated and can be made to run on multiple hosts. The questions that need to be answered are how these containers are coordinated and scheduled? And how will the application running in these containers will communicate each other?
+
+ Kubernetes is the answer. Today, Kubernetes mostly uses Docker to package, instantiate, and run containerized applications. Said that there are various another container runtime available but Docker is the most popular runtime binary used by Kubernetes.
+
+Both Kubernetes and Docker build a comprehensive standard for managing the containerized applications intelligently along with providing powerful capabilities.Docker provides a platform for building running and distributing Docker containers. Docker brings up its own clustering tool which can be used for orchestration. But Kubernetes is a orchestration platform for Docker containers which is more extensive than the Docker clustering tool, and has capacity to scale to the production level. Kubernetes is a container orchestration system for Docker containers that is more extensive than Docker Swarm and is meant to coordinate clusters of nodes at scale in production in an efficient manner.  Kubernetes is a plug and play architecture for the container orchestration which provides features like high availability among the distributed nodes
+
+######################################################################################################################
+
+
+
+
+How Kubernetes simplify the containerized application deployment process?
+
+A application deployment requires , web tier , application tier and database tier . All these requirements will spawn multiple containers and these containers should communicate among each other . Kubernetes cluster will take care of the whole system and orchestrates the container needs . 
+
+Let us look at a quick WordPress application example. WordPress application consists of frontend(WordPress running on PHP and Apache) and backend(MySQL). The below YAML file can help you specify everything you will need to bring WordPress Application in a single shot:
+
+apiVersion: v1
+kind: Service
+metadata:
+ name: wordpress
+ labels:
+   app: wordpress
+spec:
+ ports:
+   - port: 80
+ selector:
+   app: wordpress
+   tier: frontend
+ type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: wp-pv-claim
+ labels:
+   app: wordpress
+spec:
+ storageClassName: manual
+ accessModes:
+   - ReadWriteOnce
+ resources:
+   requests:
+     storage: 2Gi
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+ name: wordpress
+ labels:
+   app: wordpress
+spec:
+ storageClassName: manual
+ selector:
+   matchLabels:
+     app: wordpress
+     tier: frontend
+ strategy:
+   type: Recreate
+ template:
+   metadata:
+     labels:
+       app: wordpress
+       tier: frontend
+   spec:
+     containers:
+ 
+  - image: wordpress:4.8-apache
+       name: wordpress
+       env:
+       - name: WORDPRESS_DB_HOST
+         value: wordpress-mysql
+       - name: WORDPRESS_DB_PASSWORD
+         valueFrom:
+           secretKeyRef:
+             name: mysql-pass
+             key: password
+       ports:
+       - containerPort: 80
+         name: wordpress
+       volumeMounts:
+       - name: wordpress-persistent-storage
+         mountPath: /var/www/html
+     volumes:
+     - name: wordpress-persistent-storage
+       persistentVolumeClaim:
+         claimName: wp-pv-clai
+I assume that you have n-node Kubernetes cluster running in your infrastructure. All you need is to run the below command:
+
+kubectl create -f wordpress-deployment.yaml   
+
+That’s it. Browse to http://<IP>:80 port to open to see WordPress App up and running. Hence, we saw that how Kubernetes simplifies the application deployment.
+
+
+
+How to Install Kubernetes?
+Install below packages on all of your machines:
+
+kubeadm: the command to bootstrap the cluster.
+kubelet: the component that runs on all of the machines in your cluster and does things like starting pods and containers.
+kubectl: the command line util to talk to your cluster.
+Note : kubeadm will not install or manage kubelet or kubectl for you, so you will need to ensure they match the version of the Kubernetes control panel you want kubeadm to install for you.
+
+ If you do not, there is a risk of a version skew occurring that can lead to unexpected, buggy behavior. 
+
+However, one minor version skew between the kubelet and the control plane is supported, but the kubelet version may never exceed the API server version. For example, kubelet running 1.7.0 should be fully compatible with a 1.8.0 API server, but not vice versa.
+
+Below is the example for installing in Debian or Ubuntu flavours
+
+# apt-get update && apt-get install -y apt-transport-https curl
+# curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+# apt-get update
+# apt-get install -y kubelet kubeadm kubectl
+# apt-mark hold kubelet kubeadm kubectl
+Configure cgroup driver used by kubelet on Master Node
+When using Docker, kubeadm will automatically detect the cgroup driver for the kubelet and set it in the /var/lib/kubelet/kubeadm-flags.env file during runtime.
+If you are using a different CRI, you have to modify the file /etc/default/kubelet with your cgroup-driver value, like so:
+KUBELET_KUBEADM_EXTRA_ARGS=--cgroup-driver=<value>
+This file will be used by kubeadm init and kubeadm join to source extra user-defined arguments for the kubelet.
+Please mind, that you only have to do that if the cgroup driver of your CRI is not cgroupfs, because that is the default value in the kubelet already.
+Restarting the kubelet is required:
+
+Kubernetes is a combination of multiple parts working together to get the container job done and the most vital part of it is Master node . The node acts as brain to the cluster and manages the whole ecosystem .
+Master connects to etcd via HTTP or HTTPS to store the data and also connects flannel to access the container application.
+Worker nodes engage with master via HTTP or HTTPS to get a command and report the status.
+Overlay network makes connections of their container applications. All of it will be discussed below for more in-depth
+Below are the mentioned components :
+etcd
+
+The heart of any Kubernetes cluster that implements a distributed key value store where all of the objects in a kubernetes cluster are persisted . 
+It works on a algorithm which has replication techniques across servers to maintain the data stored in etcd . 
+Optimistic concurrency is also used to compare-and-swap data across etcd server , when a user reads and update a value , the system checks that no other component in the system has updated the same value . This technique removes the locking mechanism that increases the server throughput .
+Another technique known as watch protocol , which accounts for changes made in key value pair in etcd directory . Its improves efficiency to the client as it wait for the changes and then react to the change without continuous polling to the server .
+kube-apiserver
+
+As the name connects , its a server that provides an HTTP- or HTTPS-based RESTful API that is allowed to have direct access to the Kubernetes cluster .
+
+Its a connector between all the kubernetes components and mediates all interactions between clients and the API objects stored in etcd .
+Api server database is external to it , so it is a stateless server which is replicated 3 times to implement fault-tolerance
+The APIs are exposed and managed by the server , the characteristics of those API requests must be described so that the client and server know how to communicate .
+Define API pattern where the request is defined like api paths or groups.
+Internal loops are responsible for background operations like CRD (Custom Resource Definitions) which inherently creates new paths for API requests
+kube-controller-manager
+
+The controller manager is a general service that has many responsibilities. 
+
+Controller manager is a collection of control loops rolled up into one binary
+Manages Kubernetes nodes
+The control loops needed to implement the functionality like replica sets and deployments are run by Manager
+Creates and updates the Kubernetes internal information
+changes the current status to the desired status 
+kube-scheduler
+
+It is a simple algorithm that defines the priority to dispatch and is responsible for scheduling pods into nodes .
+is continuously scanning the API server (with watch protocol) for Pods which don’t have a nodeName and are eligible for scheduling
+Node affinity provide a simple way to guarantee that a Pod lands on a particular node
+Predicates is a concept that helps in making correct resource requirements for the pods
+Data locality
+
+
+In Kubernetes, servers that perform work by running containers are known as nodes. Execution of jobs and reporting the status back to the master are the primary tasks on Node server .
+
+kubelet
+
+The main process on Kubernetes node that performs major container operations . 
+
+ The Kubelet is the node-daemon that communicates with Kubernetes master for all machines that are part of a Kubernetes cluster. 
+It periodically access the controller to check and report the status of the cluster
+It merges the available CPU, disk and memory for a node into the large Kubernetes cluster.
+Communicates the state of containers back up to the api-server for control loops to observe the current state of the containers.
+kube-proxy
+
+The kube proxy implements load-balancer networking model on each node. 
+It makes the Kubernetes services locally and can do TCP and UDP forwarding.
+The kube-proxy programs the network on its node, so that network requests to the virtual IP address of a service, are in-fact routed to the endpoints which implement this service
+It finds cluster IPs via environment variables or DNS.
+Routes traffic from Pods on the machine to Pods, anywhere in the cluster
+
+
+Stateful sets: It is a controller in Kubernetes which provides a distinctive identity to its pods and responsible for managing the deployment and scaling of a set of Pods. This controller intend to be used with stateful applications(like database) and distributed systems.
+Daemon Sets: It ensure that all the cluster nodes run a copy of a Pod.Whenever you add any nodes to Kubernetes cluster, DaemonSets ensures that Pods get automatically added to the new nodes as needed. Hence, it takes responsibility to manage multitude of replicated Pods.
+
+Replication sets are an iteration on the replication controller design with greater flexibility in how the controller identifies the pods it is meant to manage. Replication sets are much more advanced than ReplicationController as they have greater replica selection capabilities, but they dont have the rolling updates capabilities.
+
+Use Secrets in Pods
+
+To use Secrets inside Pods, choose to expose pods in environment variables or mount the Secrets as volumes.
+
+In terms of accessing Secrets inside a Pod, add env section inside the container spec
+
+// using access-token Secret inside a Pod
+# cat 2-7-2_env.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+   name: secret-pod-env
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu
+    command: ["/bin/sh", "-c", "while : ;do echo $ACCESS_TOKEN; sleep 10; done"]
+    env:
+        - name: ACCESS_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: access-token
+              key: 2-7-1_access-token
+// create a pod
+# kubectl create -f 2-7-2_env.yaml
+pod "secret-pod-env" created
+
+
+
+A Kubernetes volume, on the other hand, the same as the Pod that encloses it. Consequently, a volume outlives any Containers that run within the Pod, and data is preserved across Container restarts. Of course, when a Pod ceases to exist, the volume will cease to exist, too. Perhaps more importantly than this, Kubernetes supports many types of volumes, and a Pod can use any number of them simultaneously.
+
+The PersistentVolume subsystem provides an API for users and administrators that abstracts details of how storage is provided from how it is consumed. To do this we introduce two new API resources:PersistentVolume and PersistentVolumeClaim.
+
+A PersistentVolume (PV) is a storage in the cluster that has to be provisioned by an administrator and it is a cluster resource. PVs are volume plugins like Volumes, but have a life cycle independent of any individual pod that uses the PV.
+
+This API object captures the details of the implementation of the storage, be that NFS, iSCSI, or a cloud-provider-specific storage system.
+
+ A PersistentVolumeClaim (PVC) is a request for storage by a user. It is similar to a pod. Pods consume node resources and PVCs consume PV resources. Pods can request specific levels of resources (CPU and Memory). Claims can request specific size and access modes 
+ 
+ 
+ Label in Kubernetes is meaningful tag word that can be attached to Kubernetes objects to make them as a part of a group. Labels can be used for working on different instances for management or routing purposes. 
+
+For example, the controller-based objects use labels to mark the pods that they should operate on. Micro Services use labels to understand the structure of backend pods they should route requests to.
+
+Labels are key-value pairs. Each unit can have more than one label, but each unit can only have one entry for each key. Key is used as an identifier, but additionally can classify objects by other criteria based on  development stage, public accessibility, application version, etc activities.
+
+Annotations attach arbitrary key-value information to an Kubernetes object. On the other hand labels should be used for meaningful information to match a pod with selection criteria, annotations contain less structured data. Annotations are a way of adding more metadata to an object that is not helpful for selection purposes.
+
+Whenever master node under kubernetes fails, the cluster still remain in an operational mode. It doesn’t affect pod creation or service member changes. If worker node fails, master stop receiving updates from worker node.
+
+
+
+DNS is a built-in service in Kubernetes. It gets  launched automatically when Kubernetes is setup for the first time. Kubernetes
+Domain Name Server schedules a DNS Pod and Service on the cluster, and setup the kubelets to inform individual containers to use 
+the DNS Service’s IP to resolve DNS names. Every Service which gets defined in the Kubernetes cluster (including the DNS server 
+itself) is assigned with a DNS name. By default, a client Pod’s DNS search list will include the Pod’s own namespace and the 
+cluster’s default domain. For E.g. if we have a Service named serve1 in the Kubernetes namespace ns1. A Pod running in namespace
+ns1 can look up this service by simply doing a DNS query for serve1. A Pod running in namespace collab can look up this service by
+doing a DNS query for serve1.ns1.
+
+
+Add nodes in a HA cluster in kubernetes 
+
+Once the masters are ready, nodes can be added into the system. The node should be finished with the prerequisite configuration as a worker node in the kubeadm cluster. 
+
+Need to start kublet
+
+$ sudo systemctl enable kubelet && sudo systemctl start kubelet
+Run  the join command as below . However, please change the master IP to the load balancer one:
+
+// join command 
+$ sudo kubeadm join --token <CUSTOM_TOKEN> <LOAD_BALANCER_IP>:6443 --discovery-token-ca-cert-hash sha256:<HEX_STRING>
+Then go to the first master or second master to check the nodes' status:
+
+// see the node is added
+$ kubectl get nodes
+NAME       STATUS ROLES     AGE VERSION
+master01   Ready master    4h v1.10.2
+master02   Ready master    3h v1.10.2
+node01     Ready <none>    22s v1.10.2
+
+
+Use kubectl get deployment <deployment>. If the DESIRED, CURRENT, UP-TO-DATE are all equal, then the Deployment has completed
+
+
+Make sure your imagePullPolicy is set to Always(this is the default). That means when a pod is deleted, a new pod will ensure it has the current version of the image. Then refresh all your pods. 
+
+The simplest way to refresh all your pods is to just delete them and they will be recreated with the latest image. This immediately destroys all your pods which will cause a service outage. Do this with kubectl delete pod -l <name>=<value> where name and value are the label selectors your deployment uses. 
+
+A better way is to edit your deployment and modify the deployment pod spec to add or change any annotation. This will cause all your pods to be deleted and rescheduled, but this method will also obey your rollingUpdate strategy, meaning no downtime assuming your rollingUpdate strategy already behaves properly. Setting a timestamp or a version number is convenient, but any change to pod annotations will cause a rolling update. For a deployment named nginx, this can be done with:
+
+PATCH='{"spec":{"template":{"metadata":{"annotations":{"timestamp":"'$(date)'"}}}}}'
+kubectl patch deployment nginx -p "$PATCH"
+It is considered bad practice to rely on the :latest docker image tag in your deployments, because using :latest there is no way to rollback or specify what version of your image to use. It's better to update the deployment with an exact version of the image and use --record so that you can use kubectl rollout undo deployment <deployment> or other commands to manage rollouts.
+
+
+debug a Pending pod?
+Pending pod cannot be scheduled onto a node. 
+
+Performing command  kubectl describe pod <pod_name> will help you undestand the problem.  
+
+kubectl logs <pod> can also be helpful.  
+
+Common reasons for pods getting stuck in Pending State are: 
+
+1) When the pod requesting more resources than are available, for example a pod has set a request for an amount of CPU or  that is not available 
+
+anywhere on any node. eg. requesting a 8 CPU cores when all your nodes only have 4 CPU cores. 
+
+Doing a kubectl describe node <node> on each node will also show already requested resources. 
+
+2) There are taints that prevent a pod from scheduling on your nodes. 
+
+3) The nodes have been marked unschedulable with kubectl cordon 
+
+4) There are no Ready nodes. kubectl get nodes will display the status of all nodes.
+
+
+debug a Pending pod?
+A Pending pod is one that cannot be scheduled onto a node. Doing a kubectl describe pod <pod> will usually tell you why. kubectl logs <pod> can also be helpful. There are several common reasons for pods stuck in Pending:
+
+** The pod is requesting more resources than are available, a pod has set a request for an amount of CPU or memory that is not available anywhere on any node. eg. requesting a 8 CPU cores when all your nodes only have 4 CPU cores. Doing a kubectl describe node <node> on each node will also show already requested resources. ** There are taints that prevent a pod from scheduling on your nodes. ** The nodes have been marked unschedulable with kubectl cordon ** There are no Ready nodes. kubectl get nodes will display the status of all nodes.
+
+
+
+I rollback the Deployment?
+Applying changes to a Deployment process with the --record flag then Kubernetes by default saves the previous Deployment activities in its history. 
+
+The below command will display all the prior Deployments,
+
+                             kubectl rollout history deployment <deployment> 
+
+The last Deployment can be restored with the command, 
+
+                             kubectl rollout undo deployment <deployment> 
+
+The Deployments which are in progress can also be paused and resumed.
+
+The moment new Deployment is applied, during this process a new ReplicaSet object is created which is slowly scaled up while the old ReplicaSet is scaled down.  
+
+We can get the ReplicaSet that has been rolled out with command 
+
+                             kubectl get replicaset 
+
+ Each ReplicaSet is named with the format -, 
+
+                          kubectl describe replicaset <replicaset>a
+			  
+
+An Ingress Controller is a pod that can act as an inbound traffic handler.  Ingress Controller implemented as a HTTP reverse proxy. Prominent features are HTTP path and service based routing and SSL termination
+			  
+			  
+			  
+
+
+
+
+
+
 ################################################################################################################
 
 The fundamental behind Kubernetes is that we can enforce the desired state management, by which I mean that we can feed the cluster
