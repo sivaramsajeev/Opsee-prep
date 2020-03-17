@@ -80,7 +80,7 @@ sqlmap is the tool for automated injection   sqlmap -u <url>
 
 techniques used for prevention - filters,blacklist, whitelist but they can be bypassed but the best way is parametrization
 
-
+maltego is the tool for info gathering about anything 
 
 
 
