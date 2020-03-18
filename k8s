@@ -1,4 +1,139 @@
 
+Containers on same pod act as if they are on the same machine. You can ping them using localhost:port itself. Every container in a
+pod shares the same IP. You can `ping localhost` inside a pod. Two containers in the same pod share an IP and a network namespace
+and They are both localhost to each other. Discovery works like this: Component A's pods -> Service Of Component B -> Component B's 
+pods and Services have domain names servicename.namespace.svc.cluster.local, the dns search path of pods by default includes that 
+stuff, so a pod in namespace Foo can find a Service bar in same namespace Foo by connecting to `bar`
+
+
+kube-proxy does 2 things
+
+for every Service, open a random port on the node and proxy that port to the Service.
+install and maintain iptables rules which capture accesses to a virtual ip:port and redirect those to the port in (1)
+The kube-proxy is a component that manages host sub-netting and makes services available to other components.Kubeproxy handles 
+network communication and shutting down master does not stop a node from serving the traffic and kubeproxy works, in the same way, 
+using a service. The iptables will route the connection to kubeproxy, which will then proxy to one of the pods in the service.
+kube-proxy translate the destination address to whatever is in the endpoints.
+
+Container Runtime
+
+Kubelet
+kube-proxy
+Kubernetes Worker node is a machine where workloads get deployed. The workloads are in the form of containerised applications 
+and because of that, every node in the cluster must run the container run time such as docker in order to run those workloads.
+You can have multiple masters mapped to multiple worker nodes or a single master having a single worker node. Also, the worker
+nodes are not gossiping or doing leader election or anything that would lead to odd-quantities. The role of the container run
+time is to start and managed containers. The kubelet is responsible for running the state of each node and it receives commands
+and works to do from the master. It also does the health check of the nodes and make sure they are healthy. Kubelet is also
+responsible for metric collectins of pods as well. The kube-proxy is a component that manages host subnetting and makes services
+available to other components.
+
+
+A Pod is running 2 containers, when One container stops - another Container is still running, on this event, I want to terminate
+this Pod?
+
+You need to add a liveness and readiness probe to query each container,  if the probe fails, the entire pod will be restarted .add 
+liveness object that calls any api that returns 200 to you from another container and both liveness and readiness probes run in
+infinite loops for example, If X depended to Y So add liveness  in X that check the health of Y.Both readiness/liveness probes
+always have to run after the container has been started .kubelet component performs the liveness/readiness checks and set 
+initialDelaySeconds and it can be anything from a few seconds to a few minutes depending on app start time. Below is the
+configuration spec
+
+livenessProbe spec:
+livenessProbe:
+httpGet:
+path: /path/test/
+port: 10000
+initialDelaySeconds: 30
+timeoutSeconds: 5
+readinessProbe spec:
+readinessProbe:
+httpGet:
+path: /path/test/
+port: 10000
+initialDelaySeconds: 30
+timeoutSeconds: 5
+
+
+An ingress is an object that holds a set of rules for an ingress controller, which is essentially a reverse proxy and is used to
+(in the case of nginx-ingress for example) render a configuration file. It allows access to your Kubernetes services from outside 
+the Kubernetes cluster. It holds a set of rules. An Ingress Controller is a controller. Typically deployed as a Kubernetes Deployment.
+That deployment runs a reverse proxy, the ingress part, and a reconciler, the controller part. the reconciler configures the reverse
+proxy according to the rules in the ingress object. Ingress controllers watch the k8s api and update their config on changes. 
+The rules help to pass to a controller that is listening for them. You can deploy a bunch of ingress rules, but nothing will 
+happen unless you have a controller that can process them.
+
+LoadBalancer service -> Ingress controller pods -> App service (via ingress) -> App pods
+
+
+
+
+How to forward port `8080 (container) -> 8080 (service) -> 8080 (ingress) -> 80 (browser)` how is it done?
+
+The ingress is exposing port 80 externally for the browser to access, and connecting to a service that listens on 8080. The ingress will listen on port 80 by default. An "ingress controller" is a pod that receives external traffic and handles the ingress  and is configured by an ingress resource For this you need to configure ingress selector and if no 'ingress controller selector' is specified then no ingress controller will control the ingress.
+
+simple ingress Config will look like
+
+host: abc.org
+http:
+paths:
+backend:
+serviceName: abc-service
+servicePort: 8080
+Then the service will look like
+kind: Service
+apiVersion: v1
+metadata:
+name: abc-service
+spec:
+ports:
+protocol: TCP
+port: 8080 # this is the port the service listens on
+targetPort: 8080
+
+
+
+Are deployments with more than one replica automatically doing rolling updates when a new deployment config is applied?
+
+The Deployment updates Pods in a rolling update fashion when .spec.strategy.type==RollingUpdate .You can specify maxUnavailable
+and maxSurge to control the rolling update process. Rolling update is the default deployment strategy.kubectl rolling-update updates
+Pods and ReplicationControllers in a similar fashion. But, Deployments are recommended, since they are declarative, and have
+additional features, such as rolling back to any previous revision even after the rolling update is done.So for rolling updates
+to work as one may expect, a readiness probe is essential. Redeploying deployments is easy but rolling updates will do it nicely
+for me without any downtime. The way to make a  rolling update of a Deployment and kubctl apply on it is as below
+
+spec:
+minReadySeconds: 180
+replicas: 9
+revisionHistoryLimit: 20
+selector:
+matchLabels:
+deployment: standard
+name: standard-pod
+strategy:
+rollingUpdate:
+maxSurge: 1
+maxUnavailable: 1
+type: RollingUpdate
+
+
+Suppose you have to use database with your application but well, if you make a database container-based deployment. how would the 
+data persist?
+
+Deployments are for stateless services, you want to use a StatefulSet or just define 3+ pods without a replication controller
+at all. If you care about stable pod names and volumes, you should go for StatefulSet.Using statefulsets you can maintain which
+pod is attached to which disk.StatefulSets make vanilla k8s capable of keeping Pod state (things like IPs, etc) which makes it 
+easy to run clustered databases. A stateful set is a controller that orchestrates pods for the desired state. StatefulSets 
+formerly known as PetSets will help for the database if hosting your own. Essentially StatefulSet is for dealing with
+applications that inherently don't care about what node they run on, but need unique storage/state.
+
+
+
+
+
+
+
+#######################################################################################################################
 docker commit <cid> <new-image>   then find the difference with the base image using docker history/log
 
 Difference between images and container lies in the top writable layer
