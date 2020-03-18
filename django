@@ -1,0 +1,88 @@
+django-admin startproject django_project
+
+django_project
+├── django_project
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+└── manage.py
+
+
+python manage.py runserver    # this gets the server up and running straight away
+
+here single project can have multipiple apps  
+
+python manage.py startapp blog # to start a new app called blog
+
+.
+├── blog
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+├── db.sqlite3
+├── django_project
+│   ├── __init__.py
+│   ├── __init__.pyc
+│   ├── __pycache__
+│   │   ├── __init__.cpython-35.pyc
+│   │   └── settings.cpython-35.pyc
+│   ├── settings.py
+│   ├── settings.pyc
+│   ├── urls.py
+│   ├── urls.pyc
+│   ├── wsgi.py
+│   └── wsgi.pyc
+└── manage.py
+
+
+in views.py
+adding a line     from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse(<h1>Welcome to home</h1>)
+    
+    and add the above url mapping in url.py file of blog (create the file first)    url mapping works hierarchially
+    starting at project url  once it finds matching pattern it chopps of what it has already matched and send to corresponding
+    app's route file 
+    
+    trailing / are required 
+    
+templating     - creating a template directory and django convention to create a subdirectory of same app name within template 
+folder ie blog -> templates -> blog ->template.html(home.html,about.html)
+
+ensure that app config is added to settings.py file as well
+
+def home(request):
+    return render(request, 'blog/home.html')
+    
+    first passing the post details as arguments to html pages via render()  then since repeated code is there in both home
+    and about -> template inheritance  ie  new template base.html   and copy& paste the common code in there
+         <body>
+         {% block content %}
+          # specific to particular file code
+         {% endblock %}
+         
+         #above in base template
+         
+         # then in each of the templates
+         {% extends "blog/base.html %}
+         {% block content %}
+              ## jinja template code
+         
+         {% endblock content %}
+         
+         
+         
+         then bringing in bootstrapping since now its required to modify in only base.html
+         extremely popular library to add styles to your webapge 
+         </body>
+    
+    
+    
+    
