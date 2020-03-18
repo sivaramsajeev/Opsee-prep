@@ -1,4 +1,318 @@
 
+
+That is the output of replicas: 3
+
+Think of one deployment can have many running instances(replica).
+
+//deployment.yaml
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: tomcat-deployment222
+spec:
+  selector:
+    matchLabels:
+      app: tomcat
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: tomcat
+    spec:
+      containers:
+      - name: tomcat
+        image: tomcat:9.0
+        ports:
+        - containerPort: 8080
+	
+	
+	
+	
+
+Pod is a collection of containers and basic object of Kuberntes. All containers of pod lie in same node.
+
+Not suitable for production
+No rolling updates
+Deployment is a kind of controller in Kubernetes.
+
+Controllers use a Pod Template that you provide to create the Pods for which it is responsible.
+
+Deployment creates a ReplicaSet which in turn make sure that, CurrentReplicas is always same as desiredReplicas .
+
+Advantages :
+
+You can rollout and rollback your changes using deployment
+Monitors the state of each pod
+Best suitable for production
+Supports rolling updates
+
+
+
+Try to avoid Pods and implement Deployments instead for managing containers as objects of kind Pod will not be rescheduled (or self healed) in the event of a node failure or pod termination.
+
+A Deployment is generally preferable because it defines a ReplicaSet to ensure that the desired number of Pods is always available and specifies a strategy to replace Pods, such as RollingUpdate.
+
+
+kubectl logs -f <pod-id>
+You can use the -f flag:
+
+-f, --follow=false: Specify if the logs should be streamed.
+
+
+
+You can use labels
+
+kubectl logs -l app=elasticsearch
+
+
+You can get yaml from the kubectl create configmap command and pipe it to kubectl replace, like this:
+
+kubectl create configmap foo --from-file foo.properties -o yaml --dry-run | kubectl replace -f -
+
+
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 2
+  selector:
+    app: myapp
+    deployment: initial
+  template:
+    metadata:
+      labels:
+        app: myapp
+        deployment: initial
+    spec:
+      containers:
+      - name: myapp
+        image: myregistry.com/myapp:5c3dda6b
+        ports:
+        - containerPort: 80
+      imagePullPolicy: Always
+      imagePullSecrets:
+        - name: myregistry.com-registry-key
+	
+	
+	
+	##########################################################################################################################
+	
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-world
+spec:  # specification of the pod’s contents
+  restartPolicy: Never
+  containers:
+  - name: hello
+    image: "ubuntu:14.04"
+    env:
+    - name: MESSAGE
+      value: "hello world"
+    command: ["/bin/sh","-c"]
+    args: ["/bin/echo \"${MESSAGE}\""]
+If I want to run more than one command, how to do?
+
+
+command: ["/bin/sh","-c"]
+args: ["command one; command two && command three"]
+Explanation: The command ["/bin/sh", "-c"] says "run a shell, and execute the following instructions". The args are then passed
+as commands to the shell. In shell scripting a semicolon separates commands, and && conditionally runs the following command if
+the first succeed. In the above example, it always runs command one followed by command two, and only runs command three if command
+two succeeded.
+
+Alternative: In many cases, some of the commands you want to run are probably setting up the final command to run. In this case,
+building your own Dockerfile is the way to go. Look at the RUN directive in particular.
+
+Use secrets for things which are actually secret like API keys, credentials, etc
+Use config map for not-secret configuration data
+In the future there will likely be some differentiators for secrets like rotation or support for backing the secret API w/ HSMs, etc.
+In general we like intent-based APIs, and the intent is definitely different for secret data vs. plain old configs
+
+Both, ConfigMaps and Secrets store data as a key value pair. The major difference is, Secrets store data in base64 format meanwhile 
+ConfigMaps store data in a plain text.
+
+If you have some critical data like, keys, passwords, service accounts credentials, db connection string, etc then you should
+always go for Secrets rather than Configs.
+
+And if you want to do some application configuration using environment variables which you don't want to keep secret/hidden like, 
+app theme, base platform url, etc then you can go for ConfigMaps
+
+
+Containers are meant to run to completion. You need to provide your container with a task that will never finish. Something
+like this should work:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu
+spec:
+  containers:
+  - name: ubuntu
+    image: ubuntu:latest
+    # Just spin & wait forever
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "while true; do sleep 30; done;" ]
+    
+    
+   
+ Use this command inside you Dockerfile to keep the container running in you K8s cluster:
+
+CMD tail -f /dev/null
+
+
+Service: This directs the traffic to a pod.
+
+TargetPort: This is the actual port on which your application is running inside the container.
+
+Port: Some times your application inside container serves different services on a different port. Ex:- the actual application can run 8080 and health checks for this application can run on 8089 port of the container. So if you hit the service without port it doesn't know to which port of the container it should redirect the request. Service needs to have a mapping so that it can hit the specific port of the container.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: my-service
+spec:
+  selector:
+    app: MyApp
+  ports:
+    - name: http
+      nodePort: 30475
+      port: 8089
+      protocol: TCP
+      targetPort: 8080
+    - name: metrics
+      nodePort: 31261
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: health
+      nodePort: 30013
+      port: 8443
+      protocol: TCP
+      targetPort: 8085 
+if you hit the my-service:8089 the traffic is routed to 8080 of the container(targetPort). Similarly, if you hit my-service:8443 
+then it is redirected to 8085 of the container(targetPort).
+
+But this myservice:8089 is internal to the kubernetes cluster and can be used when one application wants to communicate with another
+application. So to hit the service from outside the cluster someone needs to expose the port on the host machine on which kubernetes
+is running so that the traffic is redirected to a port of the container. In that can use nodePort.
+
+From the above example, you can hit the service from outside the cluster(Postman or any restclient) by host_ip:Nodeport
+
+Say your host machine ip is 10.10.20.20 you can hit the http,metrics,health services by 10.10.20.20:30475,10.10.20.20:31261,
+10.10.20.20:30013
+
+You can populate a container's environment variables through the use of Secrets or ConfigMaps. Use Secrets when the data you are working with is sensitive (e.g. passwords), and ConfigMaps when it is not.
+
+In your Pod definition specify that the container should pull values from a Secret:
+
+apiVersion: v1
+kind: Pod
+metadata: 
+  labels: 
+    context: docker-k8s-lab
+    name: mysql-pod
+  name: mysql-pod
+spec: 
+  containers:
+  - image: "mysql:latest"
+    name: mysql
+    ports: 
+    - containerPort: 3306
+    envFrom:
+      - secretRef:
+         name: mysql-secret
+Note that this syntax is only available in Kubernetes 1.6 or later. On an earlier version of Kubernetes you will have to specify each value manually, e.g.:
+
+env: 
+- name: MYSQL_USER
+  valueFrom:
+    secretKeyRef:
+      name: mysql-secret
+      key: MYSQL_USER
+      
+      
+ Deployment - You specify a PersistentVolumeClaim that is shared by all pod replicas. In other words, shared volume.
+
+The backing storage obviously must have ReadWriteMany or ReadOnlyMany accessMode if you have more than one replica pod.
+
+StatefulSet - You specify a volumeClaimTemplates so that each replica pod gets a unique PersistentVolumeClaim associated with it. 
+In other words, no shared volume.
+
+Here, the backing storage can have ReadWriteOnce accessMode.
+
+StatefulSet is useful for running things in cluster e.g Hadoop cluster, MySQL cluster, where each node has its own storage.
+
+
+Use 'StatefulSet' with a distributed application that requires each node to have a persistent state and the ability to configure an arbitrary number of nodes through a configuration (replicas = 'X').
+
+All nodes in a master-master configuration and slave nodes in a master-slave configuration can make use of a StatefulSet along with a Service. Master nodes (like master, master-secondary) may each be a Pod with some persistent volume along with a Service as these nodes have no need to scale up or down. They can as well be a StatefulSet with replicas = 1.
+
+Examples of StatefulSet are:
+- Datanodes (slaves) in a Hadoop cluster (master-slave)
+- Database nodes (master-master) in a Cassandra cluster
+
+Each Pod (replica) in a StatefulSet has
+- A unique and stable network identity
+- Kubernetes creates one PersistentVolume for each VolumeClaimTemplate
+
+
+To pull a private DockerHub hosted image from a Kubernetes YAML:
+
+Run these commands:
+
+DOCKER_REGISTRY_SERVER=docker.io
+DOCKER_USER=Type your dockerhub username, same as when you `docker login`
+DOCKER_EMAIL=Type your dockerhub email, same as when you `docker login`
+DOCKER_PASSWORD=Type your dockerhub pw, same as when you `docker login`
+
+kubectl create secret docker-registry myregistrykey \
+  --docker-server=$DOCKER_REGISTRY_SERVER \
+  --docker-username=$DOCKER_USER \
+  --docker-password=$DOCKER_PASSWORD \
+  --docker-email=$DOCKER_EMAIL
+If your username on DockerHub is DOCKER_USER, and your private repo is called PRIVATE_REPO_NAME, and the image you want to pull is tagged as latest, create this example.yaml file:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: whatever
+spec:
+  containers:
+    - name: whatever
+      image: DOCKER_USER/PRIVATE_REPO_NAME:latest
+      imagePullPolicy: Always
+      command: [ "echo", "SUCCESS" ]
+  imagePullSecrets:
+    - name: myregistrykey
+Then run:
+
+kubectl create -f example.yaml
+
+
+This should work:
+
+kubectl create secret generic production-tls \
+    --from-file=./tls.key --from-file=./tls.crt --dry-run -o yaml | 
+  kubectl apply -f 
+  
+  
+  
+
+
+    
+    
+
+
+
+
+
+
+############################################################################################################################
+
 Containers on same pod act as if they are on the same machine. You can ping them using localhost:port itself. Every container in a
 pod shares the same IP. You can `ping localhost` inside a pod. Two containers in the same pod share an IP and a network namespace
 and They are both localhost to each other. Discovery works like this: Component A's pods -> Service Of Component B -> Component B's 
