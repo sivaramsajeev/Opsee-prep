@@ -16,6 +16,169 @@ json2yaml site
 create codecommit  unique for region   
 
 ######################################################################################################################
+
+RT issues
+
+backups – AMI or snapshots  + AWS backups(service) as a  feature itself is there using that VM backup can be taken. But depends on the kind of app you are trying to backup like three tier app  leverage lambda itself if none of the above works. By default aws takes incremental backup.
+
+Containers on AWS – ECS/fargate/EKS/K8s on EC2  --> fargate mode is favoured   
+monitoring solution -> Attach driver to send it to cloudwatch or config containers to send it to ELK/Dynatrace/newrelic
+
+best libraries for K8s – kubectl vs kops --> depends on team   kubectl has so many APIs already
+
+application monitoring – like heap size or mem fail in java or application errors --> cloudwatch agent can be configured to send those to cloudwatch & create custom metrics and alarms in cloudwatch & config lambda to reset heap or splunk based agents
+
+application migration – steps    1)assessment 2)analysis 3)plan  + aws offers database migration service
+ie from onpremise mysql or oracle   or synchronize from them to rds + schema conversion tool to check if there are compatibility issues like oracle to aurora
+
+upload data to a snowball sent to your data centre + but if amount of data is small you can make use of vpn 
+
+aws is coming up with outpost to deploy in onprem to integrate with aws sdk & apis
+
+use simply monthly pricing calculator to get the idea of cost of a service 
+
+aws has high throughput instances to avoid network throttling/congestion
+
+try and remove technical debt while migrating ie replace old windows server from on from with the latest version
+
+unless there is join query or long running qeries with dynamo db(no sql )   for special requirements go with rds
+
+fargate is ideal for cost reduction than ecs + asg
+
+aws cdk is easier to write than CF   with cdk taking care of json yaml syntax . Cdk better than tf 
+
+migrating acroos regions – leverage global resource + ami/snapshot can be replicated across regions
+
+scaling db possible with read-replicas  horizontally
+
+multi-cloud is in experimental phase with most clients
+
+IAM access key rotation should be done with lambda. But for secrets use secrets manager
+
+Shankar – IBM/AIX engineer – Linux – Storage – AWS (2015) – devops  then did POCs before joining as devops engineer . Currently more focussed in devops than aws. 
+Working in git/bitbucket – jenkins – docker – k8s – openshift/openstack – application side nginx 
+
+mobaxterm over putty  saves a lot of time – lot of ansible with visual studio than pycharm 
+
+challenges – if you now solution its simple 
+
+certification is more important for the client to showcase
+aws security is a booming area    you might have to pay 1000s of $ as penalty to customer
+
+migrated apps from ubuntu to rhel using ansible playbooks + postbuild activities installation of packages,users,file systems + updating nginx app config
+
+kubernetes admin – infrastructure admin + docker/k8s admin – writing yaml manifests   
+
+docker resource issues + monitoring
+
+business logic is taken care by app server but for scalability & performance you need to bring in nosql db. Then you bring in db caches like redis or memcache. And media files can be stored in flat storage like s3 . But content filter should be there in the media.
+
+Spark/hadoop + dwh is required for data analytics , advertisng, business intelligence,strategy planning.
+
+CDN is required for caching as per location.
+
+SMS,Email & messaging queing services are also required for an fb like application.
+
+Relational rds, nosql dynamodb, memcache   elasticcache
+
+content filter – rekognition , mp4-> mp3 etc format change and all lambda can do
+
+kinesis for click stream analysys – emr for spark/hadoop – glue is for etl operations – redshift is the dwh – quicksight/athena is the BI tool for visualization & insight
+
+Managed API gateway is where you put all your REST APIs. Web & mobile user management is done by incognito. WAF are web app firewall like preventing xss & mitm. Inspector is for checking cve & patching stuff .
+
+Codecommit – code build(maven/ant) – codedeploy   also look into codepipeline  (necessary roles need to be created and attached accordingly)
+
+codestar is the service tool to integrate with Jira and other bug tracking services.
+
+Codedeploy agent needs to be installed in ec2 machine ie need to pull it down frm s3 bucket hence the ec2 machine needs to have appropriate role assigned to it.
+
+Make sure that tagging is done on EC2 and same is given to codedeploy as well like labels in gitlab runner
+
+aws provides cloudwatch agent that needs to be installed on EC2 instance based on the OS version
+sudo yum install -u awslogs
+
+then make config  changes in 
+/etc/awslogs/awscli.conf   & /etc/awslogs/awslogs.conf
+
+sudo service awslogsd start 
+
+Useful contents:
+
+ 1. IAM Policy { "Version": "2012-10-17", "Statement": [ { "Effect": "Allow", "Action": [ "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", "logs:DescribeLogStreams" ], "Resource": [ "arn:aws:logs:*:*:*" ] } ] } 
+
+2. awslogs.conf file contents:
+[general] state_file = /var/lib/awslogs/agent-state [application_logs] region = ap-south-1 datetime_format = %b %d %H:%M:%S file = /var/log/application.log buffer_duration = 5000 log_stream_name = {instance_id} initial_position = start_of_file log_group_name = application_logs
+
+
+once that is done logs will appear in cloudwatch mentioned log groups and the next step is to create filters  - select the log group and create metric filter – Filter pattern : ERROR – assign metric & create filter – create an alarm – whenver > 0 action to send an email 
+
+
+Setting up cross account access – Get the account id from support center (top right corner)
+going to account A – and creating an IAM role – select type of trusted entity – choose another AWS account (instead of the usual aws services) – provide account ID of B – permissions – Ec2readonlyaccess + s3readonlyaccess – tags: role for account B – then give a name and descriptin in the review section as role_for_Account_B – create a role – thats it from account A – copy the created role’s arn – Goto account B – IAM – either create a new user or use the existing user – add inline policy / add permissions (he is doing with inline policy json) - 
+
+Setup the AWS cross account access for IAM users AssumeRole JSON Policy: { "Version": "2012-10-17", "Statement": { "Effect": "Allow", "Action": "sts:AssumeRole", "Resource": "arn:aws:iam::ACCOUNT-A-ID:role/Role_for_B" } }
+
+review the policy – name it (assume_role_for_account_A) – create policy – then logout from account B – log back in as the new user – top right hand corner ‘switch role’ option – give account A ID & role name – once you are done switch back to usual account 
+
+DNS failover across regions – create 2 ec2 with httpd and sample index files in place – goto route53 dashboard – goto hosted zone (your domain will show up here if pre-configured) – first create a health check – give a name – protocol: http + public ip + port + /index.html – create health check – then create another health check for second regions server – then going back to hosted zones – say abc.com is your domain   lets create a subdomain ie create a record set   test.abc.com   type:A  then give value as the ip address of primary webserver – and routing policy is failover – failover record type is : primary – associate health check as yes – provide the created health check name and create  - then create record set again (but this time its secondary) – give value (ip ) and routing policy(failover) as before BUT faiover type is SECONDARY this time – associate health check as well.
+
+Dbs will be like one read-cluster replica other as write-cluster 
+
+S2S VPN connection ==>      AWS – VPG <- VPN -> CGW(cisco,juniper) – onprem 
+he is simulating onprem with another VPC and installing openswan on an EC2 machine making it a S/w defined CGW 
+
+Useful Information: 
+1. Help/Commands for Installation of Openswan
+i. Change to root user: $ sudo su
+ii. Install openswan: $ yum install openswan -y
+iii. In /etc/ipsec.conf uncomment following line if not already uncommented: include /etc/ipsec.d/*.conf
+iv. Update /etc/sysctl.conf to have following
+net.ipv4.ip_forward = 1 
+net.ipv4.conf.all.accept_redirects = 0 
+net.ipv4.conf.all.send_redirects = 0 
+v. Restart network service: $ service network restart
+
+2. Contents for /etc/ipsec.d/aws-vpn.conf
+conn Tunnel1 authby=secret auto=start left=%defaultroute leftid=Customer end VPN public IP right=AWS VPN Tunnel 1 public IP type=tunnel ikelifetime=8h keylife=1h phase2alg=aes128-sha1;modp1024 ike=aes128-sha1;modp1024 keyingtries=%forever keyexchange=ike leftsubnet=Customer end VPN CIDR rightsubnet=AWS end VPN CIDR dpddelay=10 dpdtimeout=30 dpdaction=restart_by_peer
+
+ 3. Contents for /etc/ipsec.d/aws-vpn.secrets customer_public_ip aws_vgw_public_ip: PSK "shared secret" 
+
+4. Commands to enable/start ipsec service
+$ chkconfig ipsec on 
+$ service ipsec start
+ $ service ipsec status
+
+
+disable source destination check in the cgw ec2
+
+ 
+then create a virtual private gateway – then create CGW mentionig the public ip of openswan ec2 – then go to s2s vpn
+connection & give the VPG and CGW details to it – mention routing as static routing – give the ip cidr of other 
+side – update RT accordingly – updating RT is different   you need to enable route propogation  - then need to download 
+the configuration and update at the other end of the tunnel – vendor (mention as generic as its software defined cgw) - 
+the data needs to be pasted to  /etc/ipsec.d/aws-vpn.conf in the CGW Ec2  - leftside = customer   rightside = aws vpc  - 
+then the authentication file as given above  /etc/ipsec.d/aws-vpn.secrets
+
+- start & enable ipsec  - validate by pinging over private ip addresses – by now RT will have an entry for VPG as well
+since we had enabled route propogation
+
+ELB with 2 WS (App LB L7 http) – spin up 2 instances with httpd running – create a target group  - http 80 /index.html 
+as usual – then add the 2 target WS to the group – create a LB – link with the target groups hence ip details of targets 
+are autopopulated – next assignment is putting the WS in ASG instead of just putting them in target group – create LB –
+choose new target group and no need to attach target during creation since later we will attach ASG to it – goto ASG –
+create ASG – create launch config (just like ec2 + SG can be just for ELB subnet) – configure scaling policies based
+on avg.cpu – then link it with LB
+
+App LB & Path based routing – say u want requests to abc.com/a to goto WS1 & abc.com/b to WS2
+
+
+
+
+
+
+
+#####################################################################################################################
 53 is the TCP/UDP port where DNS services are running
 
 buy your domain after checking the availabilty - partnered with Gandy - need to map the public ip of EC2 running web browser to domain -
