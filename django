@@ -86,3 +86,187 @@ def home(request):
     
     
     
+#####################################################################################################
+
+
+
+Django is MVT(template) and it’s fast,scalable,secure.
+
+When you hit the django server,first it’s seen in url.py of the project for url mapping( include is imported to redirect to other apps). Then accordingly to the apps url.py which will have the function while the actual function is in views.py    this will in turn make use of templates for dynamic content. 
+
+Here we use DTL(django template language) . Creating a directory called templates and inside a file called home.html(which is our url and function in views). 
+
+But then mention the templates directory in settings.py file in the template section like     DIRS : [os.path.join(BASE_DIR,’/template’)]   and in view.py return render(request, ‘home.html’)
+
+but you could pass variables to .html from function inside views as the last argument in a dictionary from ie {‘name’:’siva’} and call it inside the home.html as <h1> This is {{name}} </h1>
+
+then creating a base.html to keep the common stuffs over all the pages like designs & headers.
+And for the individual html create a block section
+{% block content %}
+
+{% endblock%}
+
+and within the htmls obviously you need to extend the base.html
+
+{% extends ‘base.html’%}
+{% block content %}
+	<h1> This is {{name}} </h1>
+{% endblock%}
+
+
+Then adding two numbers, 
+<form action=”add”>
+	Enter 1st number : <input type=”text” name=”num1”> <br>
+	Enter 2nd number : <input type=”text” name=”num2”> <br>
+
+	<input type=”submit”>
+
+</form>
+
+then in url.py need to add file as well.   path(‘add’, views.add, name=’add’)
+
+in view.py   add the add function
+
+def add(request):
+
+	val1 = int(request.GET[‘num1’])
+	val2 = int(request.GET[‘num2’])
+
+	res = val1 + val2
+
+	return render(request,”result.html”,{‘result’ : res})
+
+
+And now the result.html
+
+{% extends ‘base.html’ %}
+
+{% block content %}
+
+Result : {{result}}
+{% endblock%}
+
+GET sends the request through the address bar. But you dont want that with your username and password. Or may be you have more number of fields to submit   SO TECHNICALLY for submitting form you ALWAYS use POST.
+
+So , <form action=”add” method=”POST”>
+
+	{% csrf_token%}   # else python will throw csrf error as a security measure,its added in the middleware section in settings.py file
+
+then file fetching values also you MUST use request.POST[‘num1’] #else it throws error
+
+MVT – Model(data & DB)   + View( business logic is done here)  + Template(html css js dtl) – separation of concerns --> basically view does the interconnection of data from model and templating to provide the actual content to the requester.
+
+So when you hit a django webserver first you go to url.py then view.py and then it does the logic to give you output.
+
+
+Travelo colorlib is one website where you get free templates. Go download. And making a travelo app and pointing the base url to it and pasting the index.html file. But it comes up without any pics or styling or js. Then creating a folder called static(name does not matter) and copies the rest of the folders  of colorlib there. But django has to understand it hence need to put it in SETTINGS.PY file.
+STATICFILES_DIRS = [ os.pth.join(BASE_DIR , ‘static’]
+STATIC_ROOT = os.path.join(BASE_DIR , ‘assets’)
+then run the command, python manage.py collectstatic
+
+but then you need to access them   on top of the page mention -  {% load static%}
+and like this inline href = {% static ‘/path/to/file’ %}
+
+but when you have combination of data like features for every tourist destination, you can go with classes and objects.  Each destination has an image ,name, price, thus OOPs.  We will use models.py ofcourse to interact with the DB. 
+
+Hence we are passing a list of objects from view.py 
+
+	dest1 = Destination()
+	dest2 = Destination()
+
+	dests = [dest1,dest2]
+	return render(request, “index.html”, {‘dests’ : dests})
+
+
+{% for dest in dests %}
+	dest.name
+	dest.price
+	dest.image
+{% endfor %}
+
+
+You cant use jinja inside jinja -> hence declare the outside jinja as a variable on top. Ie {% static “images” as baseURL %}
+
+Now bringing in DB instead of hardcoding the values
+ORM(object relational mapper) – it refers to the power of the framework to do the automatic mapping between objects in the program with columns of the db ie create tables with the help of objects.
+
+Using postgreSQL  and pgAdmin -   superuser : postgres   port : 5432  
+
+create a DB using pgAdmin itself then go back to settings.py and change database from the default sqllite3 to postgres and name as what you have created just before. Also provide USER , PASSWORD & HOST (localhost in our case). But you need a collector to connect django and postgres as an adapter so we are using -> pip install psycopg2
+
+check the official documentation of django model fields to get corresponding mapping with db
+
+from django.db import models
+class Destination(models.Model):
+	name = models.CharField(max_length=200)
+	desc =  models.TextField()
+	price = models.IntegerField()
+	offer =  model.BooleanField(default=False)
+	img = model.ImageField(upload_to=’pics’)
+
+python manage.py makemigrations #command needs to be executed to make the migration to db
+
+python manage.py sqlmigrate travello 0001 # creates the table 
+
+python manage.py migrate # to execute the query 
+
+python manage.py createscuperuser   # to make use of localhost:8000/admin
+
+give username & password 
+
+basically the idea is to maintain the webpage from admin panel ie edit destination details from here.
+
+Now we need to make a registration of Destination in admin.py file so that it will show up in admin panel
+
+from django.contrib import admin
+from .model import Destination
+admin.site.register(Destination)
+
+Registration form for users – login + registration
+
+python manage.py startapp accounts
+
+leverging ORM again, user table is there already.   
+
+If request.method == ‘POST’:
+	username & vars
+
+user = user.objects.create_user(above creds)
+user.save()
+print(‘user created’) # prints in the console
+messages.info(request, ‘Username taken!!!’) # to print for the user
+the get the above message using jinja in the form html page by looping
+
+return redirect(‘/’) # to redirect to home page
+
+
+For login also not required to write SQL queries,
+
+def login(request):
+	if request.method == ‘POST’:
+		username = request.POST[“username”]
+		password = request.POST[“password”]
+
+		user = auth.authenticate(username=username, password=password)
+		
+		if user is not None:
+			auth.authenticate(request, user)
+			return redirect(“/”)
+		else:
+			message.info(request, “Invalid credentials”)
+			return redirect(“login.html”)
+
+	else:
+		return redirect(“/login.html”)
+
+
+
+Then
+
+{% if user.is_Authenticated %}
+	<li> Hello, {{user.first_name}} </li>
+{% endif %}
+
+
+##########################################################################################################
+
