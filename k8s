@@ -128,6 +128,58 @@ CMD ./app
 
 ##################################################################################
 
+brctl show or ifconfig -a    -> usual bridge network created by docker engine
+
+but PODs makes use of DNS    http://foo  thats where kubeproxy comes into play it makes use of the underlying 
+feature of iptables in linux kernel to make routing possible among different nodes having their own subnets
+as far as docker bridges are concerned.
+
+Otherwise they would not be able to communicate since the pods in a node belong to the bridge of that particular node 
+alone hence kubeproxy enables iptables based routing. thats why labels are important since it works based on labels.
+
+kubectl describe svc example-svc  -  it should show the required endpoints so that we can confirm svc is working fine
+
+Now ingress is all about serving traffic to the outside world. Companies usually expose it as an endpoint to the application.
+
+When pods talk to each other they make use of service  ie http://foo       or   http://foo.bar    # bar is the ns if in different namespace
+
+an Ingress controller basically replaces a pod and acts as a proxy, you could use HAproxy or nginx, which will make use of 
+the service and communicate to pods in deployment via http   http://foo . Now the developer doesnt need to know nginx or HAproxy
+he just needs to write a yaml for ingress rules.
+
+So basically separate microservices through a single ingress contoller (~ to an API gateway)
+
+           POD          <------                      |  INGRESS     |     <-------  http://bar/bar-service
+	   DEPLOYMENT   <------	|	 |           |              |     <-------  http://foo.com/foo-service
+	   DEPLOYMENT   <------	|SERVICE |	     |  CONTROLLER  |     <-------  http://foo-service.foo.com
+
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: example-service
+  annotations:
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/frontend-entry-points: http,https
+    #traefik.ingress.kubernetes.io/redirect-entry-point: https
+    #traefik.ingress.kubernetes.io/redirect-permanent: "true"
+spec:
+  rules:
+  - host: marcel.test
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: example-service
+          servicePort: 80   
+	  
+
+
+
+
+
+
+
 
 
 
