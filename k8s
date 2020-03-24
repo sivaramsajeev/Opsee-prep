@@ -1,4 +1,38 @@
+istio is a service mesh. If you have loads of microservice it becomes difficult for service discovery and inter-service 
+communication thus istio adds an additional layer on your existing service. 
+Use cases: Traffic management & routing , secure communication , Observability & traceability , authentication, 
+visulaizing your application communication, service discovry & load balancing.
 
+No need to rewrite your application.Just install and configure policies. You just install a sidecar along with your existing
+pod. 
+
+download the istio package istioctl binary and keep in path from docs   using curl
+
+istioctl verify install   # checks the compatibility with k8s
+kubectl create ns istio-system
+helm install/kubernetes/helm/istio init 
+kubectl get crds   # after installation complted
+
+OR using istioctl to install 
+download the binary using curl
+istioctl profile list  # every profile has some configs
+istioctl manifest apply --set-profile=demo
+
+watch -x kubectl -n istio-system get pods  # to see number of pods being created in the process
+
+istioctl dashboard grafana  # opens up the dashboard accordingly
+
+istio bookinfo sample app from docs (python + java + nodejs + ruby)
+
+
+
+
+
+
+
+
+
+###################################################################################
 
 That is the output of replicas: 3
 
