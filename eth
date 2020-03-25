@@ -82,6 +82,19 @@ techniques used for prevention - filters,blacklist, whitelist but they can be by
 
 maltego is the tool for info gathering about anything 
 
+#############################################################################################
+
+autoit is the tool he is using to compile the script after changing the extension from txt to au3. script basically downloads 
+image + exe both in an array of urls. Goes to icon archive and gets the required icons and imprints that icon on the converted 
+exe using autoit. rw-designer is the website he recommends for image to icon conversion. 
+Keeps the file in docuroot and using metaexploit waits for incoming connections. then goes to windows and try downloading the 
+file. By the time .exe file is executed hook happens.but .exe extension is obvious unless extensions are hidden in windows settings.
+hence need to spoof the extension . But he is copying right-to-left character so that gtrexe.jpg  is written as gtrgpj.exe
+but browsers remove the right-to-left extension hence he is archiving it before sending. Then while sending email spamming 
+senders address as well using data gathered in previous phase. You could use an online site to do the spoofing but since 
+they are public they would be already blacklisted and would end up in spam folder. 
+
+
 
 
 
