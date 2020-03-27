@@ -93,8 +93,15 @@ hence need to spoof the extension . But he is copying right-to-left character so
 but browsers remove the right-to-left extension hence he is archiving it before sending. Then while sending email spamming 
 senders address as well using data gathered in previous phase. You could use an online site to do the spoofing but since 
 they are public they would be already blacklisted and would end up in spam folder. 
-
-
+beef wil ask for username password at initial login and open up firefox when done. Requires the hook.js be executed. He puts 
+hook.js inside index file in docuroot and accesses the apache2 from win machine and it gets displayed in beef online devices.
+In beef commands tab is of interest since it allows commands to be executed on remote machine. he is using 'bettercap' to spoof
+as well. bettercap helps you downgrade https to http. In commands search for alerts and create alert dialog. Spyder eye gives 
+screenshot. Another command is 'redirect' to have them to any other page. prettytheft is for fake logins. fake notification 
+to tell corresponding browser to download extension and get reverse shell or backdoor. Again metaexploit is used for the reverse
+shell. way to prevent the trojan is to right click properties and see the file type and make sure its jpg and not application exe
+In windows ther is a tool called resource manager using that is similar to netstat to get ports and all in networking section.
+Hybrid-analysis is one of the sandbox providers where you could test the trojans and analyze what they would do. 
 
 
 
