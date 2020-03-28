@@ -125,6 +125,19 @@ parser.add_option("-i","--interface",dest="interface",help="Interface to change 
 (options, arguments) = parser.parse_args()
 print('The interface is '+options.interface)
 
+Pastes the output in pythex an online site showing regex matches. Pasted the ifconfig output there as well. \w\w:\w\w:\w\w:\w\w:\w\w:\w\w  to match mac
+ifcfg_res = subprocess.check_output('ifcfg') is cleaner.  mac_out = re.search(pattern,ifcfg_res)  then mac_out.group[0].
+
+https = http + ssl/tls   -> basically encrypting the text . So MITM can read the data. tls/ssl is very difficult to break.
+So technique is to downgrade to http. bettercap has a caplet to remove https. the advanced tool is ssl strip. pastes the downloaded
+caplet to  /usr/share/bettercap/caplets/ (original.zip). within bettercap prompt, caplets.show() will list all the caplets.
+just need to type hstshijack/hstshijack . then target tries to reach linkedin its going via http. but fb, twitter etc are using 
+hsts which is harder to bypass. Incase of hsts, browser comes preloaded with a number of websites which can be loaded only in 
+https. facebook.corn or twiter.com . change them in caplet file settings. Works only when user goes via search engine ie if he types 
+in url it wont work since browser will only accept secure connection for listed websites. 
+
+
+ 
 
 
 
