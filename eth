@@ -103,6 +103,17 @@ shell. way to prevent the trojan is to right click properties and see the file t
 In windows ther is a tool called resource manager using that is similar to netstat to get ports and all in networking section.
 Hybrid-analysis is one of the sandbox providers where you could test the trojans and analyze what they would do. 
 
+mitm - basically sending a broadcast asking who has IP? and the target responds its MAC. arpspoof -i eth0 -t clientIP gwIP
+plus a packet sniffer likecwireshark to analyze the data. But by default,routing is not enabled hence packets will be dropped.
+Thus needs to enable port-forwarding.  echo 1 > /proc/sys/net/ipv4/ipforward. Then target will still get internet access. 
+Bettercap is advanced than arpspoof. bettercap -iface eth0 then you are inside the tool prompt, typing net.probe on to start 
+discovering other nodes in the subnet by sending udp packets. then use net.show to get a list of connected clients in a table.
+set arp.spoof.fullduplex true . set arp.spoof.target targetip . then arp.spoof on - to turn on the module. Also ensure that net.probe
+&net.recon are running as well. Making use of net.sniff module in bettercap itself to analyse the packets instead of tools 
+like wireshark.Generating traffic by reaching http url from win machine. By now it captueres everything including logins. 
+
+
+
 
 
 
