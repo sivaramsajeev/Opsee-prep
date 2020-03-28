@@ -112,6 +112,21 @@ set arp.spoof.fullduplex true . set arp.spoof.target targetip . then arp.spoof o
 &net.recon are running as well. Making use of net.sniff module in bettercap itself to analyse the packets instead of tools 
 like wireshark.Generating traffic by reaching http url from win machine. By now it captueres everything including logins. 
 
+Subprocess is used here as well. subprocess.call will wait for the command to be finished before executing any other commands.
+ifconfig interface down; ifconfig interface hw ether 00:11:22:33:44:55 ; ifconfig eth0 up 
+input vs raw_input in 2. But subprocess module opens up vulnerability if input is not properly validated. For eg, In linux terminal 
+; is used to separate commands just like SQL injection. Instead he suggests using the second method where each argument sepatrated 
+by space is an element of a list ie ls -lrt is ['ls','-lrt']. Thats why they wont recommend shell=True. 
+The whole --help and arguments and all can be taken care using optparse.
+
+import optparse
+parser = optparse.OptionParser()
+parser.add_option("-i","--interface",dest="interface",help="Interface to change MAC") # similarly other arguments below
+(options, arguments) = parser.parse_args()
+print('The interface is '+options.interface)
+
+
+
 
 
 
