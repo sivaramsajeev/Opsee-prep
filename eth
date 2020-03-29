@@ -285,6 +285,8 @@ scan_result = scan(options.target)
 print_result(scan_result)
 
 #########################################################################################################
+optparse is deprecated argparse is the replacement. 
+
 
 
 
