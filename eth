@@ -219,7 +219,23 @@ Lynx closed and deleted the connection straight away but wget keeps it for a whi
 nc accepts only single connection. as soon as the client connected, it went from LISTEN to ESTABLISHED. There is no more LISTENs.
 But real servers creates child process(clone of itself) to deal with connection and keeps listening for newer connections.
 
+netdiscover -r 192.168.1.1/24
 
+import scapy.all as scapy
+def scan(ip):
+        #arping(ip) - it does what is required but going to implement the same manually to have a deeper understanding 
+        arp_request = scapy.ARP(pdst=ip)
+        print(arp_request.summary())  # prints ARP who has ip <ip> says <own_ip>
+        broadcast = scapy.Ether(dst='ff:ff:ff:ff:ff:ff')
+        print(broadcast.summary())   # <own_mac> -> ff:ff:ff:ff:ff:ff
+        arp_request_broadcast = broadcast/arp_request
+        print(arp_request_broadcast.summary())   # Ether / ARP who has IP <ip> says <own_ip>
+        #instead of summary .show() can be called and it will show individual values of packets
+        answered, unanswered = scapy.srp(arp_request_broadcast, timeout = 1) #list of ans & unans packets  srp for send n recv packets
+        print(answered.summary())  # ARP who has ip <ip> says <own_ip> > othernodes respond with <their_mac> at <their_ip>
+        print(unanswered.summary())  # ARP who has ip <ip> says <own_ip> > response is none ie aprt from available nodes 
+                
+scan('192.168.0.1/24')
 
 
 
