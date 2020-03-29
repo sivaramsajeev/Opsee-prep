@@ -232,10 +232,60 @@ def scan(ip):
         print(arp_request_broadcast.summary())   # Ether / ARP who has IP <ip> says <own_ip>
         #instead of summary .show() can be called and it will show individual values of packets
         answered, unanswered = scapy.srp(arp_request_broadcast, timeout = 1) #list of ans & unans packets  srp for send n recv packets
+        #keep verbose=False if you dont want clutter
         print(answered.summary())  # ARP who has ip <ip> says <own_ip> > othernodes respond with <their_mac> at <their_ip>
         print(unanswered.summary())  # ARP who has ip <ip> says <own_ip> > response is none ie aprt from available nodes 
+        
+        for i in answered:
+                print(i[1].psrc + '\t\t' + i[1].hwsrc)
+                
+        #For the sake of datastructures
+        map_ip_dict_list = []
+        for i in answered:
+                print(i[1].psrc + '\t\t' + i[1].hwsrc)
+                map_ip_dict = {'mac':i[1].hwsrc, 'ip':i[1].psrc}
+                map_ip_dict_list.append(map_ip_dict)
+        
                 
 scan('192.168.0.1/24')
+
+the function does one thing and one thing alone well. Good for reusability and modularity.
+
+###################################################################################################
+#!/usr/bin/env python
+import scapy.all as scapy
+import optparse
+
+
+def get_arguments():
+    parser = optparse.OptionParser()
+    parser.add_option("-t", "--target", dest="target", help="Target IP / IP range.")
+    options, arguments = parser.parse_args()
+    return options
+
+def scan(ip):
+    arp_request = scapy.ARP(pdst=ip)
+    broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
+    arp_request_broadcast = broadcast/arp_request
+    answered_list = scapy.srp(arp_request_broadcast, timeout=1, verbose=False)[0]
+    clients_list = []
+    for element in answered_list:
+        client_dict = {"ip": element[1].psrc, "mac": element[1].hwsrc}
+        clients_list.append(client_dict)
+    return clients_list
+
+def print_result(results_list):
+    print("IP\t\t\tMAC Address\n-------------------------------------")
+    for client in results_list:
+        print(client["ip"] + "\t\t" + client["mac"])
+
+
+options = get_arguments()
+scan_result = scan(options.target)
+print_result(scan_result)
+
+#########################################################################################################
+
 
 
 
