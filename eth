@@ -193,6 +193,10 @@ Or you can set new parameters with -s --> ethtool -s eth0 speed 100 duplex full
 
 llly netstat -s shows network statistics as well. 
 
+tcp/udp  -> active is when we initiate connection while passive is when someone connects to us. 
+
+
+
 A friendly reminder: since Linux kernel 2.6.24 using /proc to store ACPI info has been discouraged and deprecated.
 
 Now we are encouraged to use -> /sys/class/power_supply/BAT0.
@@ -207,6 +211,13 @@ Linux netbook 4.20.1-arch1-1-ARCH #1 SMP PREEMPT Wed Jan 9 20:25:43 UTC 2019 x86
 99
 # cat /sys/class/power_supply/BAT1/status
 Charging
+
+gordon downloads a page using wget and then runs netstat and show that connection goes to TIME_WAIT state ie wget uses http and http 
+uses tcp as the transport protocol. TIME_WAIT means waiting for connection to fully close. /etc/service & /etc/protocols (show protocol numbers) 
+Lynx closed and deleted the connection straight away but wget keeps it for a while in TIME_WAIT. port is a 16-bit number upto 16k.
+
+nc accepts only single connection. as soon as the client connected, it went from LISTEN to ESTABLISHED. There is no more LISTENs.
+But real servers creates child process(clone of itself) to deal with connection and keeps listening for newer connections.
 
 
 
