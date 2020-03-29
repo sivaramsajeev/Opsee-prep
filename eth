@@ -135,6 +135,83 @@ just need to type hstshijack/hstshijack . then target tries to reach linkedin it
 hsts which is harder to bypass. Incase of hsts, browser comes preloaded with a number of websites which can be loaded only in 
 https. facebook.corn or twiter.com . change them in caplet file settings. Works only when user goes via search engine ie if he types 
 in url it wont work since browser will only accept secure connection for listed websites. 
+dns spoofing - redirecing from specific web to ours - again using bettercap since this is also mitm - set dns.spoof.all true
+set dns.spoof.domains *.zsecurity.org   then  dns.spoof on . again this wont work against https. Or you can inject js in response 
+from genuine site. creates a simple alert.js    put it in the bettercap hsts config file as before as*:/root/alert.js
+
+tcpdump can show the whole sysn , syn+ack , ack , data , ack structure. From Gordon classes. And individual packet components
+like full frame, IP , TCP ,data etc. ethtool can show device info like max transmission rate. 
+
+        Supported link modes:   10baseT/Half 10baseT/Full     #10mbps
+                                100baseT/Half 100baseT/Full    #100Mbps
+                                1000baseT/Half 1000baseT/Full   #1gops
+        Supported pause frame use: No
+        Supports auto-negotiation: Yes    # it advertises & negotiates with other end and settles on the lower transmission rate of the two
+        Advertised link modes:  10baseT/Half 10baseT/Full 
+                                100baseT/Half 100baseT/Full 
+                                1000baseT/Full 
+        Advertised pause frame use: Symmetric Receive-only
+        Advertised auto-negotiation: Yes
+        Speed: 10Mb/s    ##### this shows the currently in use 
+        Link detected: no     ### currently not connected or not able to detect connection ie the other end !!!
+        
+ 
+ 
+     inet 192.168.0.106/24 brd 192.168.0.255 scope global dynamic wlp1s0
+       valid_lft 6763sec preferred_lft 6763sec
+    inet6 fe80::ee3c:d655:269:ff6b/64 scope link tentative dadfailed     # scope link means local while global is internet 
+       valid_lft forever preferred_lft forever
+    inet6 fe80::890e:f539:da74:bcdc/64 scope link tentative dadfailed 
+       valid_lft forever preferred_lft forever
+
+Look for errors drop retransmissions. Too many errors indicate hardware failure. 
+ethtool -S wlp1s0       # -S for statistics
+NIC statistics:
+     rx_packets: 513636
+     rx_bytes: 612302518
+     rx_duplicates: 272
+     rx_fragments: 621047
+     rx_dropped: 297
+     tx_packets: 279918
+     tx_bytes: 181796002
+     tx_filtered: 0
+     tx_retry_failed: 2
+     tx_retries: 5487
+     sta_state: 4
+     txrate: 150000000
+     rxrate: 108000000
+     signal: 216
+     channel: 0
+     noise: 18446744073709551615
+     ch_time: 18446744073709551615
+     ch_time_busy: 18446744073709551615
+     ch_time_ext_busy: 18446744073709551615
+     ch_time_rx: 18446744073709551615
+     ch_time_tx: 18446744073709551615
+
+Or you can set new parameters with -s --> ethtool -s eth0 speed 100 duplex full
+
+llly netstat -s shows network statistics as well. 
+
+A friendly reminder: since Linux kernel 2.6.24 using /proc to store ACPI info has been discouraged and deprecated.
+
+Now we are encouraged to use -> /sys/class/power_supply/BAT0.
+
+UPDATE: Linux 3.19 and onwards, we should look at the following directory -> /sys/class/power_supply/BAT1/
+
+For example checking capacity & status on Arch Linux running Linux 4.20 ->
+
+# uname -a
+Linux netbook 4.20.1-arch1-1-ARCH #1 SMP PREEMPT Wed Jan 9 20:25:43 UTC 2019 x86_64 GNU/Linux
+# cat /sys/class/power_supply/BAT1/capacity
+99
+# cat /sys/class/power_supply/BAT1/status
+Charging
+
+
+
+
+
 
 
  
