@@ -36,6 +36,11 @@ def requests_count():
     return Response(res, mimetype="text/plain")
     
     ##########################################################################################
+    promql for querying but its read-only . service discovery to be updated in /etc/promotheus/promotheus.yaml
+    node exporters re for integrating with third parties since they dont natively support prometheus. 
+    making use of install-alertmanager.sh script + mailerserver installation is also there.
+    
+    
     
  
     
