@@ -286,6 +286,20 @@ print_result(scan_result)
 
 #########################################################################################################
 optparse is deprecated argparse is the replacement. 
+arp spoofing
+for dynamic print in python3, print('\r',end='')
+packet = scapy.ARP(op=2,pdst=<>,psrc=<>,hwsrc=<>,hwdst<>)  # scapy will automatically assign hwsrc as the interface macc by default
+scapy.send(packet)    #op=2 is important since its a response not a request ,ARP does not care for either
+
+packet.show() & summary() still works 
+
+try:
+
+except KeyboardInterrupt:
+        print('CTRLC received .. restoring MACs)
+        
+Spoofing has to be done continuoulsy with a time.sleep(2) in a while because the target will revert to original Gateway otherwise.
+
 
 
 
