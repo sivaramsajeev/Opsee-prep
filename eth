@@ -300,6 +300,32 @@ except KeyboardInterrupt:
         
 Spoofing has to be done continuoulsy with a time.sleep(2) in a while because the target will revert to original Gateway otherwise.
 
+Packet sniffing- because we have no way to read the data as of now.
+scapy.sniff(iface=interface, store=False, prn=process_sniffed_packet) #prn is call back function ie call the function given everytime its invoked
+#sore is false since we dont want to save it in mem and create memory pressure
+def process_sniffed_packet(packet):
+        print(packet)
+but data like this will look gibberish. hence we need to filter the data.in scapy.sniff add an additional argument called filter
+ie filter='udp|tcp|arp|port 21|port 80' #use the bpf syntax but it doesnt allow filtering of third party modules.
+For http filtering we need a third party modulee- scapy_http
+if packet.haslayer(http.HTTPRequest):
+        print(packet)              # because stuff related to web are in http ie the interesting stuff
+        
+packet.show()   - so that we know which layer is required.it shows ethernet layer, Ip, Tcp and Http layer.
+we can see method=POST for forms. 
+if packet.haslayer(scapy.Raw):
+        print(packet[scapy.Raw].load])
+  
+ url =  Packet([http.HTTPRequest].Host)+Packet([http.HTTPRequest].Path)   # for all the urls
+ 
+ 
+  
+
+        
+
+        
+        
+ 
 
 
 
