@@ -1,0 +1,72 @@
+Alogorithm - procedure or formaula for solving a problem. But how to analyze and compare algorithms?
+n(n+1)/2 vs for loop addition -> could compare with space it takes in memory or time it takes to run. But it depends on the 
+hardware being used. Objective method is required independent of hardware. 
+
+Big-O notation describes how quickly runtime will grow relative to the input as the input gets arbitarily large.
+Simply put we take number of assignments as an objective measure ie n+1 in the first case. 
+Common Big-O functions
+1 - constant
+n - linear # in our first case its O(n)
+log(n) - logarithmic
+nlog(n) - log linear 
+n**2 - quadratic
+n**3 - cubic
+2**n - exponential
+
+Got to stay away from Exponential,Cubic or quadratic Big-Os. 
+
+O(1)   constant
+lst = [1,2,3,4]
+def func_const(lst):
+  return lst[0]
+  
+  
+O(n)  linear
+def func_linear(lst):
+  for i in lst:
+    print(i)
+    
+O(n^2)  quadratic         #can be dangerous at scale
+def func_quad(lst):
+  for i in lst:
+    for j in lst:
+      print(i,j)   
+      
+ As we scale, calculus apply ie lt -> infinity . The key is constants will be dropped at scale.
+ hence
+ def func_2linear(lst):     # this is actually O(n+n)  but at scale this is also O(n) since constants will be dropped.
+    for i in lst:
+      print(i)
+    for j in lst:
+      print(j)     
+      
+ Now we see simplification
+ 
+ def func_on(lst):
+    print(lst[0])         #O(1)
+    mid = len(lst)
+    for i in lst[:mid/2]:   # O(n/2)
+      print(i)
+    for i in range(10):   #O(10)
+      print('hello world')
+
+The Actual O is O(1+n/2+10) but as the constants disappear it reduces to O(n)
+
+####################################################################################################
+Time vs space complexity
+
+def func(num):  # time & space both the complexities are O(n)
+  lst = []
+  for i in range(num):
+    lst.append(i)
+    return lst
+
+def func(num):  # Time complexity is O(n)  But space complexity is constant O(1)  ie ('Hello World')
+  for i in range(num):
+      print("Hello World")
+  
+  
+  Usulally we refer to time complexities. 
+  
+  
+  
