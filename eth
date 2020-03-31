@@ -386,6 +386,9 @@ Now modifying data sent in raw layer like html page itself.For eg injecting js i
 gzip and deflate. Thats basically the reaason we see html in kind of a gibberish form. server sends in gzipped form and browser 
 gunzips it. hence if remove accept encoding, no longer it will come encoded. need to replace text with regex.
 modified_load = re.sub('Accept-encoding.*?\\n\\r','',scapy_packet[scapy.Raw].load) # ? is for non-greedy match ie it will stop at first match of \r\n
+</body> is a good anchor to put js since we put it at the end.so that it wont affect load time or not cause issuues if js has errors.
+now in the repose section, modified_load = scapy_packet[scapy.Raw].load.replace('</body>','<script>alert(test);</script></body>')
+
 
 
                         
