@@ -382,7 +382,12 @@ if scapy_packet.haslayer(scapy.Raw
                         del scapy_packet[scapy.TCP].len
                         packet.set_payload(str(scapy_packet))
                         
-                        
+Now modifying data sent in raw layer like html page itself.For eg injecting js in target website. In load section we can see accept encoding
+gzip and deflate. Thats basically the reaason we see html in kind of a gibberish form. server sends in gzipped form and browser 
+gunzips it. hence if remove accept encoding, no longer it will come encoded. need to replace text with regex.
+modified_load = re.sub('Accept-encoding.*?\\n\\r','',scapy_packet[scapy.Raw].load) # ? is for non-greedy match ie it will stop at first match of \r\n
+
+
                         
          
                         
