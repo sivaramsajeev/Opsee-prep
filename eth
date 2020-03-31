@@ -318,7 +318,38 @@ if packet.haslayer(scapy.Raw):
   
  url =  Packet([http.HTTPRequest].Host)+Packet([http.HTTPRequest].Path)   # for all the urls
  
+Intercepting and modifying packet - We can modify the packet and send to dest but the unmodified packet will reach the destination
+first most probably and get executed anyway. and modified packet might be rejected. Better to create a queue and access the queue
+and modify and send the request. Target receives only modified request or response only. Need to make use of iptables and modify 
+routing rules-> iptables -I FORWARD -j NFQUEUE --queueuno 0 . This be done with subprocess itself. Now every packets will be trapped in queueu.
+pip install netfilterqueue. 
+queueu = netfilterqueue.NetfilterQueue()
+queue.bind(0, process_packet)  #again process_packet is the call back function that will be executed on every packet that gets trapped.
+queue.run()
+
+def process_packet(packet):
+        print(packet)  #but when target tries to access web, packets get trapped in queue and he doesnt get to the internet.
+        packet.accpet()  #now he can reach internet even though packets are being accessed
+        # packet.drop()  # packets will be dropped ie no internet
+  
+  iptables --flush   - to delete entries
+  
+FORWARD chain is when they come from different system while OUTPUT chain is for packet leaving the same computer while INPUT is for incoming packets.
+since we are testing on our local computer
+iptables -I OUTPUT -j NFQUEUE --queueuno 0
+iptables -I INPUT -j NFQUEUE --queueuno 0
+
+To manipulate need to convert the netfilter packet to a scapy packet, scapy_packet = scapy.IP(packet.get_payload())
+print(scapy_packet) - will show packets by all the layers. Forget not to remove iptables rules. 
+google.com  A   8.8.8.8   -Obvioulsy dns spoofing is changing the targets desired IP to an IP of your choosing.
+if scapy_packet.haslayer(scapy.DNSRR):
+        print(scapy_packet.show())
+
+
  
+
+
+
   
 
         
