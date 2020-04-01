@@ -400,6 +400,20 @@ if content_len_search:
   #need to use non-capturing group to get only digits in content length ie '(?:Content-length\s)(\d*)'  --> (?:) - non-capturing ie just for matching not printed
   now use group(1) since 0 will return everyting thats matched. now bring in beef. hook.js be injected as above.Replacing the script 
   part with hook script. iptables + arpspoof for mitm ate always the first steps.
+  
+  https - cant modify or inject because data will look gibberish. came up with sslstrip. basically it will strip the https on the 
+  first response from the server hence by the time response reaches client its http and target client never knows the communication
+  could be upgraded to https. again when the clint makes the request sslstrip will upgrade it to https so the webserver eg bbc 
+  will never get to know the actual client is using http.sslstrip is also written in python. 
+  just typing sslstip is enough to get it running. runs on port 10000. need to redirect all the packets to 10k from 80. 
+  iptables -t NAT -A PREROUTING -p TCP --destination-port 80 -j REDIERECT --to-port 10000
+  since sslstrip and previous scripts are modifying packets there are conficts. ie now the dport and source ports are 1000 instead 
+  of 80. also ip tables rules are for input and output since packets are already inside the host ie after sslstrip. 
+  need to use packet.show() to troubleshoot in case somethings breaks. but it might end up using HTTP1.1 which sends data in chunks
+  and the content length part wont execute as expected. so send the request in HTTP1.0, in req section load = load.replace('HTTP/1.1','HTTP/1.0')
+  
+  
+  
                         
          
                         
