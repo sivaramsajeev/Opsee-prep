@@ -389,8 +389,13 @@ modified_load = re.sub('Accept-encoding.*?\\n\\r','',scapy_packet[scapy.Raw].loa
 </body> is a good anchor to put js since we put it at the end.so that it wont affect load time or not cause issuues if js has errors.
 now in the repose section, modified_load = scapy_packet[scapy.Raw].load.replace('</body>','<script>alert(test);</script></body>')
 
-
-
+certain webservers set a field called content length making it impossible to inject code since it would change content length. 
+content_len_search = re.search('Content-length\s\d*',load)
+if content_len_search:
+        content_len = content_len_search.groups(0)
+  
+  #need to use non-capturing group to get only digits in content length ie '(?:Content-length\s)(\d*)'  --> (?:) - non-capturing ie just for matching not printed
+  now use group(1) since 0 will return everyting thats matched. 
                         
          
                         
