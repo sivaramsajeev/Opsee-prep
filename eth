@@ -449,10 +449,31 @@ location varies per os hence import tempfile. temp_dir = tempfile.gettempdir(). 
  to difficulties in troubleshooting. But inside our call back function its useful since everytime key is pressed the function
  will be run resetting local variables. 
         
-   
+ The function will keep executing until mnually interrupted hence we cant implement a sendmail function that would run after the 
+ functio hence multithreading is required here. import threading
+ def report():
+        global log
+        print(log)
+        log = ''
+        timer = threading.Timer(5, report)  # recursive 
+        timer.start()
         
-        
-         
+ so report is called before listener and since its multithreaded our main function will run infintely and report periodically.
+as a convention first letter is capitalized for a class name. function inside a class is a method since its invoked via class object.
+but every method inside the class will have self as the first argument. Now everything is inside class and methods.
+directly creating an object and executing at the eof is not rcd. need to create a separate file and import classes and methods 
+there. 
+import keylogger
+my_keylogger = keylogger.Keylogger()    
+my_keylogger.start()   #method is lower while class name starts with uppercase as convention
+now the user doesnt need to have any idea about the implementation. implement classes for packaging and to provide abstraction.
+programmer can start using and developing from this abstracted level ie no need to look into the implementation of each and everything.
+__init__(self) gets invoked upon object creation itself no need of explicit call.
+when we initialize self.global inside __init__  global log is no longer reqiured. 
+##Note that the point of classes is to eliminate (truly) global state and to manage it within classes and objects
+in sendmail its a good idea to add \n\n before message because sometimes it might all go in subject line without body.
+
+
                         
                         
                         
