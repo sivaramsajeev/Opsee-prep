@@ -423,8 +423,14 @@ server.quit()
 
 grep is implemented with command output in a variable and then regex and non-capturing groups and pythex. need to use findall instead
 of search.
-
-
+need to combine download and execute and report using smtp in single file. requests into the picture. file_name = url.split('/')[-1].
+lazagne has been forked which helps getting stored passwords.use the 32bit if unsure about arch. lazagne --help. usually just the module name.
+lazagne.exe browser. or if given all as arg it will try to show all passwords it can get. but the output is hown on terminal 
+so reporting is required. lazagne.exe is kept in ur server not like downloading and unzipping from github. result of the command
+ouput is captured in variable using subproccess and its sent via smtp. but the downloaded file will be visible to the user hence
+need to interact with os. import os because its platform independent.os.remove('lazagne.exe'). but during the execution time 
+file will be visible say 5 to 60s. so let the file be downloaded at a location user might not be looking at say tmp. but temp 
+location varies per os hence import tempfile. temp_dir = tempfile.gettempdir(). os.chdir(temp_dir) before execution. 
   
                         
          
