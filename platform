@@ -2886,6 +2886,20 @@ If the %I/O wait is more than zero for a longer period of time then we can consi
 I/O system ( Hard disk or Network )
 
 
+After installing or removing of ubuntu-gnome-desktop a bug of Desktop not responding to clicks/icons can occur, You may reactivate:
+
+Active Desktop Background:
+
+gsettings set org.gnome.settings-daemon.plugins.background active true
+Active Desktop Icons:
+
+gsettings set org.gnome.desktop.background show-desktop-icons true
+
+
+##########################################################################################################
+
+
+
 
 
 
