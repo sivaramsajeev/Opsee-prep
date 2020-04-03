@@ -500,6 +500,18 @@ while True:
         res = connection.recv(1024)
         print(res)
         
+ upto listen its rcd to put in __init__ only connection object needs self appended infront of it since its accessed later 
+ outside the function in the same class. OOPs allows easy extendability. serialization issue with tcp. we have set a size 1024 bytes
+ server doesnt have a way of knowing start and end of stream in the tcp data pipeline. tcp is streambased not msg based. data mixup
+ will happen within the stream. trying to read a large text file  every enter will print buffersize(1024bytes) of lines eventually connection 
+ gets broken. this will definitely create issue with upload n download. various methods as optio ie
+ 1)calculate the size of the message before sending and append it as a header for the msg so that server can iterate till that 
+ size is reached
+ 2)add a special end of message string at end of every msg
+ 3)making use of serialization - putting data into a box and sending the box as a whole so that it may b packed at server.
+ data may b text string , list, map 
+ 
+ 
         
 
 
