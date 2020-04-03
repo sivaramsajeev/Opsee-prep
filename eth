@@ -473,6 +473,10 @@ when we initialize self.global inside __init__  global log is no longer reqiured
 ##Note that the point of classes is to eliminate (truly) global state and to manage it within classes and objects
 in sendmail its a good idea to add \n\n before message because sometimes it might all go in subject line without body.
 
+backdoor- opening ports at target and awaiting connections will generate firewall alarms in targets system in general hence not rcs.
+unknown port open by unknown program - hence making use of reverse connection. opens up a port in hackers computer and awaits 
+connection from victim. firewall mostly concerned about incoming traffic. but ofcourse in our setup it doesnt allow outgoing 
+connections to unknown ips and ports. nc is used for a start. sublime doesnt have as many features as pycharm. 
 
                         
                         
