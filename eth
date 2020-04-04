@@ -509,7 +509,26 @@ while True:
  size is reached
  2)add a special end of message string at end of every msg
  3)making use of serialization - putting data into a box and sending the box as a whole so that it may b packed at server.
- data may b text string , list, map 
+ data may b text string , list, map. json is a general way of serializaing data structure. 
+ def reliable_send(self, data):
+        json_data = json.dumps(data)
+        self.connection.send(data)
+        
+  def reliable_recv(self):
+       data = self.connection.recv(1024) # but got the same problem since if data stream is longer than 1024 it will throw value error
+       return json.loads(data) #above maentioned exception likely to be invoked here
+       
+  Need to improvise t collect json>1024 bytes
+         def reliable_recv(self):
+                data = ''
+                while True:
+                        try:
+                                data = data + self.connection.recv(1024) 
+                                return json.loads(data)
+                        except valueError:
+                                continue
+
+       
  
  
         
