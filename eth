@@ -568,8 +568,19 @@ until connection is closed. use sys.exit() while exiting else target will see er
 pyinstaller.exe pgm.py --onefile --noconsole    #last argument to avoid cmdline popping up at target during run time.
 but functions like check_output makes use of terminals for output. in arguments, give stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL
 it doesnt show up on taskbar as well.   
-        
-   
+need to download and install windows python intrepreter on linux using wine. wine msiexec /i nameoffile.msi
+creates .wine folder in home directory and drive-c will be created within that for installation. once installaion is complete
+wine python.exe -m pip install pyinstaller  -> from the installed directory. 
+but if any additional package is used which doesnt come by default in the hackers computer, that needs to be packaged as well.
+install it in the wine based windows python intrepreter as well before packaging. 
+dependency packaging is taken care by pyinstaller ie if we have a file like a module with classes and another file where
+we instantiate the object of the class and call it, just mention the second file where the actual execution call happens.
+dependent imports will be taken care by pyinstaller. 
+persistence - program automatically executes on reboot. ie need to edit registry values using regedit. hkey_current_user>software>
+microsoft>windows>current_version>run (will show the entries at startup)
+
+
+
    
         
        
