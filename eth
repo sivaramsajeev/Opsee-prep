@@ -609,6 +609,28 @@ antivirus works by 2 concepts 1)code - compare against large db of signatures   
 2)behaviour - run in sandbox and analyze it. #they are gonna see if the file tries to modify registry values or open a port. harder to bypass
 run trusted code before evil code and delay the execution of evil code hoping AV would quit scanning before that.
 
+nodistribute is a site where the evil code is uploaded and its tested against multiple AV. 9/36 AVs detected even when he 
+tried with a harmless print program ie those AVs just target whichever exe files are generated using pyinstaller.
+download the latest version of upx/upx and unzip it from github.
+./upx /path/to/file.exe -o compressed_file.exe
+
+adding an icon to generated executables
+use iconfinder site. download the icon image but it will be in png format. use easyicon website to convert it into .ico. 
+rename it to pdf.ico . its simpe as adding an icon argument to pyinstaller.
+wine full/path/to/pyinstaller.exe --add-data "path/to/pdf:." --onefile --noconsole --icon /path/to/pdf.ico rev_backdoor.py
+
+but still the extension exe though the icon id pdf. ofcourse there are exploits where vulnerabilities in real pdfs are exploited 
+and evil code is injected. But these vulnerabilities tend to get patched soon. but we are not exploiting vulnerabilities.
+in kali, character > right-to-left override and copy character. filename-fdp.exe as input. 
+but to note is that browser will replace right to left with character. hence if its to be accessed via email or browser, archive
+it before sending. 
+
+but in linux programs dont get executed by double clicking. you got to run it from terminal.so it wont work with an image or pdf
+spoof hence suggested to provide a seemingly harmless program and make them execute it via terminal. 
+command is the same to create package for linux - pyinstaller --onefile --noconsole rev_backdoor.py
+chmod and make it executable and execute it. because if plane py file is sent people could read it. anyways the trojan method
+wont work in linux. 
+
 
 
 
