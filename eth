@@ -654,8 +654,15 @@ response = requests.post(url, data=data_dict)
 print(response.content)  #will show the full response as we give in browser
 Idea is to keep a file with known passwords and while looping -> data_dict['password'] = i  #no need to edit the whole dict ie initialize it outside the loop
 
-
-
+vulnerability scanner - in the previous case we manually inspected elements and found the required input fields, enter bs4.
+parsed_html = BeautifulSoup(response.content)
+forms_list = parsed_html.findAll('form')
+for form in forms_list:
+        action = form.get('action')  #since they are attributes inside a tag
+        method = form.get('method')
+        input_list = parsed_html.findAll('input')
+        for input in input_list:
+                input_name = input.get('name')
 
 
 
