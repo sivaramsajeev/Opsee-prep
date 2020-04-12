@@ -646,6 +646,16 @@ href_links = re.findall('(?:href=")(.*?)"',response_content)
 this is basically a spider program. Ensure links belonging to external sites ie youtube,google are removed.
 make it a recursive function and crawl all the links for pages within the page.
 
+Guessing login info - in order to submit forms,need to interact with input boxes. input boxes are often inside a form and 
+while submitting they will be validated in a file mentioned in action. 
+url = 'http://ip/login.php'
+data_dict = {'username':'john', 'password':'doe', 'Login':'submit'}
+response = requests.post(url, data=data_dict)
+print(response.content)  #will show the full response as we give in browser
+Idea is to keep a file with known passwords and while looping -> data_dict['password'] = i  #no need to edit the whole dict ie initialize it outside the loop
+
+
+
 
 
 
