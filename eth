@@ -640,6 +640,11 @@ just looping through the file object, gives it line by line ie for i in f:
 after / whatever comes is considered to be directories but webadmins could manipulate it. same logic as subdomains here we append /
 followed by directory name vs subdomain followed by '.' . 
 
+but as humans we can see various links in a site by scrolling over it but soup is the next logical step to find more locations
+within the webserver. usually <a  href='link'> tag is used for links. 
+href_links = re.findall('(?:href=")(.*?)"',response_content)
+this is basically a spider program. Ensure links belonging to external sites ie youtube,google are removed.
+make it a recursive function and crawl all the links for pages within the page.
 
 
 
