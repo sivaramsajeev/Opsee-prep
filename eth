@@ -631,6 +631,15 @@ command is the same to create package for linux - pyinstaller --onefile --nocons
 chmod and make it executable and execute it. because if plane py file is sent people could read it. anyways the trojan method
 wont work in linux. 
 
+metasploitable is a vm designed to hack into and learn penetration and understand vulnerabilities. need a reverse shell from 
+a php webserver then the commands need to be in php since they are gonna be executed in the server. subdomains are great for vulnerabilities
+since they might not be deigned as secure or may be in beta mode for testing purposes.the idea is to try a list of subdomains.
+when the list of possible subdomains are taken from a file line-by-line python will put an extra line in between while printing
+because it will consider the new line character from file itself ie mail\n ftp \n sftp etc. hence word = line.strip()
+just looping through the file object, gives it line by line ie for i in f:
+after / whatever comes is considered to be directories but webadmins could manipulate it. same logic as subdomains here we append /
+followed by directory name vs subdomain followed by '.' . 
+
 
 
 
