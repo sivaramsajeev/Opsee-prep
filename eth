@@ -665,6 +665,14 @@ for form in forms_list:
                 input_name = input.get('name')
 
 
+incase some are relative urls make use of urlparse library.it will action accordingly.
+post_url = urlparse.urljoin(url,action)
+
+urlmapping is the first step of vulnerability scanner. but the login has a problem since we will get logged out the moment program
+exits like closing the broswer after login. so init session.
+self.session = requests.Session()  # for persisting the session
+then instead of using requests use above session ie self.session.get('url')
+once packaged in class, response = vuln_scanner.session.post(url, data_dict)
 
 
 
