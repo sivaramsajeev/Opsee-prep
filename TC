@@ -1,0 +1,16 @@
+TC server and Agents for distributed work to save physical memory and cpu cycles. 
++ create a project - it can automatically identify the sorce code or build tool - he does manually - gives overwhelming 
+amount of options - just need to provide as per the requirement 
+
+TC is common among .net developers though it supports all the major languages. Recommended to have build agents in different servers.
+Teamcity server just controls it. You dont want to kill server if build hangs and also many simultaneous builds can be done. and also
+for scaling out this architecture helps. TC ismade on java hence jdk is a prerequisite. 
+
+But on an enterprise level, we need to take HA into consideration. TC servers be behind an ELB and a single DB at backend then letting servers
+communicate to agents. Need to configure it not to use the internal DB since it will not  have same data for multiple horizontal
+servers. possible candidate for ASG. you can setup with inbuilt DB which is good for learning or personal projects but not good for 
+scalability. Setup with external DB for production, also that requires jdbc, supports mysql,oracle etc. 
+
+Better to go with RDS itself and forget about HA(. create a replica in different zone), clustering, backup and stuff.
+Mention DB as teamcity else again you need to use mysql client to connect and create it manually. Endpoint is what is requoired 
+to connect to db. 
